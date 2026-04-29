@@ -1,0 +1,876 @@
+{
+  "phase": 7,
+  "title": "AI Integration & Production Deployment",
+  "date": "2026-02-12",
+  "status": "PLANNED",
+  "summary": {
+    "totalFiles": 38,
+    "createFiles": 24,
+    "modifyFiles": 14,
+    "totalEstimatedLOC": 8247,
+    "productionLOC": 6184,
+    "testLOC": 2063,
+    "rustFiles": 11,
+    "frontendFiles": 23,
+    "documentationFiles": 4
+  },
+  "domains": [
+    {
+      "id": 1,
+      "name": "Gateway Management",
+      "description": "Gateway REST API server, HTTP routing, SSE streaming, BRC-103 auth middleware",
+      "files": [
+        {
+          "path": "src-tauri/src/gateway_domain/mod.rs",
+          "action": "CREATE",
+          "loc": 42,
+          "purpose": "Module exports for gateway domain (Server, Router, StreamHandler, AuthMiddleware)",
+          "exports": [
+            "GatewayServer",
+            "start_server",
+            "stop_server",
+            "ServerConfig",
+            "ServerStatus"
+          ],
+          "dependencies": [],
+          "tests": 0
+        },
+        {
+          "path": "src-tauri/src/gateway_domain/server.rs",
+          "action": "CREATE",
+          "loc": 587,
+          "purpose": "HTTP server implementation (Axum framework), lifecycle management, health endpoint",
+          "keyFunctions": [
+            "start_server(config: ServerConfig) -> Result<ServerHandle>",
+            "stop_server(handle: ServerHandle) -> Result<()>",
+            "health_check() -> StatusCode",
+            "apply_cors_middleware() -> CorsLayer"
+          ],
+          "hardDependencies": [
+            "Phase 3: config.rs (port, bind address)",
+            "Phase 4: auth/users.rs (authorized users list)"
+          ],
+          "tests": 12,
+          "testAnnotations": "#[tokio::test]"
+        },
+        {
+          "path": "src-tauri/src/gateway_domain/router.rs",
+          "action": "CREATE",
+          "loc": 423,
+          "purpose": "API route handlers for 27 REST endpoints (chat, identity, subscription, auth, channels)",
+          "keyFunctions": [
+            "chat_completions_handler(req: ChatCompletionRequest) -> Response",
+            "chat_history_handler(filters: HistoryFilters) -> Json<Vec<ChatHistoryEntry>>",
+            "identity_petname_handler() -> Json<String>",
+            "subscription_check_handler() -> Json<SubscriptionStatus>"
+          ],
+          "hardDependencies": [
+            "Phase 1: crypto_domain/signing.rs (signature verification)",
+            "Phase 2: spv_domain/verifier.rs (subscription checks)",
+            "Phase 5: channel_domain/config.rs (channel CRUD)"
+          ],
+          "tests": 18,
+          "testAnnotations": "#[tokio::test]"
+        },
+        {
+          "path": "src-tauri/src/gateway_domain/streaming.rs",
+          "action": "CREATE",
+          "loc": 341,
+          "purpose": "Server-Sent Events (SSE) streaming for chat completions, event formatting",
+          "keyFunctions": [
+            "stream_chat_completion(messages: Vec<ChatMessage>) -> impl Stream<Item = SSEEvent>",
+            "format_sse_event(event_type: &str, data: &str) -> String",
+            "handle_streaming_error(error: StreamError) -> SSEEvent"
+          ],
+          "hardDependencies": [
+            "Domain 2: lib/chat-client.ts (SSE parsing on frontend)"
+          ],
+          "tests": 8,
+          "testAnnotations": "#[tokio::test]"
+        },
+        {
+          "path": "src-tauri/src/gateway_domain/auth_middleware.rs",
+          "action": "CREATE",
+          "loc": 268,
+          "purpose": "BRC-103 authentication middleware, session token validation, permission checks",
+          "keyFunctions": [
+            "authenticate_request(headers: HeaderMap) -> Result<UserId>",
+            "verify_brc103_signature(pubkey: &str, nonce: &str, signature: &str) -> Result<bool>",
+            "check_permission(user_id: &str, required_level: PermissionLevel) -> Result<()>"
+          ],
+          "hardDependencies": [
+            "Phase 1: crypto_domain/signing.rs (VerifyRequest IPC)",
+            "Phase 4: auth/users.rs (user lookup, permission levels)"
+          ],
+          "tests": 10,
+          "testAnnotations": "#[tokio::test]"
+        },
+        {
+          "path": "src-tauri/src/commands/gateway.rs",
+          "action": "MODIFY",
+          "loc": 247,
+          "additions": 68,
+          "purpose": "Enhanced gateway lifecycle commands (start_gateway now spawns HTTP server, not just process)",
+          "newCommands": [
+            "get_server_status_cmd() -> Result<ServerStatus>",
+            "restart_server_cmd() -> Result<()>"
+          ],
+          "modifiedCommands": [
+            "start_gateway_cmd() - now calls gateway_domain::start_server()",
+            "stop_gateway_cmd() - now gracefully shuts down HTTP server"
+          ],
+          "hardDependencies": [
+            "Phase 3: commands/gateway.rs (existing process lifecycle)",
+            "NEW: gateway_domain/server.rs"
+          ],
+          "tests": 7,
+          "testAnnotations": "#[tokio::test]"
+        }
+      ],
+      "summary": {
+        "files": 6,
+        "createFiles": 5,
+        "modifyFiles": 1,
+        "totalLOC": 1908,
+        "tests": 55
+      }
+    },
+    {
+      "id": 2,
+      "name": "Chat Integration",
+      "description": "Frontend chat hooks, SSE client, real-time message streaming",
+      "files": [
+        {
+          "path": "src/hooks/useChat.ts",
+          "action": "MODIFY",
+          "loc": 278,
+          "additions": 120,
+          "purpose": "Enhanced chat hook with SSE streaming, tool call handling, error recovery",
+          "newFunctions": [
+            "sendStreamingMessage(content: string) -> AsyncIterator<SSEEvent>",
+            "handleToolCall(toolCall: ToolCallEvent) -> void",
+            "retryFailedMessage(messageId: string) -> void"
+          ],
+          "modifiedFunctions": [
+            "sendMessage() - now uses streaming by default",
+            "loadHistory() - now fetches from gateway API instead of localStorage"
+          ],
+          "hardDependencies": [
+            "Domain 1: gateway_domain/streaming.rs (SSE backend)",
+            "NEW: lib/chat-client.ts (SSE parsing logic)"
+          ],
+          "tests": 15,
+          "testFile": "src/hooks/__tests__/useChat.test.ts"
+        },
+        {
+          "path": "src/hooks/useChatHistory.ts",
+          "action": "CREATE",
+          "loc": 142,
+          "purpose": "Chat history management hook (fetch, paginate, filter, export)",
+          "keyFunctions": [
+            "loadHistory(filters: HistoryFilters) -> Promise<ChatHistoryEntry[]>",
+            "exportHistory(format: 'json' | 'txt') -> Blob",
+            "clearHistory() -> Promise<void>"
+          ],
+          "hardDependencies": [
+            "Domain 1: gateway_domain/router.rs (chat_history_handler endpoint)"
+          ],
+          "tests": 8,
+          "testFile": "src/hooks/__tests__/useChatHistory.test.ts"
+        },
+        {
+          "path": "src/lib/chat-client.ts",
+          "action": "CREATE",
+          "loc": 234,
+          "purpose": "Low-level SSE client, event parsing, reconnection logic",
+          "keyFunctions": [
+            "createSSEConnection(url: string) -> EventSource",
+            "parseSSEEvent(rawEvent: string) -> SSEEvent",
+            "handleReconnection(retryCount: number) -> void"
+          ],
+          "hardDependencies": [
+            "Domain 1: gateway_domain/streaming.rs (SSE format)"
+          ],
+          "tests": 12,
+          "testFile": "src/lib/__tests__/chat-client.test.ts"
+        }
+      ],
+      "summary": {
+        "files": 3,
+        "createFiles": 2,
+        "modifyFiles": 1,
+        "totalLOC": 654,
+        "tests": 35
+      }
+    },
+    {
+      "id": 3,
+      "name": "Config Management",
+      "description": "Configuration persistence, migration, validation",
+      "files": [
+        {
+          "path": "src-tauri/src/config.rs",
+          "action": "MODIFY",
+          "loc": 219,
+          "additions": 77,
+          "purpose": "Enhanced config with gateway server settings, AI model preferences",
+          "newFields": [
+            "server_port: u16 (default: 3000)",
+            "server_bind_address: String (default: 127.0.0.1)",
+            "ai_model: String (default: gpt-4o)",
+            "streaming_enabled: bool (default: true)",
+            "chat_history_limit: u32 (default: 1000)"
+          ],
+          "newFunctions": [
+            "validate_server_config() -> Result<()>",
+            "migrate_v2_to_v3() -> Result<()>"
+          ],
+          "hardDependencies": [
+            "Phase 3: config.rs (existing v1→v2 migration)",
+            "Domain 1: gateway_domain/server.rs (ServerConfig consumer)"
+          ],
+          "tests": 6,
+          "testAnnotations": "#[tokio::test]"
+        },
+        {
+          "path": "src-tauri/src/commands/config.rs",
+          "action": "MODIFY",
+          "loc": 843,
+          "additions": 61,
+          "purpose": "New config commands for server settings, AI model selection",
+          "newCommands": [
+            "get_server_config_cmd() -> Result<ServerConfig>",
+            "set_server_config_cmd(config: ServerConfig) -> Result<()>",
+            "get_ai_model_cmd() -> Result<String>",
+            "set_ai_model_cmd(model: String) -> Result<()>"
+          ],
+          "hardDependencies": [
+            "Phase 4: commands/config.rs (existing set_mode_cmd)",
+            "src-tauri/src/config.rs (Config struct)"
+          ],
+          "tests": 8,
+          "testAnnotations": "#[tokio::test]"
+        },
+        {
+          "path": "src/components/settings/GeneralSettings.tsx",
+          "action": "MODIFY",
+          "loc": 267,
+          "additions": 125,
+          "purpose": "Added server settings section (port, bind address), AI model selector",
+          "newSections": [
+            "Server Configuration (port input, bind address input, restart button)",
+            "AI Model Selection (dropdown: gpt-4o, gpt-4-turbo, claude-3-5-sonnet)",
+            "Streaming Settings (toggle streaming, chunk size slider)"
+          ],
+          "hardDependencies": [
+            "Phase 3: components/settings/GeneralSettings.tsx (existing mode selector)",
+            "Domain 3: commands/config.rs (get/set server config)"
+          ],
+          "tests": 18,
+          "testFile": "src/components/settings/__tests__/GeneralSettings.test.tsx"
+        },
+        {
+          "path": "src/components/settings/AISettings.tsx",
+          "action": "CREATE",
+          "loc": 187,
+          "purpose": "Dedicated AI settings panel (model selection, temperature, max_tokens, system prompt)",
+          "keyFeatures": [
+            "Model dropdown (GPT-4o, Claude 3.5 Sonnet, Llama 3.2)",
+            "Temperature slider (0.0-2.0)",
+            "Max tokens input (1-128000)",
+            "System prompt textarea with presets"
+          ],
+          "hardDependencies": [
+            "Domain 3: commands/config.rs (AI model commands)",
+            "src/types/api.ts (ChatCompletionRequest schema)"
+          ],
+          "tests": 14,
+          "testFile": "src/components/settings/__tests__/AISettings.test.tsx"
+        },
+        {
+          "path": "src/components/settings/ChatSettings.tsx",
+          "action": "CREATE",
+          "loc": 152,
+          "purpose": "Chat-specific settings (history limit, auto-export, markdown rendering preferences)",
+          "keyFeatures": [
+            "History limit input (100-10000 messages)",
+            "Auto-export toggle (daily JSON export)",
+            "Markdown rendering options (code highlighting, LaTeX)",
+            "Message retention policy (days selector)"
+          ],
+          "hardDependencies": [
+            "Domain 2: hooks/useChatHistory.ts (history management)",
+            "Domain 3: commands/config.rs (chat settings persistence)"
+          ],
+          "tests": 11,
+          "testFile": "src/components/settings/__tests__/ChatSettings.test.tsx"
+        }
+      ],
+      "summary": {
+        "files": 5,
+        "createFiles": 2,
+        "modifyFiles": 3,
+        "totalLOC": 1668,
+        "tests": 57
+      }
+    },
+    {
+      "id": 4,
+      "name": "Channel Integration",
+      "description": "Enhanced channel wizards with tool calling support",
+      "files": [
+        {
+          "path": "src/components/channels/TelegramWizard.tsx",
+          "action": "MODIFY",
+          "loc": 312,
+          "additions": 45,
+          "purpose": "Added tool calling configuration step (enable/disable specific tools per channel)",
+          "newFeatures": [
+            "Step 4: Tool Configuration (checkboxes for web_search, image_generation, code_execution)",
+            "Tool permission warnings (e.g., code_execution requires Owner permission)",
+            "Channel-specific tool rate limits"
+          ],
+          "hardDependencies": [
+            "Phase 5: components/channels/TelegramWizard.tsx (existing 3-step wizard)",
+            "Domain 1: gateway_domain/router.rs (tool call routing)"
+          ],
+          "tests": 5,
+          "testFile": "src/components/channels/__tests__/TelegramWizard.test.tsx"
+        },
+        {
+          "path": "src/components/channels/DiscordWizard.tsx",
+          "action": "MODIFY",
+          "loc": 345,
+          "additions": 45,
+          "purpose": "Added tool calling configuration step (same as Telegram)",
+          "newFeatures": [
+            "Step 4: Tool Configuration",
+            "Discord-specific tool restrictions (slash command integration)"
+          ],
+          "hardDependencies": [
+            "Phase 5: components/channels/DiscordWizard.tsx (existing wizard)",
+            "Domain 1: gateway_domain/router.rs (tool call routing)"
+          ],
+          "tests": 5,
+          "testFile": "src/components/channels/__tests__/DiscordWizard.test.tsx"
+        }
+      ],
+      "summary": {
+        "files": 2,
+        "createFiles": 0,
+        "modifyFiles": 2,
+        "totalLOC": 657,
+        "additions": 90,
+        "tests": 10
+      }
+    },
+    {
+      "id": 5,
+      "name": "Identity",
+      "description": "Enhanced identity display with avatar editing",
+      "files": [
+        {
+          "path": "src-tauri/src/crypto_domain/keychain.rs",
+          "action": "MODIFY",
+          "loc": 298,
+          "additions": 56,
+          "purpose": "Added custom avatar storage (base64-encoded PNG in keychain as 'edwinpai.identity.avatar')",
+          "newFunctions": [
+            "store_custom_avatar(avatar_data: Vec<u8>) -> Result<()>",
+            "retrieve_custom_avatar() -> Result<Option<Vec<u8>>>",
+            "delete_custom_avatar() -> Result<()>"
+          ],
+          "hardDependencies": [
+            "Phase 1: crypto_domain/keychain.rs (existing key storage)"
+          ],
+          "tests": 6,
+          "testAnnotations": "#[tokio::test]"
+        }
+      ],
+      "summary": {
+        "files": 1,
+        "createFiles": 0,
+        "modifyFiles": 1,
+        "totalLOC": 298,
+        "additions": 56,
+        "tests": 6
+      }
+    },
+    {
+      "id": 6,
+      "name": "Onboarding",
+      "description": "Unified onboarding wizard for first-run setup",
+      "files": [
+        {
+          "path": "src/components/onboarding/OnboardingWizard.tsx",
+          "action": "CREATE",
+          "loc": 412,
+          "purpose": "Unified onboarding wizard orchestrating 5 setup steps (identity → subscription → mode → channels → complete)",
+          "keyFeatures": [
+            "Step 1: Identity setup (generate/import keys, petname display, custom avatar upload)",
+            "Step 2: Subscription creation (payment flow, UTXO verification)",
+            "Step 3: Mode selection (gateway vs client, explains differences)",
+            "Step 4: Channel setup (quick-add 1-3 channels, skip option)",
+            "Step 5: Completion (show summary, 'Start Using EdwinPAI' button)"
+          ],
+          "hardDependencies": [
+            "Domain 6: IdentitySetupStep.tsx",
+            "Domain 6: SubscriptionSetupStep.tsx",
+            "Domain 6: ModeSelectionStep.tsx",
+            "Phase 5: components/channels/WizardShell.tsx (reuse wizard framework)"
+          ],
+          "tests": 22,
+          "testFile": "src/components/onboarding/__tests__/OnboardingWizard.test.tsx"
+        },
+        {
+          "path": "src/components/onboarding/IdentitySetupStep.tsx",
+          "action": "CREATE",
+          "loc": 268,
+          "purpose": "Identity setup step (key generation, petname display, custom avatar upload)",
+          "keyFeatures": [
+            "Auto-generate keys on mount (if not exists)",
+            "Display generated petname + identicon",
+            "Upload custom avatar button (PNG/JPG, 512x512 max, <500KB)",
+            "Advanced: Import private key from hex (with warning)"
+          ],
+          "hardDependencies": [
+            "Phase 1: crypto_domain/keypair.rs (key generation)",
+            "Domain 5: crypto_domain/keychain.rs (custom avatar storage)"
+          ],
+          "tests": 12,
+          "testFile": "src/components/onboarding/__tests__/IdentitySetupStep.test.tsx"
+        },
+        {
+          "path": "src/components/onboarding/SubscriptionSetupStep.tsx",
+          "action": "CREATE",
+          "loc": 234,
+          "purpose": "Subscription payment flow (UTXO creation, SPV verification)",
+          "keyFeatures": [
+            "Payment amount selector ($5/month, $50/year)",
+            "BSV address generation (BRC-42 derived key)",
+            "QR code display + copy address button",
+            "Auto-verify UTXO after payment (polling every 5s, max 5 min)",
+            "Skip option (14-day trial mode)"
+          ],
+          "hardDependencies": [
+            "Phase 2: subscription_domain/fsm.rs (subscription state management)",
+            "Phase 2: spv_domain/verifier.rs (BEEF proof verification)"
+          ],
+          "tests": 10,
+          "testFile": "src/components/onboarding/__tests__/SubscriptionSetupStep.test.tsx"
+        },
+        {
+          "path": "src/components/onboarding/ModeSelectionStep.tsx",
+          "action": "CREATE",
+          "loc": 189,
+          "purpose": "Mode selection step (gateway vs client, explains trade-offs)",
+          "keyFeatures": [
+            "Two-column comparison (Gateway: full-featured, always-on, local-first | Client: lightweight, remote-dependent, multi-device)",
+            "Recommended badge based on system specs (>8GB RAM + SSD → Gateway)",
+            "Advanced options toggle (custom gateway URL, offline mode)"
+          ],
+          "hardDependencies": [
+            "Phase 3: commands/config.rs (set_mode_cmd)",
+            "Phase 4: components/onboarding/ClientModeFlow.tsx (nested wizard)"
+          ],
+          "tests": 8,
+          "testFile": "src/components/onboarding/__tests__/ModeSelectionStep.test.tsx"
+        }
+      ],
+      "summary": {
+        "files": 4,
+        "createFiles": 4,
+        "modifyFiles": 0,
+        "totalLOC": 1103,
+        "tests": 52
+      }
+    },
+    {
+      "id": 7,
+      "name": "App Shell",
+      "description": "Main application routing, sidebar, navigation",
+      "files": [
+        {
+          "path": "src/App.tsx",
+          "action": "MODIFY",
+          "loc": 357,
+          "additions": 68,
+          "purpose": "Added AI settings route, onboarding wizard route, improved error boundaries",
+          "newRoutes": [
+            "/onboarding - OnboardingWizard (first-run only)",
+            "/settings/ai - AISettings panel",
+            "/settings/chat - ChatSettings panel"
+          ],
+          "newFeatures": [
+            "First-run detection (redirect to /onboarding if no identity)",
+            "Global error boundary with recovery UI",
+            "Loading states for lazy-loaded routes"
+          ],
+          "hardDependencies": [
+            "Phase 3: App.tsx (existing chat, channels, settings routes)",
+            "Domain 6: OnboardingWizard.tsx"
+          ],
+          "tests": 12,
+          "testFile": "src/__tests__/App.test.tsx"
+        },
+        {
+          "path": "src/components/layout/Sidebar.tsx",
+          "action": "MODIFY",
+          "loc": 198,
+          "additions": 42,
+          "purpose": "Added AI settings icon, reorganized settings submenu",
+          "newItems": [
+            "Settings → AI (brain icon)",
+            "Settings → Chat (message-square icon)",
+            "Settings → General (moved from top-level)"
+          ],
+          "visualChanges": [
+            "Collapsible settings submenu with chevron",
+            "Active route highlighting (blue accent)",
+            "Tooltips on hover (for collapsed sidebar mode)"
+          ],
+          "hardDependencies": [
+            "Phase 3: components/layout/Sidebar.tsx (existing navigation)"
+          ],
+          "tests": 8,
+          "testFile": "src/components/layout/__tests__/Sidebar.test.tsx"
+        }
+      ],
+      "summary": {
+        "files": 2,
+        "createFiles": 0,
+        "modifyFiles": 2,
+        "totalLOC": 555,
+        "additions": 110,
+        "tests": 20
+      }
+    }
+  ],
+  "crossCuttingConcerns": {
+    "types": [
+      {
+        "path": "src/types/api.ts",
+        "action": "MODIFY",
+        "additions": 247,
+        "purpose": "Extended API types for SSE events, chat history, server config",
+        "newTypes": [
+          "SSEEvent",
+          "ChatHistoryEntry",
+          "HistoryFilters",
+          "ServerConfig",
+          "ToolCallEvent",
+          "StreamingOptions"
+        ],
+        "hardDependencies": [
+          "Domain 1: gateway_domain/router.rs (type consumers)",
+          "Domain 2: lib/chat-client.ts (SSE parsing)"
+        ]
+      },
+      {
+        "path": "src/types/ipc.ts",
+        "action": "MODIFY",
+        "additions": 68,
+        "purpose": "New IPC commands for server management, avatar storage",
+        "newTypes": [
+          "GetServerStatusRequest/Response",
+          "RestartServerRequest/Response",
+          "StoreCustomAvatarRequest/Response"
+        ]
+      }
+    ],
+    "documentation": [
+      {
+        "path": "edwinpai-desktop/PHASE7_IMPLEMENTATION_GUIDE.md",
+        "action": "CREATE",
+        "wordCount": 8500,
+        "purpose": "Step-by-step implementation guide, dependency order, testing strategy"
+      },
+      {
+        "path": "edwinpai-desktop/PHASE7_API_REFERENCE.md",
+        "action": "CREATE",
+        "wordCount": 6200,
+        "purpose": "Complete API documentation for 27 gateway endpoints + 12 new Tauri commands"
+      },
+      {
+        "path": "edwinpai-desktop/PHASE7_TEST_MANIFEST.md",
+        "action": "CREATE",
+        "wordCount": 4800,
+        "purpose": "Test coverage matrix, E2E scenarios, CI configuration"
+      },
+      {
+        "path": "edwinpai-desktop/PHASE7_COMPLETION_REPORT.md",
+        "action": "CREATE",
+        "wordCount": 7500,
+        "purpose": "Final deliverable report, coverage metrics, deviations log"
+      }
+    ]
+  },
+  "dependencyMatrix": {
+    "hardDependencies": [
+      {
+        "source": "gateway_domain/server.rs",
+        "target": "Phase 3: config.rs",
+        "reason": "Server port and bind address from config"
+      },
+      {
+        "source": "gateway_domain/router.rs",
+        "target": "Phase 1: crypto_domain/signing.rs",
+        "reason": "BRC-103 signature verification"
+      },
+      {
+        "source": "gateway_domain/router.rs",
+        "target": "Phase 2: spv_domain/verifier.rs",
+        "reason": "Subscription check endpoint"
+      },
+      {
+        "source": "gateway_domain/router.rs",
+        "target": "Phase 5: channel_domain/config.rs",
+        "reason": "Channel CRUD endpoints"
+      },
+      {
+        "source": "gateway_domain/auth_middleware.rs",
+        "target": "Phase 4: auth/users.rs",
+        "reason": "User lookup and permission checks"
+      },
+      {
+        "source": "lib/chat-client.ts",
+        "target": "gateway_domain/streaming.rs",
+        "reason": "SSE event format contract"
+      },
+      {
+        "source": "hooks/useChat.ts",
+        "target": "lib/chat-client.ts",
+        "reason": "SSE connection management"
+      },
+      {
+        "source": "hooks/useChatHistory.ts",
+        "target": "gateway_domain/router.rs",
+        "reason": "Chat history API endpoints"
+      },
+      {
+        "source": "commands/gateway.rs (modified)",
+        "target": "gateway_domain/server.rs",
+        "reason": "start_gateway_cmd now spawns HTTP server"
+      },
+      {
+        "source": "components/settings/GeneralSettings.tsx (modified)",
+        "target": "commands/config.rs (modified)",
+        "reason": "Server config get/set commands"
+      },
+      {
+        "source": "components/settings/AISettings.tsx",
+        "target": "commands/config.rs (modified)",
+        "reason": "AI model selection commands"
+      },
+      {
+        "source": "components/onboarding/IdentitySetupStep.tsx",
+        "target": "crypto_domain/keychain.rs (modified)",
+        "reason": "Custom avatar storage"
+      },
+      {
+        "source": "components/onboarding/SubscriptionSetupStep.tsx",
+        "target": "Phase 2: subscription_domain/fsm.rs",
+        "reason": "Subscription state polling"
+      },
+      {
+        "source": "components/onboarding/OnboardingWizard.tsx",
+        "target": "All 4 onboarding step components",
+        "reason": "Wizard orchestration"
+      },
+      {
+        "source": "App.tsx (modified)",
+        "target": "OnboardingWizard.tsx",
+        "reason": "First-run detection and routing"
+      }
+    ]
+  },
+  "testStrategy": {
+    "unit": {
+      "target": "≥90% backend, ≥85% frontend",
+      "totalTests": 280,
+      "rustTests": 97,
+      "frontendTests": 183
+    },
+    "integration": {
+      "target": "100% critical paths",
+      "totalTests": 28,
+      "scenarios": [
+        "Gateway server startup → SSE streaming → graceful shutdown (12 tests)",
+        "BRC-103 auth flow → session token → authorized request (8 tests)",
+        "Onboarding wizard → identity + subscription + mode → first chat (8 tests)"
+      ]
+    },
+    "e2e": {
+      "target": "10 user journeys",
+      "totalTests": 42,
+      "scenarios": [
+        "First-run onboarding (5-step wizard) - 8 tests",
+        "Gateway mode: chat with streaming - 6 tests",
+        "Client mode: discover → connect → chat - 6 tests",
+        "Channel setup: Telegram + Discord + tool config - 8 tests",
+        "Settings: change AI model → restart gateway → verify - 6 tests",
+        "Multi-user: invite → redeem → permission check - 8 tests"
+      ]
+    }
+  },
+  "locBreakdown": {
+    "byDomain": [
+      { "domain": 1, "name": "Gateway Management", "loc": 1908, "percentage": 30.9 },
+      { "domain": 2, "name": "Chat Integration", "loc": 654, "percentage": 10.6 },
+      { "domain": 3, "name": "Config Management", "loc": 1668, "percentage": 27.0 },
+      { "domain": 4, "name": "Channel Integration", "loc": 657, "percentage": 10.6 },
+      { "domain": 5, "name": "Identity", "loc": 298, "percentage": 4.8 },
+      { "domain": 6, "name": "Onboarding", "loc": 1103, "percentage": 17.8 },
+      { "domain": 7, "name": "App Shell", "loc": 555, "percentage": 9.0 }
+    ],
+    "byLanguage": [
+      { "language": "Rust", "loc": 3661, "percentage": 59.2 },
+      { "language": "TypeScript", "loc": 2523, "percentage": 40.8 }
+    ],
+    "testToCodeRatio": "33.4% (2063 test LOC / 6184 production LOC)"
+  },
+  "implementationOrder": [
+    {
+      "step": 1,
+      "title": "Gateway Backend Foundation",
+      "files": [
+        "gateway_domain/mod.rs",
+        "gateway_domain/server.rs",
+        "gateway_domain/router.rs",
+        "gateway_domain/streaming.rs",
+        "gateway_domain/auth_middleware.rs"
+      ],
+      "estimatedTime": "3-4 days",
+      "blockers": "None (can start immediately after Phase 6)",
+      "validation": "55 passing Rust tests, HTTP server responds on localhost:3000"
+    },
+    {
+      "step": 2,
+      "title": "Chat Frontend Integration",
+      "files": [
+        "lib/chat-client.ts",
+        "hooks/useChat.ts (modify)",
+        "hooks/useChatHistory.ts"
+      ],
+      "estimatedTime": "2 days",
+      "blockers": "Step 1 (gateway_domain/streaming.rs must be complete)",
+      "validation": "35 passing frontend tests, SSE streaming works in dev mode"
+    },
+    {
+      "step": 3,
+      "title": "Config & Settings UI",
+      "files": [
+        "config.rs (modify)",
+        "commands/config.rs (modify)",
+        "components/settings/GeneralSettings.tsx (modify)",
+        "components/settings/AISettings.tsx",
+        "components/settings/ChatSettings.tsx"
+      ],
+      "estimatedTime": "2 days",
+      "blockers": "None (parallel with Step 1-2)",
+      "validation": "57 passing tests, settings persist across restarts"
+    },
+    {
+      "step": 4,
+      "title": "Onboarding Wizard",
+      "files": [
+        "crypto_domain/keychain.rs (modify)",
+        "components/onboarding/OnboardingWizard.tsx",
+        "components/onboarding/IdentitySetupStep.tsx",
+        "components/onboarding/SubscriptionSetupStep.tsx",
+        "components/onboarding/ModeSelectionStep.tsx"
+      ],
+      "estimatedTime": "3 days",
+      "blockers": "Step 3 (config.rs v2→v3 migration)",
+      "validation": "52 passing tests, onboarding wizard completes successfully"
+    },
+    {
+      "step": 5,
+      "title": "Channel Enhancements",
+      "files": [
+        "components/channels/TelegramWizard.tsx (modify)",
+        "components/channels/DiscordWizard.tsx (modify)"
+      ],
+      "estimatedTime": "1 day",
+      "blockers": "Step 1 (gateway_domain/router.rs tool call routing)",
+      "validation": "10 passing tests, tool config step displays correctly"
+    },
+    {
+      "step": 6,
+      "title": "App Shell & Navigation",
+      "files": [
+        "App.tsx (modify)",
+        "components/layout/Sidebar.tsx (modify)",
+        "commands/gateway.rs (modify)"
+      ],
+      "estimatedTime": "1 day",
+      "blockers": "Step 4 (OnboardingWizard.tsx)",
+      "validation": "20 passing tests, first-run redirect works"
+    },
+    {
+      "step": 7,
+      "title": "Integration Testing & E2E",
+      "files": [
+        "e2e/onboarding.spec.ts",
+        "e2e/gateway-mode.spec.ts",
+        "e2e/client-mode.spec.ts",
+        "e2e/channels.spec.ts",
+        "e2e/settings.spec.ts",
+        "e2e/multi-user.spec.ts"
+      ],
+      "estimatedTime": "2-3 days",
+      "blockers": "Steps 1-6 (all implementation complete)",
+      "validation": "42 passing E2E tests, all user journeys verified"
+    }
+  ],
+  "qualityMetrics": {
+    "targets": [
+      { "metric": "Backend test coverage", "target": "≥90%", "phase6Baseline": "88%" },
+      { "metric": "Frontend test coverage", "target": "≥85%", "phase6Baseline": "86%" },
+      { "metric": "Test-to-code ratio", "target": "30-40%", "estimated": "33.4%" },
+      { "metric": "E2E test count", "target": "≥40", "estimated": "42" },
+      { "metric": "TypeScript errors", "target": "0", "critical": true },
+      { "metric": "Rust warnings", "target": "0", "critical": true },
+      { "metric": "Breaking changes", "target": "0", "critical": true }
+    ]
+  },
+  "deviationRisks": [
+    {
+      "risk": "Gateway HTTP server vs bundled process",
+      "planned": "Phase 3 bundled gateway as Node.js child process",
+      "actual": "Phase 7 replaces child process with native Rust HTTP server",
+      "reason": "Better performance, reduced memory footprint, simpler IPC (direct Axum instead of stdio)",
+      "impact": "BREAKING - requires rewrite of commands/gateway.rs start/stop logic",
+      "mitigation": "Maintain backward compat by keeping process-based fallback for legacy gateway npm package"
+    },
+    {
+      "risk": "Chat history storage location",
+      "planned": "localStorage (Phase 3)",
+      "actual": "SQLite database via gateway API (Phase 7)",
+      "reason": "Persistent storage, better query performance, multi-user isolation",
+      "impact": "Medium - requires data migration from localStorage to SQLite",
+      "mitigation": "Auto-migrate on first Phase 7 launch, keep localStorage as fallback"
+    },
+    {
+      "risk": "Onboarding wizard complexity",
+      "estimated": "~800 LOC",
+      "actual": "1103 LOC (38% higher)",
+      "reason": "Added custom avatar upload, advanced import options, trial mode",
+      "impact": "Low - still within Phase 7 scope, improves UX",
+      "mitigation": "Comprehensive testing (52 tests planned)"
+    }
+  ],
+  "nextPhase": {
+    "phase": 8,
+    "title": "Production Hardening & Public Release (PLAN.md Phase 6)",
+    "scope": [
+      "Auto-update with signed releases",
+      "Security audit (Crypto Domain isolation)",
+      "Native installer polish (code signing, notarization)",
+      "Performance optimization (startup time <3s)",
+      "Accessibility & i18n groundwork"
+    ],
+    "estimatedLOC": "~1,200 LOC (mostly tooling, CI config, polish)",
+    "dependencies": ["Phase 7 complete", "All 7 domains validated"]
+  }
+}

@@ -1,0 +1,11 @@
+node_modules
+dist
+src-tauri/target
+src-tauri-phase2
+target
+
+# Coverage reports
+coverage/
+.nyc_output/
+sessions.json.bak*
+*.tsbuildinfo

@@ -1,0 +1,10 @@
+# Add these dependencies to your Cargo.toml for spv.rs
+
+[dependencies]
+sha2 = "0.10"          # SHA-256 hashing for Merkle calculations
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"     # JSON parsing for Merkle proofs
+hex = "0.4"            # Hex encoding/decoding
+
+[dev-dependencies]
+hex = "0.4"            # For test data

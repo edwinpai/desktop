@@ -1,0 +1,1 @@
+// LAN gateway discovery

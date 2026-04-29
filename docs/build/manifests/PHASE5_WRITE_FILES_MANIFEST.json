@@ -1,0 +1,323 @@
+{
+  "version": "1.0",
+  "phase": 5,
+  "title": "Phase 5 Channel Integration - Write Files Manifest",
+  "description": "JSON manifest for --write-files flag support. Lists all files to be created/modified with paths, LOC estimates, and content templates.",
+  "generated": "2026-02-11",
+  "total_files": 23,
+  "files_to_create": 21,
+  "files_to_modify": 2,
+  "files": [
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src-tauri/src/channel_domain/mod.rs",
+      "loc": 15,
+      "language": "rust",
+      "purpose": "Module exports for channel domain",
+      "dependencies": [],
+      "template": "// Channel Domain Module\n// Exports: config, encryption, validation, types\n\npub mod config;\npub mod encryption;\npub mod validation;\npub mod types;\n\npub use types::*;"
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src-tauri/src/channel_domain/types.rs",
+      "loc": 285,
+      "language": "rust",
+      "purpose": "Type definitions for channel domain",
+      "dependencies": ["serde"],
+      "template": "use serde::{Deserialize, Serialize};\n\n#[derive(Debug, Clone, Serialize, Deserialize)]\npub struct ChannelConfig {\n    pub name: String,\n    pub platform: PlatformType,\n    pub enabled: bool,\n    pub credentials: String,\n    pub metadata: ChannelMetadata,\n    pub created_at: i64,\n    pub updated_at: i64,\n}\n\n// ... 8 more structs + enum"
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src-tauri/src/channel_domain/config.rs",
+      "loc": 651,
+      "language": "rust",
+      "purpose": "Channel storage, CRUD operations, atomic writes",
+      "dependencies": ["std::fs", "serde_json", "chrono"],
+      "template": "use std::fs;\nuse std::path::PathBuf;\nuse serde_json;\nuse super::types::*;\n\npub async fn save_channel(config: &ChannelConfig) -> Result<(), String> {\n    // Atomic write implementation\n}\n\n// ... 8 more functions + 21 tests"
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src-tauri/src/channel_domain/encryption.rs",
+      "loc": 360,
+      "language": "rust",
+      "purpose": "BRC-42 credential encryption/decryption",
+      "dependencies": ["hex", "crate::crypto_domain::brc42"],
+      "template": "use crate::crypto_domain::brc42::derive_key;\nuse hex;\n\npub fn encrypt_credentials(channel_name: &str, credentials: &str) -> Result<String, String> {\n    let protocol_id = \"channel-storage\";\n    let key_id = channel_name;\n    // BRC-42 encryption\n}\n\n// ... 2 more functions + 15 tests"
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src-tauri/src/channel_domain/validation.rs",
+      "loc": 493,
+      "language": "rust",
+      "purpose": "Platform validators (WhatsApp, Telegram, Matrix, Discord, Slack, Signal)",
+      "dependencies": ["regex", "serde_json"],
+      "template": "use regex::Regex;\nuse serde_json;\nuse super::types::*;\n\npub fn validate_telegram(credentials: &str) -> ValidationResult {\n    // Regex: ^\\d+:[A-Za-z0-9_-]{35}$\n}\n\n// ... 5 more validators + 23 tests"
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src-tauri/src/commands/channels.rs",
+      "loc": 350,
+      "language": "rust",
+      "purpose": "8 channel IPC commands",
+      "dependencies": ["tauri", "crate::channel_domain", "crate::auth::users"],
+      "template": "#[tauri::command]\npub async fn create_channel(\n    name: String,\n    platform: PlatformType,\n    credentials: String,\n    metadata: ChannelMetadata,\n) -> Result<(), String> {\n    // Permission check + save\n}\n\n// ... 7 more commands + 10 tests"
+    },
+    {
+      "action": "modify",
+      "path": "edwinpai-desktop/src-tauri/src/lib.rs",
+      "loc_added": 8,
+      "loc_total": 113,
+      "language": "rust",
+      "purpose": "Register 8 new channel commands",
+      "changes": [
+        {
+          "line": 105,
+          "operation": "insert_after",
+          "content": "        commands::channels::create_channel,\n        commands::channels::read_channel,\n        commands::channels::read_channel_decrypted,\n        commands::channels::update_channel,\n        commands::channels::delete_channel,\n        commands::channels::list_channels,\n        commands::channels::validate_channel,\n        commands::channels::toggle_channel,"
+        }
+      ]
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/types/channels.ts",
+      "loc": 189,
+      "language": "typescript",
+      "purpose": "Platform credential schemas, wizard state types",
+      "dependencies": [],
+      "template": "export interface ChannelConfig {\n  name: string;\n  platform: PlatformType;\n  enabled: boolean;\n  credentials: string;\n  metadata: ChannelMetadata;\n  created_at: number;\n  updated_at: number;\n}\n\n// ... 11 more interfaces + 1 type union"
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/stores/channelStore.ts",
+      "loc": 149,
+      "language": "typescript",
+      "purpose": "Zustand store for wizard state, channel CRUD",
+      "dependencies": ["zustand", "@tauri-apps/api/tauri"],
+      "template": "import { create } from 'zustand';\nimport { invoke } from '@tauri-apps/api/tauri';\nimport { WizardState, ChannelConfig } from '@/types/channels';\n\ninterface ChannelStore {\n  wizardState: WizardState;\n  // ... 10 more properties\n}\n\nexport const useChannelStore = create<ChannelStore>((set, get) => ({ ... }));"
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/components/channels/ChannelList.tsx",
+      "loc": 323,
+      "language": "typescript",
+      "purpose": "Main channel management view",
+      "dependencies": ["react", "@tauri-apps/api/tauri", "@/stores/channelStore", "@/hooks/useAuthorization"],
+      "template": "import { useState, useEffect } from 'react';\nimport { invoke } from '@tauri-apps/api/tauri';\nimport { useChannelStore } from '@/stores/channelStore';\nimport { useAuthorization } from '@/hooks/useAuthorization';\n\nexport const ChannelList = () => {\n  // ... component logic\n};"
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/components/channels/wizards/TelegramWizard.tsx",
+      "loc": 279,
+      "language": "typescript",
+      "purpose": "Bot token authentication wizard",
+      "dependencies": ["react", "@/stores/channelStore", "@/components/ui/input"],
+      "template": "import { WizardStepProps } from '@/types/channels';\nimport { useChannelStore } from '@/stores/channelStore';\nimport { Input } from '@/components/ui/input';\n\nexport const TelegramWizard = ({ state, updateState, onNext, onBack }: WizardStepProps) => {\n  // ... wizard logic\n};"
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/components/channels/wizards/MatrixWizard.tsx",
+      "loc": 363,
+      "language": "typescript",
+      "purpose": "Homeserver + access token/password wizard",
+      "dependencies": ["react", "@radix-ui/react-tabs", "@/stores/channelStore"],
+      "template": "import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';\nimport { WizardStepProps } from '@/types/channels';\n\nexport const MatrixWizard = ({ state, updateState, onNext, onBack }: WizardStepProps) => {\n  // Dual auth tabs: access token OR username+password\n};"
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/components/channels/wizards/DiscordWizard.tsx",
+      "loc": 357,
+      "language": "typescript",
+      "purpose": "Bot token/OAuth authentication wizard",
+      "dependencies": ["react", "@radix-ui/react-tabs", "@/stores/channelStore"],
+      "template": "import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';\nimport { WizardStepProps } from '@/types/channels';\n\nexport const DiscordWizard = ({ state, updateState, onNext, onBack }: WizardStepProps) => {\n  // Dual auth tabs: bot token OR OAuth\n};"
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/components/channels/wizards/SlackWizard.tsx",
+      "loc": 278,
+      "language": "typescript",
+      "purpose": "OAuth token wizard",
+      "dependencies": ["react", "@/stores/channelStore", "@/components/ui/input"],
+      "template": "import { WizardStepProps } from '@/types/channels';\nimport { Input } from '@/components/ui/input';\n\nexport const SlackWizard = ({ state, updateState, onNext, onBack }: WizardStepProps) => {\n  // Token prefix validation: xoxb- / xoxp-\n};"
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/components/channels/wizards/WhatsAppWizard.tsx",
+      "loc": 278,
+      "language": "typescript",
+      "purpose": "JSON session data wizard",
+      "dependencies": ["react", "@/stores/channelStore", "@/components/ui/textarea"],
+      "template": "import { WizardStepProps } from '@/types/channels';\nimport { Textarea } from '@/components/ui/textarea';\n\nexport const WhatsAppWizard = ({ state, updateState, onNext, onBack }: WizardStepProps) => {\n  // Textarea for JSON session data\n};"
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/components/channels/wizards/SignalWizard.tsx",
+      "loc": 281,
+      "language": "typescript",
+      "purpose": "JSON device data wizard",
+      "dependencies": ["react", "@/stores/channelStore", "@/components/ui/textarea"],
+      "template": "import { WizardStepProps } from '@/types/channels';\nimport { Textarea } from '@/components/ui/textarea';\n\nexport const SignalWizard = ({ state, updateState, onNext, onBack }: WizardStepProps) => {\n  // Textarea for JSON device data\n};"
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/components/ui/tabs.tsx",
+      "loc": 57,
+      "language": "typescript",
+      "purpose": "shadcn/ui Tabs component (@radix-ui/react-tabs)",
+      "dependencies": ["react", "@radix-ui/react-tabs"],
+      "template": "import * as TabsPrimitive from '@radix-ui/react-tabs';\nimport { cn } from '@/lib/utils';\n\nexport const Tabs = TabsPrimitive.Root;\nexport const TabsList = /* ... */;\n// ... shadcn/ui standard implementation"
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/components/ui/alert.tsx",
+      "loc": 37,
+      "language": "typescript",
+      "purpose": "shadcn/ui Alert component",
+      "dependencies": ["react"],
+      "template": "import { cn } from '@/lib/utils';\n\nexport const Alert = ({ children, variant = 'default', ...props }) => {\n  // shadcn/ui standard implementation\n};"
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/components/ui/progress.tsx",
+      "loc": 21,
+      "language": "typescript",
+      "purpose": "shadcn/ui Progress component",
+      "dependencies": ["react"],
+      "template": "import { cn } from '@/lib/utils';\n\nexport const Progress = ({ value, ...props }) => {\n  // shadcn/ui standard implementation\n};"
+    },
+    {
+      "action": "modify",
+      "path": "edwinpai-desktop/src/App.tsx",
+      "loc_added": 18,
+      "loc_total": 247,
+      "language": "typescript",
+      "purpose": "Add /channels route + sidebar nav",
+      "changes": [
+        {
+          "line": 12,
+          "operation": "insert_after",
+          "content": "import { ChannelList } from '@/components/channels/ChannelList';"
+        },
+        {
+          "line": 42,
+          "operation": "insert_after",
+          "content": "          <NavItem to=\"/channels\">\n            <MessageSquare className=\"h-5 w-5\" />\n            Channels\n          </NavItem>"
+        },
+        {
+          "line": 67,
+          "operation": "insert_after",
+          "content": "          <Route path=\"/channels\" element={<ChannelList />} />"
+        }
+      ]
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/components/channels/__tests__/ChannelList.test.tsx",
+      "loc": 187,
+      "language": "typescript",
+      "purpose": "ChannelList component tests (19 tests)",
+      "dependencies": ["vitest", "@testing-library/react"],
+      "test_count": 19
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/stores/__tests__/channelStore.test.ts",
+      "loc": 241,
+      "language": "typescript",
+      "purpose": "channelStore Zustand tests (27 tests)",
+      "dependencies": ["vitest"],
+      "test_count": 27
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/components/channels/wizards/__tests__/TelegramWizard.test.tsx",
+      "loc": 152,
+      "language": "typescript",
+      "purpose": "TelegramWizard tests (11 tests)",
+      "dependencies": ["vitest", "@testing-library/react"],
+      "test_count": 11
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/components/channels/wizards/__tests__/MatrixWizard.test.tsx",
+      "loc": 168,
+      "language": "typescript",
+      "purpose": "MatrixWizard tests (11 tests)",
+      "dependencies": ["vitest", "@testing-library/react"],
+      "test_count": 11
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/components/channels/wizards/__tests__/DiscordWizard.test.tsx",
+      "loc": 164,
+      "language": "typescript",
+      "purpose": "DiscordWizard tests (11 tests)",
+      "dependencies": ["vitest", "@testing-library/react"],
+      "test_count": 11
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/components/channels/wizards/__tests__/SlackWizard.test.tsx",
+      "loc": 145,
+      "language": "typescript",
+      "purpose": "SlackWizard tests (10 tests)",
+      "dependencies": ["vitest", "@testing-library/react"],
+      "test_count": 10
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/components/channels/wizards/__tests__/WhatsAppWizard.test.tsx",
+      "loc": 149,
+      "language": "typescript",
+      "purpose": "WhatsAppWizard tests (10 tests)",
+      "dependencies": ["vitest", "@testing-library/react"],
+      "test_count": 10
+    },
+    {
+      "action": "create",
+      "path": "edwinpai-desktop/src/components/channels/wizards/__tests__/SignalWizard.test.tsx",
+      "loc": 153,
+      "language": "typescript",
+      "purpose": "SignalWizard tests (11 tests)",
+      "dependencies": ["vitest", "@testing-library/react"],
+      "test_count": 11
+    }
+  ],
+  "summary": {
+    "backend": {
+      "files_to_create": 5,
+      "files_to_modify": 1,
+      "total_loc": 1869,
+      "test_loc": 654,
+      "production_loc": 1215
+    },
+    "frontend": {
+      "files_to_create": 16,
+      "files_to_modify": 1,
+      "total_loc": 2399,
+      "test_loc": 1159,
+      "production_loc": 1240
+    }
+  },
+  "dependencies": {
+    "rust": {
+      "new": [],
+      "existing": ["serde", "serde_json", "hex", "regex", "chrono", "tauri"]
+    },
+    "npm": {
+      "new": ["@radix-ui/react-tabs@^1.1.3"],
+      "existing": ["react", "zustand", "@tauri-apps/api", "vitest", "@testing-library/react"]
+    }
+  },
+  "estimated_implementation_time": {
+    "backend": "12-16 hours",
+    "frontend": "16-20 hours",
+    "tests": "8-12 hours",
+    "total": "36-48 hours"
+  },
+  "write_files_command": {
+    "description": "Command-line invocation pattern for automated file generation",
+    "example": "claude-code --write-files PHASE5_WRITE_FILES_MANIFEST.json",
+    "note": "Hypothetical CLI pattern - not implemented in actual Claude Code"
+  }
+}

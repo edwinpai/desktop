@@ -1,0 +1,41 @@
+[report]
+# Output formats: HTML report in coverage/ directory + terminal output
+out = ["Html", "Stdout"]
+
+[html]
+# HTML report directory (relative to src-tauri/)
+output_dir = "../coverage/rust"
+
+[coverage]
+# Exclude test modules and generated code
+exclude = [
+    "tests/*",
+    "src/tests/*",
+    "src/*/tests.rs",
+    "target/*",
+]
+
+# Exclude lines with specific patterns
+exclude_lines = [
+    "#\\[cfg\\(test\\)\\]",
+    "#\\[derive\\(",
+    "unreachable!",
+    "unimplemented!",
+]
+
+[thresholds]
+# Coverage thresholds for crypto_domain
+lines = 80.0
+branches = 70.0
+
+[run]
+# Run all tests
+count = true
+all-features = true
+ignored = false
+release = false
+timeout = "60s"
+
+# Platform-specific: skip if system libraries missing
+# CI will handle this with proper dependencies installed
+fail-under = 80.0

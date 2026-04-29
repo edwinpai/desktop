@@ -1,0 +1,116 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-utils/schema.json",
+  "identifier": "default",
+  "description": "Default capability for EdwinPAI Desktop",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "shell:allow-open",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "ssh",
+          "cmd": "ssh",
+          "args": true
+        }
+      ]
+    },
+    {
+      "identifier": "shell:allow-spawn",
+      "allow": [
+        {
+          "name": "ssh",
+          "cmd": "ssh",
+          "args": true
+        }
+      ]
+    },
+    "shell:allow-stdin-write",
+    "shell:allow-kill",
+    "os:default",
+    "process:default",
+    "notification:default",
+    "dialog:default",
+    "fs:default",
+    {
+      "identifier": "fs:allow-exists",
+      "allow": [
+        {
+          "path": "$APPDATA/**"
+        },
+        {
+          "path": "$HOME/.edwinpai/**"
+        },
+        {
+          "path": "$HOME/.edwinpai/workspace/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-read-text-file",
+      "allow": [
+        {
+          "path": "$APPDATA/**"
+        },
+        {
+          "path": "$HOME/.edwinpai/**"
+        },
+        {
+          "path": "$HOME/.edwinpai/workspace/**"
+        },
+        {
+          "path": "$HOME/.edwinpai/workspace/workflows/**"
+        },
+        {
+          "path": "$HOME/.edwinpai/workspace/workflows/*"
+        },
+        {
+          "path": "$HOME/.edwinpai/workspace/workflows/.history/**"
+        },
+        {
+          "path": "$HOME/.edwinpai/workspace/workflows/.state/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-write-text-file",
+      "allow": [
+        {
+          "path": "$APPDATA/**"
+        },
+        {
+          "path": "$HOME/.edwinpai/**"
+        },
+        {
+          "path": "$HOME/.edwinpai/workspace/**"
+        },
+        {
+          "path": "$HOME/.edwinpai/workspace/workflows/**"
+        },
+        {
+          "path": "$HOME/.edwinpai/workspace/workflows/*"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-read-dir",
+      "allow": [
+        {
+          "path": "$HOME/.edwinpai/workspace/workflows"
+        },
+        {
+          "path": "$HOME/.edwinpai/workspace/workflows/**"
+        },
+        {
+          "path": "$HOME/.edwinpai/workspace/workflows/.history"
+        },
+        {
+          "path": "$HOME/.edwinpai/workspace/workflows/.state"
+        }
+      ]
+    }
+  ]
+}
