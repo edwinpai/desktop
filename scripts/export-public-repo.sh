@@ -59,6 +59,7 @@ RSYNC_ARGS=(
   --exclude '/**/dist/'
   --exclude '/src-tauri/target/'
   --exclude '/src-tauri/crates/identity-core/'
+  --exclude '/src-tauri/crates/identity-core-node/'
   --exclude '/src-tauri/src/crypto_domain/'
   --exclude '/src/test/crypto/'
   --exclude '/src/lib/crypto-domain.ts'
