@@ -16,22 +16,22 @@
  */
 export enum UpdateStatus {
   /** No update check in progress */
-  Idle = 'idle',
+  Idle = "idle",
 
   /** Checking for updates from endpoint */
-  Checking = 'checking',
+  Checking = "checking",
 
   /** Update available for download */
-  Available = 'available',
+  Available = "available",
 
   /** Update download in progress */
-  Downloading = 'downloading',
+  Downloading = "downloading",
 
   /** Update downloaded and ready to install */
-  ReadyToInstall = 'ready_to_install',
+  ReadyToInstall = "ready_to_install",
 
   /** Error occurred during update process */
-  Error = 'error',
+  Error = "error",
 }
 
 /**

@@ -9,10 +9,10 @@
  * - NotFound: No subscription UTXO exists
  */
 
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
-import type { CheckSubscriptionResponse, SubscriptionState } from '@/types';
+import type { CheckSubscriptionResponse, SubscriptionState } from "@/types";
 
 export interface SubscriptionStoreState {
   // Current subscription state
@@ -77,7 +77,7 @@ export const useSubscriptionStore = create<SubscriptionStoreState>()(
   persist(
     (set, get) => ({
       // Initial state: NotFound until first check
-      state: 'NotFound',
+      state: "NotFound",
       cachedProof: false,
       isLoading: false,
       isRefreshing: false,
@@ -86,7 +86,7 @@ export const useSubscriptionStore = create<SubscriptionStoreState>()(
       setSubscription: (response: CheckSubscriptionResponse) => {
         // Calculate grace expiration for Cached state
         let graceExpiresAt: string | undefined;
-        if (response.state === 'Cached' && response.verifiedAt) {
+        if (response.state === "Cached" && response.verifiedAt) {
           graceExpiresAt = calculateGraceExpiration(response.verifiedAt);
         }
 
@@ -132,30 +132,31 @@ export const useSubscriptionStore = create<SubscriptionStoreState>()(
         });
       },
 
-      clearSubscription: () => set({
-        state: 'NotFound',
-        txid: undefined,
-        vout: undefined,
-        blockHeight: undefined,
-        confirmations: undefined,
-        verifiedAt: undefined,
-        cachedProof: false,
-        graceExpiresAt: undefined,
-        error: undefined,
-        retryCount: 0,
-        nextRetryAt: undefined,
-      }),
+      clearSubscription: () =>
+        set({
+          state: "NotFound",
+          txid: undefined,
+          vout: undefined,
+          blockHeight: undefined,
+          confirmations: undefined,
+          verifiedAt: undefined,
+          cachedProof: false,
+          graceExpiresAt: undefined,
+          error: undefined,
+          retryCount: 0,
+          nextRetryAt: undefined,
+        }),
 
       // Computed: is subscription operational?
       isOperational: () => {
         const state = get().state;
-        return state === 'Active' || state === 'Cached';
+        return state === "Active" || state === "Cached";
       },
 
       // Computed: does subscription need renewal?
       needsRenewal: () => {
         const state = get().state;
-        return state === 'Expired' || state === 'NotFound';
+        return state === "Expired" || state === "NotFound";
       },
 
       // Computed: grace period remaining in milliseconds
@@ -176,7 +177,7 @@ export const useSubscriptionStore = create<SubscriptionStoreState>()(
       },
     }),
     {
-      name: 'edwinpai-subscription',
+      name: "edwinpai-subscription",
       version: 1,
 
       // Only persist essential subscription data
@@ -189,6 +190,6 @@ export const useSubscriptionStore = create<SubscriptionStoreState>()(
         cachedProof: state.cachedProof,
         graceExpiresAt: state.graceExpiresAt,
       }),
-    }
-  )
+    },
+  ),
 );

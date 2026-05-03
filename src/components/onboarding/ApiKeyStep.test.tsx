@@ -32,7 +32,9 @@ vi.mock("@/lib/config", () => ({
 }));
 
 // Import after mocks
-const OnboardingWizard = await import("./OnboardingWizard").then((m) => m.OnboardingWizard);
+const OnboardingWizard = await import("./OnboardingWizard").then(
+  (m) => m.OnboardingWizard,
+);
 
 describe("ApiKeyStep", () => {
   beforeEach(() => {
@@ -41,9 +43,12 @@ describe("ApiKeyStep", () => {
     // Default mock: scan finds one gateway, probe succeeds
     vi.mocked(invoke).mockImplementation(async (cmd: string) => {
       switch (cmd) {
-        case "scan_gateways": return [{ url: "http://localhost:18789", version: null, name: null }];
-        case "probe_gateway": return { found: true, url: "http://localhost:18789", error: null };
-        default: return {};
+        case "scan_gateways":
+          return [{ url: "http://localhost:18789", version: null, name: null }];
+        case "probe_gateway":
+          return { found: true, url: "http://localhost:18789", error: null };
+        default:
+          return {};
       }
     });
   });
@@ -57,7 +62,9 @@ describe("ApiKeyStep", () => {
     render(<OnboardingWizard onComplete={vi.fn()} />);
 
     // Welcome → Get Started
-    const getStartedButton = screen.getByRole("button", { name: /get started/i });
+    const getStartedButton = screen.getByRole("button", {
+      name: /get started/i,
+    });
     await user.click(getStartedButton);
 
     // Gateway step → Connect → Continue
@@ -100,16 +107,22 @@ describe("ApiKeyStep", () => {
     // Mock add_provider for validation
     vi.mocked(invoke).mockImplementation(async (cmd: string) => {
       switch (cmd) {
-        case "add_provider": return { providers: [{ name: "anthropic" }] };
-        default: return {};
+        case "add_provider":
+          return { providers: [{ name: "anthropic" }] };
+        default:
+          return {};
       }
     });
 
-    const validateButton = screen.getByRole("button", { name: /validate & continue/i });
+    const validateButton = screen.getByRole("button", {
+      name: /validate & continue/i,
+    });
     await user.click(validateButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/api key validated successfully/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/api key validated successfully/i),
+      ).toBeInTheDocument();
     });
   });
 
@@ -134,7 +147,9 @@ describe("ApiKeyStep", () => {
       throw new Error("Invalid API key");
     });
 
-    const validateButton = screen.getByRole("button", { name: /validate & continue/i });
+    const validateButton = screen.getByRole("button", {
+      name: /validate & continue/i,
+    });
     await user.click(validateButton);
 
     await waitFor(() => {
@@ -146,7 +161,9 @@ describe("ApiKeyStep", () => {
     const user = userEvent.setup();
     await navigateToApiKeyStep();
 
-    const validateButton = screen.getByRole("button", { name: /validate & continue/i });
+    const validateButton = screen.getByRole("button", {
+      name: /validate & continue/i,
+    });
     await user.click(validateButton);
 
     await waitFor(() => {
@@ -173,7 +190,9 @@ describe("ApiKeyStep", () => {
     // Mock invoke to never resolve (simulates long validation)
     vi.mocked(invoke).mockImplementation(() => new Promise(() => {}));
 
-    const validateButton = screen.getByRole("button", { name: /validate & continue/i });
+    const validateButton = screen.getByRole("button", {
+      name: /validate & continue/i,
+    });
     await user.click(validateButton);
 
     await waitFor(() => {

@@ -4,12 +4,17 @@
  * Wraps Tauri updater plugin with React state management and automatic checking.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { relaunch } from '@tauri-apps/plugin-process';
-import { check } from '@tauri-apps/plugin-updater';
-import { toast } from 'sonner';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { relaunch } from "@tauri-apps/plugin-process";
+import { check } from "@tauri-apps/plugin-updater";
+import { toast } from "sonner";
 
-import { UpdateStatus, type DownloadProgress, type UpdateCheckResult, type UpdateInfo } from '../types/updater';
+import {
+  UpdateStatus,
+  type DownloadProgress,
+  type UpdateCheckResult,
+  type UpdateInfo,
+} from "../types/updater";
 
 export interface UseAutoUpdaterOptions {
   checkInterval?: number; // milliseconds
@@ -43,16 +48,39 @@ interface DownloadProgressEventData {
 }
 
 type DownloadEvent =
-  | { event: 'Started'; data: DownloadStartedEventData }
-  | { event: 'Progress'; data: DownloadProgressEventData }
-  | { event: 'Finished' };
+  | { event: "Started"; data: DownloadStartedEventData }
+  | { event: "Progress"; data: DownloadProgressEventData }
+  | { event: "Finished" };
 
-function isDownloadStartedData(data: unknown): data is DownloadStartedEventData {
-  return typeof data === 'object' && data !== null && ('contentLength' in data ? typeof (data as { contentLength?: unknown }).contentLength === 'number' || typeof (data as { contentLength?: unknown }).contentLength === 'undefined' : true);
+function isDownloadStartedData(
+  data: unknown,
+): data is DownloadStartedEventData {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    ("contentLength" in data
+      ? typeof (data as { contentLength?: unknown }).contentLength ===
+          "number" ||
+        typeof (data as { contentLength?: unknown }).contentLength ===
+          "undefined"
+      : true)
+  );
 }
 
-function isDownloadProgressData(data: unknown): data is DownloadProgressEventData {
-  return typeof data === 'object' && data !== null && typeof (data as { chunkLength?: unknown }).chunkLength === 'number' && ('contentLength' in data ? typeof (data as { contentLength?: unknown }).contentLength === 'number' || typeof (data as { contentLength?: unknown }).contentLength === 'undefined' : true);
+function isDownloadProgressData(
+  data: unknown,
+): data is DownloadProgressEventData {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    typeof (data as { chunkLength?: unknown }).chunkLength === "number" &&
+    ("contentLength" in data
+      ? typeof (data as { contentLength?: unknown }).contentLength ===
+          "number" ||
+        typeof (data as { contentLength?: unknown }).contentLength ===
+          "undefined"
+      : true)
+  );
 }
 
 /**
@@ -79,7 +107,9 @@ function isDownloadProgressData(data: unknown): data is DownloadProgressEventDat
  * }
  * ```
  */
-export function useAutoUpdater(options: UseAutoUpdaterOptions = {}): UseAutoUpdaterReturn {
+export function useAutoUpdater(
+  options: UseAutoUpdaterOptions = {},
+): UseAutoUpdaterReturn {
   const {
     checkInterval = DEFAULT_CHECK_INTERVAL,
     autoDownload = true,
@@ -103,83 +133,87 @@ export function useAutoUpdater(options: UseAutoUpdaterOptions = {}): UseAutoUpda
   /**
    * Check for available updates.
    */
-  const checkForUpdates = useCallback(async (force = false): Promise<UpdateCheckResult> => {
-    const now = Date.now();
-    if (!force && now - lastCheckTime.current < checkInterval) {
-      return {
-        available: false,
-        currentVersion: updateInfo?.version || '0.0.0',
-      };
-    }
-
-    setStatus(UpdateStatus.Checking);
-    setError(null);
-
-    try {
-      const update = await check();
-      lastCheckTime.current = now;
-
-      if (!update) {
-        setStatus(UpdateStatus.Idle);
-        toast.info('No updates available', {
-          description: 'You are running the latest version',
-        });
+  const checkForUpdates = useCallback(
+    async (force = false): Promise<UpdateCheckResult> => {
+      const now = Date.now();
+      if (!force && now - lastCheckTime.current < checkInterval) {
         return {
           available: false,
-          currentVersion: '0.0.0', // Will be replaced by actual version from package.json
+          currentVersion: updateInfo?.version || "0.0.0",
         };
       }
 
-      // Update available
-      const info: UpdateInfo = {
-        version: update.version,
-        currentVersion: update.currentVersion,
-        date: update.date || new Date().toISOString(),
-        body: update.body || 'No release notes available',
-        signature: '', // Tauri plugin handles signature verification internally
-        pubkey: '',
-        downloadUrl: '',
-        size: 0,
-      };
+      setStatus(UpdateStatus.Checking);
+      setError(null);
 
-      setUpdateInfo(info);
-      setStatus(UpdateStatus.Available);
+      try {
+        const update = await check();
+        lastCheckTime.current = now;
 
-      toast.success('Update available', {
-        description: `Version ${update.version} is ready to download`,
-      });
+        if (!update) {
+          setStatus(UpdateStatus.Idle);
+          toast.info("No updates available", {
+            description: "You are running the latest version",
+          });
+          return {
+            available: false,
+            currentVersion: "0.0.0", // Will be replaced by actual version from package.json
+          };
+        }
 
-      onUpdateAvailable?.(info);
+        // Update available
+        const info: UpdateInfo = {
+          version: update.version,
+          currentVersion: update.currentVersion,
+          date: update.date || new Date().toISOString(),
+          body: update.body || "No release notes available",
+          signature: "", // Tauri plugin handles signature verification internally
+          pubkey: "",
+          downloadUrl: "",
+          size: 0,
+        };
 
-      // Auto-download if enabled
-      if (autoDownload) {
-        await downloadUpdateRef.current?.();
+        setUpdateInfo(info);
+        setStatus(UpdateStatus.Available);
+
+        toast.success("Update available", {
+          description: `Version ${update.version} is ready to download`,
+        });
+
+        onUpdateAvailable?.(info);
+
+        // Auto-download if enabled
+        if (autoDownload) {
+          await downloadUpdateRef.current?.();
+        }
+
+        return {
+          available: true,
+          currentVersion: update.currentVersion,
+          latestVersion: update.version,
+          updateInfo: info,
+        };
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to check for updates";
+        setError(errorMessage);
+        setStatus(UpdateStatus.Error);
+
+        toast.error("Update check failed", {
+          description: errorMessage,
+        });
+
+        onError?.(err instanceof Error ? err : new Error(errorMessage));
+
+        return {
+          available: false,
+          currentVersion: "0.0.0",
+          error: errorMessage,
+        };
       }
-
-      return {
-        available: true,
-        currentVersion: update.currentVersion,
-        latestVersion: update.version,
-        updateInfo: info,
-      };
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to check for updates';
-      setError(errorMessage);
-      setStatus(UpdateStatus.Error);
-
-      toast.error('Update check failed', {
-        description: errorMessage,
-      });
-
-      onError?.(err instanceof Error ? err : new Error(errorMessage));
-
-      return {
-        available: false,
-        currentVersion: '0.0.0',
-        error: errorMessage,
-      };
-    }
-  }, [checkInterval, updateInfo, autoDownload, onUpdateAvailable, onError]);
+    },
+    [checkInterval, updateInfo, autoDownload, onUpdateAvailable, onError],
+  );
 
   /**
    * Download the available update.
@@ -196,14 +230,16 @@ export function useAutoUpdater(options: UseAutoUpdaterOptions = {}): UseAutoUpda
     try {
       const update = await check();
       if (!update) {
-        throw new Error('No update available');
+        throw new Error("No update available");
       }
 
       // Download with progress tracking
       let lastProgress = 0;
       await update.downloadAndInstall((event: DownloadEvent) => {
-        if (event.event === 'Started') {
-          const contentLength = isDownloadStartedData(event.data) ? event.data.contentLength ?? 0 : 0;
+        if (event.event === "Started") {
+          const contentLength = isDownloadStartedData(event.data)
+            ? (event.data.contentLength ?? 0)
+            : 0;
           setProgress({
             downloaded: 0,
             total: contentLength,
@@ -213,7 +249,7 @@ export function useAutoUpdater(options: UseAutoUpdaterOptions = {}): UseAutoUpda
           return;
         }
 
-        if (event.event === 'Progress') {
+        if (event.event === "Progress") {
           if (!isDownloadProgressData(event.data)) {
             return;
           }
@@ -234,11 +270,11 @@ export function useAutoUpdater(options: UseAutoUpdaterOptions = {}): UseAutoUpda
           return;
         }
 
-        if (event.event === 'Finished') {
+        if (event.event === "Finished") {
           setProgress(null);
           setStatus(UpdateStatus.ReadyToInstall);
 
-          toast.success('Update downloaded', {
+          toast.success("Update downloaded", {
             description: 'Click "Install" to restart and apply the update',
           });
 
@@ -253,12 +289,13 @@ export function useAutoUpdater(options: UseAutoUpdaterOptions = {}): UseAutoUpda
         }
       });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Download failed';
+      const errorMessage =
+        err instanceof Error ? err.message : "Download failed";
       setError(errorMessage);
       setStatus(UpdateStatus.Error);
       setProgress(null);
 
-      toast.error('Download failed', {
+      toast.error("Download failed", {
         description: errorMessage,
       });
 
@@ -279,18 +316,19 @@ export function useAutoUpdater(options: UseAutoUpdaterOptions = {}): UseAutoUpda
     }
 
     try {
-      toast.info('Installing update...', {
-        description: 'The app will restart in a moment',
+      toast.info("Installing update...", {
+        description: "The app will restart in a moment",
       });
 
       // Relaunch the app to apply the update
       await relaunch();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Install failed';
+      const errorMessage =
+        err instanceof Error ? err.message : "Install failed";
       setError(errorMessage);
       setStatus(UpdateStatus.Error);
 
-      toast.error('Install failed', {
+      toast.error("Install failed", {
         description: errorMessage,
       });
 
@@ -314,7 +352,7 @@ export function useAutoUpdater(options: UseAutoUpdaterOptions = {}): UseAutoUpda
     setStatus(UpdateStatus.Idle);
     setProgress(null);
 
-    toast.info('Download cancelled');
+    toast.info("Download cancelled");
   }, []);
 
   /**

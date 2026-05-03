@@ -24,7 +24,9 @@ vi.mock("./GatewayDetection", () => ({
   ),
 }));
 
-const OnboardingWizard = await import("./OnboardingWizard").then((m) => m.OnboardingWizard);
+const OnboardingWizard = await import("./OnboardingWizard").then(
+  (m) => m.OnboardingWizard,
+);
 
 describe("GatewayStep", () => {
   beforeEach(() => {
@@ -39,7 +41,8 @@ describe("GatewayStep", () => {
     vi.mocked(invoke)
       .mockResolvedValueOnce({ config: { gateway: { aiProvider: {} } } }) // get_edwinpai_config
       .mockResolvedValueOnce({ success: true }) // update_edwinpai_config_cmd
-      .mockResolvedValueOnce({ // get_identity (called on Identity step mount)
+      .mockResolvedValueOnce({
+        // get_identity (called on Identity step mount)
         publicKey: "02test",
         petname: "Test",
         avatarSvg: "<svg></svg>",
@@ -50,31 +53,43 @@ describe("GatewayStep", () => {
 
     // Navigate: Welcome → ApiKey → Identity → Gateway
     // In test mode, GatewayDetection doesn't render, so Get Started is already visible
-    const getStartedButton = screen.getAllByRole("button").find(
-      btn => btn.textContent?.includes("Get Started")
-    );
+    const getStartedButton = screen
+      .getAllByRole("button")
+      .find((btn) => btn.textContent?.includes("Get Started"));
     if (getStartedButton) await user.click(getStartedButton);
 
     await waitFor(() => screen.getByPlaceholderText(/sk-ant-/i));
     await user.type(screen.getByPlaceholderText(/sk-ant-/i), "sk-ant-test");
-    await user.click(screen.getByRole("button", { name: /validate & continue/i }));
+    await user.click(
+      screen.getByRole("button", { name: /validate & continue/i }),
+    );
 
     // Wait for Identity step to complete (it auto-generates on mount)
-    await waitFor(() => {
-      const continueButton = screen.getByRole("button", { name: /^continue$/i });
-      expect(continueButton).not.toBeDisabled();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        const continueButton = screen.getByRole("button", {
+          name: /^continue$/i,
+        });
+        expect(continueButton).not.toBeDisabled();
+      },
+      { timeout: 3000 },
+    );
     await user.click(screen.getByRole("button", { name: /^continue$/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText(/start gateway/i)).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/start gateway/i)).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   };
 
   it.skip("shows gateway start button", async () => {
     await navigateToGatewayStep();
 
-    expect(screen.getByRole("button", { name: /start gateway/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /start gateway/i }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/not started/i)).toBeInTheDocument();
   });
 
@@ -91,10 +106,13 @@ describe("GatewayStep", () => {
     const startButton = screen.getByRole("button", { name: /start gateway/i });
     await user.click(startButton);
 
-    await waitFor(() => {
-      expect(screen.getByText(/gateway is running/i)).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /running/i })).toBeDisabled();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/gateway is running/i)).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /running/i })).toBeDisabled();
+      },
+      { timeout: 3000 },
+    );
   });
 
   it.skip("shows error when subscription invalid", async () => {
@@ -107,9 +125,14 @@ describe("GatewayStep", () => {
     const startButton = screen.getByRole("button", { name: /start gateway/i });
     await user.click(startButton);
 
-    await waitFor(() => {
-      expect(screen.getByText(/valid subscription required/i)).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(/valid subscription required/i),
+        ).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 
   it.skip("shows status indicator during startup", async () => {
@@ -124,10 +147,15 @@ describe("GatewayStep", () => {
     const startButton = screen.getByRole("button", { name: /start gateway/i });
     await user.click(startButton);
 
-    await waitFor(() => {
-      expect(screen.getByText(/starting gateway/i)).toBeInTheDocument();
-      expect(screen.getByText(/starting gateway process/i)).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/starting gateway/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/starting gateway process/i),
+        ).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 
   it.skip("handles gateway start failure", async () => {
@@ -142,9 +170,14 @@ describe("GatewayStep", () => {
     const startButton = screen.getByRole("button", { name: /start gateway/i });
     await user.click(startButton);
 
-    await waitFor(() => {
-      expect(screen.getByText(/port 3000 already in use/i)).toBeInTheDocument();
-      expect(screen.getByText(/failed/i)).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(/port 3000 already in use/i),
+        ).toBeInTheDocument();
+        expect(screen.getByText(/failed/i)).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 });

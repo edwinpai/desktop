@@ -4,7 +4,7 @@
  * Graceful degradation for offline mode with connection status detection.
  */
 
-import { toast } from 'sonner';
+import { toast } from "sonner";
 
 export interface OfflineStatus {
   isOnline: boolean;
@@ -71,15 +71,17 @@ export function createOfflineHandler(options: OfflineHandlerOptions = {}) {
     status = {
       isOnline: true,
       lastOnline: new Date(),
-      offlineDuration: offlineStartTime ? Date.now() - offlineStartTime.getTime() : 0,
+      offlineDuration: offlineStartTime
+        ? Date.now() - offlineStartTime.getTime()
+        : 0,
     };
 
     offlineStartTime = null;
 
     if (wasOffline) {
       if (showToast) {
-        toast.success('Connection restored', {
-          description: 'You are back online',
+        toast.success("Connection restored", {
+          description: "You are back online",
         });
       }
 
@@ -103,8 +105,8 @@ export function createOfflineHandler(options: OfflineHandlerOptions = {}) {
 
     if (wasOnline) {
       if (showToast) {
-        toast.warning('Connection lost', {
-          description: 'Working in offline mode',
+        toast.warning("Connection lost", {
+          description: "Working in offline mode",
           duration: Infinity,
         });
       }
@@ -139,8 +141,8 @@ export function createOfflineHandler(options: OfflineHandlerOptions = {}) {
    */
   const init = () => {
     // Listen to browser events
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
     // Periodic check
     checkIntervalId = setInterval(checkConnection, checkInterval);
@@ -155,8 +157,8 @@ export function createOfflineHandler(options: OfflineHandlerOptions = {}) {
    * Destroy handler and cleanup.
    */
   const destroy = () => {
-    window.removeEventListener('online', handleOnline);
-    window.removeEventListener('offline', handleOffline);
+    window.removeEventListener("online", handleOnline);
+    window.removeEventListener("offline", handleOffline);
 
     if (checkIntervalId) {
       clearInterval(checkIntervalId);
@@ -224,15 +226,15 @@ export function withOfflineCheck<T extends unknown[], R>(
   options: {
     fallback?: (...args: T) => R | undefined;
     showToast?: boolean;
-  } = {}
+  } = {},
 ): (...args: T) => Promise<R | undefined> {
   const { fallback, showToast = true } = options;
 
   return async (...args: T): Promise<R | undefined> => {
     if (!navigator.onLine) {
       if (showToast) {
-        toast.error('No internet connection', {
-          description: 'Please check your network and try again',
+        toast.error("No internet connection", {
+          description: "Please check your network and try again",
         });
       }
 
@@ -240,7 +242,7 @@ export function withOfflineCheck<T extends unknown[], R>(
         return fallback(...args);
       }
 
-      throw new Error('Network offline');
+      throw new Error("Network offline");
     }
 
     try {
@@ -250,13 +252,13 @@ export function withOfflineCheck<T extends unknown[], R>(
       if (error instanceof Error) {
         const message = error.message.toLowerCase();
         if (
-          message.includes('network') ||
-          message.includes('timeout') ||
-          message.includes('connection') ||
-          message.includes('fetch')
+          message.includes("network") ||
+          message.includes("timeout") ||
+          message.includes("connection") ||
+          message.includes("fetch")
         ) {
           if (showToast) {
-            toast.error('Network error', {
+            toast.error("Network error", {
               description: error.message,
             });
           }

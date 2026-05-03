@@ -15,12 +15,34 @@ interface CodeBlockProps {
 }
 
 const CORE_LANGS: BundledLanguage[] = [
-  "typescript", "javascript", "jsx", "tsx",
-  "python", "rust", "go", "java", "c", "cpp",
-  "json", "yaml", "toml", "xml", "html", "css", "scss",
-  "bash", "sql", "graphql",
-  "markdown", "dockerfile", "diff",
-  "swift", "kotlin", "ruby", "php", "lua",
+  "typescript",
+  "javascript",
+  "jsx",
+  "tsx",
+  "python",
+  "rust",
+  "go",
+  "java",
+  "c",
+  "cpp",
+  "json",
+  "yaml",
+  "toml",
+  "xml",
+  "html",
+  "css",
+  "scss",
+  "bash",
+  "sql",
+  "graphql",
+  "markdown",
+  "dockerfile",
+  "diff",
+  "swift",
+  "kotlin",
+  "ruby",
+  "php",
+  "lua",
 ];
 
 const LANG_ALIASES: Record<string, string> = {
@@ -70,7 +92,10 @@ export function CodeBlock({ language, children }: CodeBlockProps) {
     codeRef.current = children;
     const code = children.replace(/\n$/, "");
 
-    if (!SUPPORTED_SET.has(resolvedLang) && !SUPPORTED_SET.has(language.toLowerCase())) {
+    if (
+      !SUPPORTED_SET.has(resolvedLang) &&
+      !SUPPORTED_SET.has(language.toLowerCase())
+    ) {
       const timeoutId = window.setTimeout(() => setHtml(null), 0);
       return () => window.clearTimeout(timeoutId);
     }

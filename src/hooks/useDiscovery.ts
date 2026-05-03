@@ -2,10 +2,10 @@
  * useDiscovery - mDNS peer discovery with polling
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import type { DiscoveredPeer } from '@/types/api';
-import { useDebouncedCallback } from '@/lib/debounce';
+import { useState, useCallback, useRef, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import type { DiscoveredPeer } from "@/types/api";
+import { useDebouncedCallback } from "@/lib/debounce";
 
 interface UseDiscoveryReturn {
   peers: DiscoveredPeer[];
@@ -31,10 +31,11 @@ export function useDiscovery(): UseDiscoveryReturn {
   const refreshPeersInternal = useCallback(async () => {
     try {
       setError(null);
-      const discovered = await invoke<DiscoveredPeer[]>('scan_network');
+      const discovered = await invoke<DiscoveredPeer[]>("scan_network");
       setPeers(discovered);
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to scan network';
+      const errorMsg =
+        err instanceof Error ? err.message : "Failed to scan network";
       setError(errorMsg);
       setPeers([]);
     }

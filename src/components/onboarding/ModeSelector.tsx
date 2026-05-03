@@ -14,7 +14,9 @@ export function ModeSelector({ onSelect }: ModeSelectorProps) {
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-6 p-8">
       <div className="text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Welcome to EdwinPAI</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Welcome to EdwinPAI
+        </h1>
         <p className="mt-2 text-muted-foreground">
           Are you setting up a new EdwinPAI, or connecting to an existing one?
         </p>
@@ -34,8 +36,8 @@ export function ModeSelector({ onSelect }: ModeSelectorProps) {
               </span>
             </CardTitle>
             <CardDescription>
-              Run EdwinPAI on this computer. It will be always on and manage your AI
-              assistant. Other family members can connect to it.
+              Run EdwinPAI on this computer. It will be always on and manage
+              your AI assistant. Other family members can connect to it.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -53,7 +55,8 @@ export function ModeSelector({ onSelect }: ModeSelectorProps) {
               </span>
             </CardTitle>
             <CardDescription>
-              Someone in your household already runs EdwinPAI. Connect to theirs.
+              Someone in your household already runs EdwinPAI. Connect to
+              theirs.
             </CardDescription>
           </CardHeader>
         </Card>

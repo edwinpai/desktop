@@ -5,26 +5,26 @@
  * PIN is verified against HMAC-SHA256(pin, identity_key).
  */
 
-import { useState, useRef, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { Shield, Lock, AlertCircle, Zap } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useState, useRef, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { Shield, Lock, AlertCircle, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface LockScreenProps {
   onUnlock: () => void;
 }
 
 export function LockScreen({ onUnlock }: LockScreenProps) {
-  const [pin, setPin] = useState('');
-  const [error, setError] = useState('');
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Load failed attempts count
-    invoke<{ failedAttempts: number }>('get_lock_status')
+    invoke<{ failedAttempts: number }>("get_lock_status")
       .then((status) => setFailedAttempts(status.failedAttempts))
       .catch(() => {});
     // Focus input
@@ -36,20 +36,20 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
     if (!pin.trim() || verifying) return;
 
     setVerifying(true);
-    setError('');
+    setError("");
 
     try {
-      const valid = await invoke<boolean>('verify_app_lock', { pin });
+      const valid = await invoke<boolean>("verify_app_lock", { pin });
       if (valid) {
         onUnlock();
       } else {
         setFailedAttempts((prev) => prev + 1);
-        setError('Incorrect PIN');
-        setPin('');
+        setError("Incorrect PIN");
+        setPin("");
         inputRef.current?.focus();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Verification failed');
+      setError(err instanceof Error ? err.message : "Verification failed");
     } finally {
       setVerifying(false);
     }
@@ -64,7 +64,9 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
             <Zap className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-2xl font-bold">EdwinPAI Desktop</h1>
-          <p className="text-sm text-muted-foreground mt-1">Enter your PIN to unlock</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Enter your PIN to unlock
+          </p>
         </div>
 
         {/* PIN Input */}
@@ -101,7 +103,7 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
             disabled={!pin.trim() || verifying}
           >
             <Shield className="h-4 w-4 mr-2" />
-            {verifying ? 'Verifying...' : 'Unlock'}
+            {verifying ? "Verifying..." : "Unlock"}
           </Button>
         </form>
 

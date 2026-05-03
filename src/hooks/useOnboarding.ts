@@ -6,7 +6,10 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import type { OnboardingProgress, OnboardingStepType } from "@/types/onboarding";
+import type {
+  OnboardingProgress,
+  OnboardingStepType,
+} from "@/types/onboarding";
 
 const STORAGE_KEY = "edwinpai_onboarding_progress";
 
@@ -37,20 +40,24 @@ const TOTAL_STEPS = 7; // Welcome, ApiKey, Identity, Gateway, TestChat, Channels
 /**
  * Hook for managing onboarding wizard state
  */
-export function useOnboarding(options: UseOnboardingOptions = {}): UseOnboardingReturn {
+export function useOnboarding(
+  options: UseOnboardingOptions = {},
+): UseOnboardingReturn {
   const { onComplete, autoSave = true } = options;
 
   // Initialize state from localStorage
   const [currentStep, setCurrentStep] = useState<number>(() => {
     const saved = loadProgressFromStorage();
     const step = saved?.currentStep ?? 0;
-    return typeof step === 'number' ? step : 0;
+    return typeof step === "number" ? step : 0;
   });
 
-  const [completedSteps, setCompletedSteps] = useState<OnboardingStepType[]>(() => {
-    const saved = loadProgressFromStorage();
-    return (saved?.completedSteps ?? []) as OnboardingStepType[];
-  });
+  const [completedSteps, setCompletedSteps] = useState<OnboardingStepType[]>(
+    () => {
+      const saved = loadProgressFromStorage();
+      return (saved?.completedSteps ?? []) as OnboardingStepType[];
+    },
+  );
 
   const [skippedSteps, setSkippedSteps] = useState<OnboardingStepType[]>(() => {
     const saved = loadProgressFromStorage();
@@ -67,7 +74,8 @@ export function useOnboarding(options: UseOnboardingOptions = {}): UseOnboarding
     return saved?.startedAt ?? new Date().toISOString();
   });
 
-  const isComplete = currentStep >= TOTAL_STEPS - 1 && completedSteps.length >= 3; // At least 3 required steps (Identity, Gateway, TestChat)
+  const isComplete =
+    currentStep >= TOTAL_STEPS - 1 && completedSteps.length >= 3; // At least 3 required steps (Identity, Gateway, TestChat)
 
   // Save progress to localStorage
   const saveProgress = useCallback(() => {
@@ -78,10 +86,10 @@ export function useOnboarding(options: UseOnboardingOptions = {}): UseOnboarding
       data,
       startedAt,
       lastUpdatedAt: new Date().toISOString(),
-      apiKeyValidated: completedSteps.includes('ApiKey'),
-      identityGenerated: completedSteps.includes('Identity'),
-      gatewayStarted: completedSteps.includes('Gateway'),
-      testChatCompleted: completedSteps.includes('TestChat'),
+      apiKeyValidated: completedSteps.includes("ApiKey"),
+      identityGenerated: completedSteps.includes("Identity"),
+      gatewayStarted: completedSteps.includes("Gateway"),
+      testChatCompleted: completedSteps.includes("TestChat"),
       channelsConfigured: [],
     };
     saveProgressToStorage(progress);
@@ -142,7 +150,7 @@ export function useOnboarding(options: UseOnboardingOptions = {}): UseOnboarding
         setCurrentStep((prev) => prev + 1);
       }
     },
-    [currentStep]
+    [currentStep],
   );
 
   // Mark step as skipped
@@ -158,7 +166,7 @@ export function useOnboarding(options: UseOnboardingOptions = {}): UseOnboarding
         setCurrentStep((prev) => prev + 1);
       }
     },
-    [currentStep]
+    [currentStep],
   );
 
   // Update step data without completing

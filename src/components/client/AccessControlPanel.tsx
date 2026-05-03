@@ -3,18 +3,18 @@
  * Owner can grant/revoke Member/Guest access
  */
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import type { UserAuthorization, AccessLevel } from '@/types/api';
-import { ACCESS_CAPABILITIES } from '@/types/api';
+} from "@/components/ui/select";
+import type { UserAuthorization, AccessLevel } from "@/types/api";
+import { ACCESS_CAPABILITIES } from "@/types/api";
 
 interface AccessControlPanelProps {
   users: UserAuthorization[];
@@ -46,7 +46,7 @@ export function AccessControlPanel({
 
   const handleRemove = async (pubkey: string) => {
     if (!onRemoveUser) return;
-    if (!confirm('Are you sure you want to remove this user?')) return;
+    if (!confirm("Are you sure you want to remove this user?")) return;
 
     setRemovingUser(pubkey);
     try {
@@ -89,7 +89,7 @@ export function AccessControlPanel({
   return (
     <div className="space-y-3">
       {users.map((user) => {
-        const isOwner = user.level === 'owner';
+        const isOwner = user.level === "owner";
         const isUpdating = updatingUser === user.pubkey;
         const isRemoving = removingUser === user.pubkey;
 
@@ -139,7 +139,7 @@ export function AccessControlPanel({
                     {isRemoving ? (
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
                     ) : (
-                      'Remove'
+                      "Remove"
                     )}
                   </Button>
                 </div>
@@ -147,7 +147,9 @@ export function AccessControlPanel({
 
               {isOwner && (
                 <div className="shrink-0">
-                  <p className="text-xs text-muted-foreground italic">Cannot remove owner</p>
+                  <p className="text-xs text-muted-foreground italic">
+                    Cannot remove owner
+                  </p>
                 </div>
               )}
             </div>
@@ -178,9 +180,9 @@ export function AccessControlPanel({
 
 function AccessBadge({ level }: { level: AccessLevel }) {
   const colors = {
-    owner: 'bg-purple-100 text-purple-700 border-purple-200',
-    member: 'bg-blue-100 text-blue-700 border-blue-200',
-    guest: 'bg-gray-100 text-gray-700 border-gray-200',
+    owner: "bg-purple-100 text-purple-700 border-purple-200",
+    member: "bg-blue-100 text-blue-700 border-blue-200",
+    guest: "bg-gray-100 text-gray-700 border-gray-200",
   };
 
   return (
@@ -227,7 +229,9 @@ function Capability({ label, granted }: { label: string; granted: boolean }) {
           <line x1="6" y1="6" x2="18" y2="18" />
         </svg>
       )}
-      <span className={granted ? 'text-foreground' : 'text-muted-foreground/50'}>
+      <span
+        className={granted ? "text-foreground" : "text-muted-foreground/50"}
+      >
         {label}
       </span>
     </div>
@@ -243,7 +247,7 @@ function formatDate(isoDate: string): string {
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffSecs < 60) return 'just now';
+  if (diffSecs < 60) return "just now";
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;

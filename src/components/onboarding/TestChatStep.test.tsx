@@ -98,7 +98,9 @@ class MockWebSocket {
               payload: {
                 state: "delta",
                 sessionKey: "main",
-                message: { content: [{ type: "text", text: "Hello from EdwinPAI!" }] },
+                message: {
+                  content: [{ type: "text", text: "Hello from EdwinPAI!" }],
+                },
               },
             }),
           });
@@ -111,7 +113,9 @@ class MockWebSocket {
               payload: {
                 state: "final",
                 sessionKey: "main",
-                message: { content: [{ type: "text", text: "Hello from EdwinPAI!" }] },
+                message: {
+                  content: [{ type: "text", text: "Hello from EdwinPAI!" }],
+                },
               },
             }),
           });
@@ -142,7 +146,9 @@ class MockWebSocket {
 
 const OriginalWebSocket = globalThis.WebSocket;
 
-const OnboardingWizard = await import("./OnboardingWizard").then((m) => m.OnboardingWizard);
+const OnboardingWizard = await import("./OnboardingWizard").then(
+  (m) => m.OnboardingWizard,
+);
 
 describe("TestChatStep", () => {
   beforeEach(() => {
@@ -161,11 +167,21 @@ describe("TestChatStep", () => {
 
     vi.mocked(invoke).mockImplementation(async (cmd: string) => {
       switch (cmd) {
-        case "add_provider": return { providers: [] };
-        case "get_identity": return { publicKey: "02test", petname: "Test", avatarSvg: "<svg></svg>", shortId: "test" };
-        case "scan_gateways": return [{ url: "http://localhost:18789", version: null, name: null }];
-        case "probe_gateway": return { found: true, url: "http://localhost:18789", error: null };
-        default: return {};
+        case "add_provider":
+          return { providers: [] };
+        case "get_identity":
+          return {
+            publicKey: "02test",
+            petname: "Test",
+            avatarSvg: "<svg></svg>",
+            shortId: "test",
+          };
+        case "scan_gateways":
+          return [{ url: "http://localhost:18789", version: null, name: null }];
+        case "probe_gateway":
+          return { found: true, url: "http://localhost:18789", error: null };
+        default:
+          return {};
       }
     });
 
@@ -183,7 +199,9 @@ describe("TestChatStep", () => {
     // ApiKey step
     await waitFor(() => screen.getByPlaceholderText(/sk-ant-/i));
     await user.type(screen.getByPlaceholderText(/sk-ant-/i), "sk-ant-test");
-    await user.click(screen.getByRole("button", { name: /validate & continue/i }));
+    await user.click(
+      screen.getByRole("button", { name: /validate & continue/i }),
+    );
 
     // Identity step
     await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
@@ -206,7 +224,9 @@ describe("TestChatStep", () => {
 
     await navigateToTestChatStep();
 
-    const sendButton = screen.getByRole("button", { name: /send test message/i });
+    const sendButton = screen.getByRole("button", {
+      name: /send test message/i,
+    });
     await user.click(sendButton);
 
     await waitFor(() => {
@@ -220,10 +240,14 @@ describe("TestChatStep", () => {
 
     await navigateToTestChatStep();
 
-    await user.click(screen.getByRole("button", { name: /send test message/i }));
+    await user.click(
+      screen.getByRole("button", { name: /send test message/i }),
+    );
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /^continue$/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /^continue$/i }),
+      ).toBeInTheDocument();
     });
   });
 
@@ -233,7 +257,9 @@ describe("TestChatStep", () => {
 
     await navigateToTestChatStep();
 
-    await user.click(screen.getByRole("button", { name: /send test message/i }));
+    await user.click(
+      screen.getByRole("button", { name: /send test message/i }),
+    );
 
     await waitFor(() => {
       expect(screen.getByText(/no api key configured/i)).toBeInTheDocument();

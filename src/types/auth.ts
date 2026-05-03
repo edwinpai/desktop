@@ -17,7 +17,7 @@
 /**
  * Access level for multi-user authorization (SPEC §12.2)
  */
-export type AccessLevel = 'owner' | 'member' | 'guest';
+export type AccessLevel = "owner" | "member" | "guest";
 
 /**
  * Access level capability matrix
@@ -80,7 +80,7 @@ export interface AuthUser {
 /**
  * Invitation status
  */
-export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'revoked';
+export type InvitationStatus = "pending" | "accepted" | "expired" | "revoked";
 
 /**
  * Invitation record
@@ -120,13 +120,13 @@ export interface Invitation {
  */
 export interface Brc103AuthHeaders {
   /** User's public key (X-BSV-Identity) */
-  'X-BSV-Identity': string;
+  "X-BSV-Identity": string;
 
   /** Nonce (X-BSV-Nonce) */
-  'X-BSV-Nonce': string;
+  "X-BSV-Nonce": string;
 
   /** Signature (X-BSV-Signature) */
-  'X-BSV-Signature': string;
+  "X-BSV-Signature": string;
 }
 
 // ============================================================================
@@ -158,7 +158,7 @@ export interface InvitationDetails {
  */
 export interface InvitationData {
   /** Protocol version */
-  version: 'edwinpai-invite-v1';
+  version: "edwinpai-invite-v1";
 
   /** Invitation details */
   invitation: InvitationDetails;

@@ -17,14 +17,14 @@
 /**
  * Message role
  */
-export type MessageRole = 'user' | 'assistant' | 'system';
+export type MessageRole = "user" | "assistant" | "system";
 
 /**
  * Message content part (for multimodal messages)
  */
 export type MessageContentPart =
-  | { type: 'text'; text: string }
-  | { type: 'image'; imageUrl: string };
+  | { type: "text"; text: string }
+  | { type: "image"; imageUrl: string };
 
 /**
  * Message content (string for simple, array for multimodal)
@@ -40,7 +40,7 @@ export interface ChatMessage {
   content: MessageContent;
   timestamp: string; // ISO 8601
   model?: string; // Model used for assistant messages
-  finishReason?: 'stop' | 'length' | 'content_filter' | null;
+  finishReason?: "stop" | "length" | "content_filter" | null;
 }
 
 /**
@@ -76,13 +76,13 @@ export interface ChatCompletionRequest {
  */
 export interface ChatCompletionResponse {
   id: string;
-  object: 'chat.completion';
+  object: "chat.completion";
   created: number; // Unix timestamp
   model: string;
   choices: Array<{
     index: number;
     message: ChatMessage;
-    finishReason: 'stop' | 'length' | 'content_filter';
+    finishReason: "stop" | "length" | "content_filter";
   }>;
   usage: {
     promptTokens: number;
@@ -99,13 +99,13 @@ export interface ChatCompletionResponse {
  * SSE event types (per OpenAI streaming spec)
  */
 export type SSEEventType =
-  | 'message_start'
-  | 'content_block_start'
-  | 'content_block_delta'
-  | 'content_block_stop'
-  | 'message_delta'
-  | 'message_stop'
-  | 'error';
+  | "message_start"
+  | "content_block_start"
+  | "content_block_delta"
+  | "content_block_stop"
+  | "message_delta"
+  | "message_stop"
+  | "error";
 
 /**
  * SSE event base structure
@@ -119,10 +119,10 @@ export interface SSEEvent<T = unknown> {
  * Message start event (beginning of stream)
  */
 export interface MessageStartEvent {
-  type: 'message_start';
+  type: "message_start";
   message: {
     id: string;
-    role: 'assistant';
+    role: "assistant";
     content: [];
     model: string;
   };
@@ -132,10 +132,10 @@ export interface MessageStartEvent {
  * Content block start event
  */
 export interface ContentBlockStartEvent {
-  type: 'content_block_start';
+  type: "content_block_start";
   index: number;
   contentBlock: {
-    type: 'text';
+    type: "text";
     text: string;
   };
 }
@@ -144,10 +144,10 @@ export interface ContentBlockStartEvent {
  * Content block delta event (streaming text chunk)
  */
 export interface ContentBlockDeltaEvent {
-  type: 'content_block_delta';
+  type: "content_block_delta";
   index: number;
   delta: {
-    type: 'text_delta';
+    type: "text_delta";
     text: string;
   };
 }
@@ -156,7 +156,7 @@ export interface ContentBlockDeltaEvent {
  * Content block stop event
  */
 export interface ContentBlockStopEvent {
-  type: 'content_block_stop';
+  type: "content_block_stop";
   index: number;
 }
 
@@ -164,9 +164,9 @@ export interface ContentBlockStopEvent {
  * Message delta event (metadata updates)
  */
 export interface MessageDeltaEvent {
-  type: 'message_delta';
+  type: "message_delta";
   delta: {
-    stopReason?: 'end_turn' | 'max_tokens' | 'stop_sequence';
+    stopReason?: "end_turn" | "max_tokens" | "stop_sequence";
   };
   usage?: {
     outputTokens: number;
@@ -177,14 +177,14 @@ export interface MessageDeltaEvent {
  * Message stop event (end of stream)
  */
 export interface MessageStopEvent {
-  type: 'message_stop';
+  type: "message_stop";
 }
 
 /**
  * Error event
  */
 export interface ErrorEvent {
-  type: 'error';
+  type: "error";
   error: {
     type: string;
     message: string;
@@ -211,12 +211,12 @@ export type SSEStreamEvent =
  * Streaming connection states
  */
 export type StreamingState =
-  | 'idle'        // Not streaming
-  | 'connecting'  // Opening SSE connection
-  | 'streaming'   // Receiving chunks
-  | 'completed'   // Stream finished successfully
-  | 'error'       // Stream failed
-  | 'cancelled';  // User cancelled
+  | "idle" // Not streaming
+  | "connecting" // Opening SSE connection
+  | "streaming" // Receiving chunks
+  | "completed" // Stream finished successfully
+  | "error" // Stream failed
+  | "cancelled"; // User cancelled
 
 /**
  * Streaming session metadata
@@ -349,12 +349,12 @@ export interface DeleteConversationResponse {
  * Chat event types (for IPC event listeners)
  */
 export type ChatEvent =
-  | 'chat:stream_start'
-  | 'chat:stream_chunk'
-  | 'chat:stream_end'
-  | 'chat:stream_error'
-  | 'chat:message_created'
-  | 'chat:conversation_updated';
+  | "chat:stream_start"
+  | "chat:stream_chunk"
+  | "chat:stream_end"
+  | "chat:stream_error"
+  | "chat:message_created"
+  | "chat:conversation_updated";
 
 /**
  * Stream chunk event payload
@@ -371,7 +371,7 @@ export interface StreamChunkEventPayload {
 export interface StreamEndEventPayload {
   messageId: string;
   fullText: string;
-  finishReason: 'stop' | 'length' | 'content_filter';
+  finishReason: "stop" | "length" | "content_filter";
 }
 
 /**

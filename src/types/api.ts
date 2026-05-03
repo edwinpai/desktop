@@ -1,4 +1,4 @@
-import type { ClientSessionConfig } from './desktop-config';
+import type { ClientSessionConfig } from "./desktop-config";
 
 /**
  * Gateway REST API types (SPEC §10)
@@ -262,18 +262,18 @@ export interface DiscoveredPeer {
  * Client connection status
  */
 export type ClientConnectionStatus =
-  | 'disconnected'
-  | 'connecting'
-  | 'connected'
-  | 'reconnecting'
-  | 'failed';
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "failed";
 
 /**
  * Invitation data for QR code generation
  */
 export interface InvitationData {
   /** Protocol version */
-  version: 'edwinpai-invite-v1';
+  version: "edwinpai-invite-v1";
 
   /** Invitation token */
   invitation: {
@@ -320,16 +320,19 @@ export interface UserAuthorization {
 /**
  * Access level for multi-user authorization
  */
-export type AccessLevel = 'owner' | 'member' | 'guest';
+export type AccessLevel = "owner" | "member" | "guest";
 
 /**
  * Access level capability matrix
  */
-export const ACCESS_CAPABILITIES: Record<AccessLevel, {
-  canManageUsers: boolean;
-  canWrite: boolean;
-  canRead: boolean;
-}> = {
+export const ACCESS_CAPABILITIES: Record<
+  AccessLevel,
+  {
+    canManageUsers: boolean;
+    canWrite: boolean;
+    canRead: boolean;
+  }
+> = {
   owner: {
     canManageUsers: true,
     canWrite: true,
@@ -373,7 +376,7 @@ export interface ClientConfig {
 /**
  * Invitation status
  */
-export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'revoked';
+export type InvitationStatus = "pending" | "accepted" | "expired" | "revoked";
 
 // ============================================================================
 // PHASE 6: ONBOARDING & UPDATES TYPES
@@ -467,7 +470,7 @@ export interface EdwinPAIConfig {
   ui: UiConfig;
 
   /** Operating mode */
-  mode: 'gateway' | 'client';
+  mode: "gateway" | "client";
 
   /** Last client session */
   lastClientSession?: ClientSessionConfig;
@@ -496,7 +499,7 @@ export interface GatewayConfigFull {
   healthCheckTimeoutMs: number;
 
   /** Log level */
-  logLevel: 'trace' | 'debug' | 'info' | 'warn' | 'error';
+  logLevel: "trace" | "debug" | "info" | "warn" | "error";
 
   /** AI provider settings */
   aiProvider: AiProviderConfig;
@@ -508,11 +511,14 @@ export interface GatewayConfigFull {
   subscription: SubscriptionConfigFull;
 
   /** Channel configurations */
-  channels?: Record<string, {
-    enabled: boolean;
-    credentials: Record<string, string>;
-    settings: Record<string, unknown>;
-  }>;
+  channels?: Record<
+    string,
+    {
+      enabled: boolean;
+      credentials: Record<string, string>;
+      settings: Record<string, unknown>;
+    }
+  >;
 }
 
 /**
@@ -622,7 +628,7 @@ export interface SubscriptionConfigFull {
  */
 export interface UiConfig {
   /** Theme */
-  theme: 'light' | 'dark' | 'system';
+  theme: "light" | "dark" | "system";
 
   /** Minimize to tray */
   minimizeToTray: boolean;
@@ -652,11 +658,11 @@ export interface ConfigValidationError {
  * Config error types
  */
 export type ConfigErrorType =
-  | 'FILE_ERROR'
-  | 'PARSE_ERROR'
-  | 'VALIDATION_ERROR'
-  | 'MIGRATION_ERROR'
-  | 'LOCK_ERROR';
+  | "FILE_ERROR"
+  | "PARSE_ERROR"
+  | "VALIDATION_ERROR"
+  | "MIGRATION_ERROR"
+  | "LOCK_ERROR";
 
 /**
  * Config error detail
@@ -671,7 +677,7 @@ export interface ConfigErrorDetail {
  * Default EdwinPAI configuration
  */
 export const DEFAULT_EDWINPAI_CONFIG: EdwinPAIConfig = {
-  version: '1.0.0',
+  version: "1.0.0",
   gateway: {
     port: 18789,
     autoStart: true,
@@ -679,9 +685,9 @@ export const DEFAULT_EDWINPAI_CONFIG: EdwinPAIConfig = {
     maxRestarts: 5,
     healthCheckIntervalMs: 30_000,
     healthCheckTimeoutMs: 5_000,
-    logLevel: 'info',
+    logLevel: "info",
     aiProvider: {
-      defaultModel: 'claude-sonnet-4-5',
+      defaultModel: "claude-sonnet-4-5",
       temperature: 0.7,
       maxTokens: 4096,
       enableStreaming: true,
@@ -711,11 +717,11 @@ export const DEFAULT_EDWINPAI_CONFIG: EdwinPAIConfig = {
     checkSubscriptionOnStartup: true,
   },
   ui: {
-    theme: 'system',
+    theme: "system",
     minimizeToTray: true,
     startMinimized: false,
     windowWidth: 1200,
     windowHeight: 800,
   },
-  mode: 'gateway',
+  mode: "gateway",
 };

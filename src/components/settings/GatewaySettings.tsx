@@ -8,23 +8,23 @@
  * - Reads/writes via IPC get_config/save_config commands
  */
 
-import { useState, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 
 interface BackendDesktopConfig {
   version: string;
-  mode: 'gateway' | 'client';
+  mode: "gateway" | "client";
   gateway: {
     port: number;
     autoStart: boolean;
@@ -39,7 +39,7 @@ interface BackendDesktopConfig {
     advertiseOnStartup: boolean;
   };
   ui: {
-    theme: 'light' | 'dark' | 'system';
+    theme: "light" | "dark" | "system";
     minimizeToTray: boolean;
     startMinimized: boolean;
     windowWidth: number;
@@ -71,10 +71,12 @@ export function GatewaySettings() {
     const loadConfig = async () => {
       try {
         setLoading(true);
-        const backendConfig = await invoke<BackendDesktopConfig>('get_config');
+        const backendConfig = await invoke<BackendDesktopConfig>("get_config");
         setConfig(backendConfig);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load configuration');
+        setError(
+          err instanceof Error ? err.message : "Failed to load configuration",
+        );
       } finally {
         setLoading(false);
       }
@@ -82,17 +84,21 @@ export function GatewaySettings() {
     loadConfig();
   }, []);
 
-  const updateConfig = async (updates: Partial<BackendDesktopConfig['gateway']>) => {
+  const updateConfig = async (
+    updates: Partial<BackendDesktopConfig["gateway"]>,
+  ) => {
     if (!config) return;
     try {
       const updated = {
         ...config,
         gateway: { ...config.gateway, ...updates },
       };
-      await invoke('save_config', { config: updated });
+      await invoke("save_config", { config: updated });
       setConfig(updated);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update configuration');
+      setError(
+        err instanceof Error ? err.message : "Failed to update configuration",
+      );
     }
   };
 
@@ -147,7 +153,9 @@ export function GatewaySettings() {
             <Switch
               id="auto-start"
               checked={config.gateway.autoStart}
-              onCheckedChange={(checked) => updateConfig({ autoStart: checked })}
+              onCheckedChange={(checked) =>
+                updateConfig({ autoStart: checked })
+              }
             />
           </div>
 
@@ -161,7 +169,9 @@ export function GatewaySettings() {
             <Switch
               id="auto-restart"
               checked={config.gateway.autoRestart}
-              onCheckedChange={(checked) => updateConfig({ autoRestart: checked })}
+              onCheckedChange={(checked) =>
+                updateConfig({ autoRestart: checked })
+              }
             />
           </div>
 
@@ -173,7 +183,9 @@ export function GatewaySettings() {
               min={0}
               max={20}
               value={config.gateway.maxRestarts}
-              onChange={(e) => updateConfig({ maxRestarts: parseInt(e.target.value) })}
+              onChange={(e) =>
+                updateConfig({ maxRestarts: parseInt(e.target.value) })
+              }
               className="mt-1.5"
             />
             <p className="text-xs text-muted-foreground mt-1.5">
@@ -197,7 +209,9 @@ export function GatewaySettings() {
               step={1000}
               value={config.gateway.healthCheckIntervalMs}
               onChange={(e) =>
-                updateConfig({ healthCheckIntervalMs: parseInt(e.target.value) })
+                updateConfig({
+                  healthCheckIntervalMs: parseInt(e.target.value),
+                })
               }
               className="mt-1.5"
             />

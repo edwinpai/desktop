@@ -5,47 +5,59 @@
  * Uses baileys-style session data format.
  */
 
-import { useState } from 'react'
-import { MessageCircle } from 'lucide-react'
-import { WizardShell, type WizardStepConfig } from './WizardShell'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
+import { useState } from "react";
+import { MessageCircle } from "lucide-react";
+import { WizardShell, type WizardStepConfig } from "./WizardShell";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
-import { useChannels } from '@/hooks/useChannels'
-import type { ChannelWizardProps } from '@/types/channels'
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useChannels } from "@/hooks/useChannels";
+import type { ChannelWizardProps } from "@/types/channels";
 
-export function WhatsAppWizard({ channel = 'whatsapp', onComplete, onCancel, existingConfig }: ChannelWizardProps) {
-  const [currentStepIndex, setCurrentStepIndex] = useState(0)
-  const [sessionData, setSessionData] = useState(existingConfig?.credentials?.sessionData || '')
-  const [error, setError] = useState<string>()
-  const [loading, setLoading] = useState(false)
-  const [validationMetadata, setValidationMetadata] = useState<{ status?: string; phoneNumber?: string }>()
-  
+export function WhatsAppWizard({
+  channel = "whatsapp",
+  onComplete,
+  onCancel,
+  existingConfig,
+}: ChannelWizardProps) {
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [sessionData, setSessionData] = useState(
+    existingConfig?.credentials?.sessionData || "",
+  );
+  const [error, setError] = useState<string>();
+  const [loading, setLoading] = useState(false);
+  const [validationMetadata, setValidationMetadata] = useState<{
+    status?: string;
+    phoneNumber?: string;
+  }>();
+
   // Advanced settings state
-  const [enabled, setEnabled] = useState(true)
-  const [dmPolicy, setDmPolicy] = useState('pairing')
-  const [groupPolicy, setGroupPolicy] = useState('open')
-  const [historyLimit, setHistoryLimit] = useState(50)
+  const [enabled, setEnabled] = useState(true);
+  const [dmPolicy, setDmPolicy] = useState("pairing");
+  const [groupPolicy, setGroupPolicy] = useState("open");
+  const [historyLimit, setHistoryLimit] = useState(50);
 
-  const { validateCredentials } = useChannels(false)
+  const { validateCredentials } = useChannels(false);
 
   // Step 1: Introduction
   const introStep: WizardStepConfig = {
-    step: 'intro',
-    title: 'Connect WhatsApp Business',
-    description: 'Integrate WhatsApp Business API to receive and respond to messages',
+    step: "intro",
+    title: "Connect WhatsApp Business",
+    description:
+      "Integrate WhatsApp Business API to receive and respond to messages",
     content: (
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          This wizard will help you connect your WhatsApp Business account. You'll need:
+          This wizard will help you connect your WhatsApp Business account.
+          You'll need:
         </p>
         <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
           <li>WhatsApp Business API access</li>
@@ -59,13 +71,13 @@ export function WhatsAppWizard({ channel = 'whatsapp', onComplete, onCancel, exi
         </div>
       </div>
     ),
-  }
+  };
 
   // Step 2: Credential input
   const credentialsStep: WizardStepConfig = {
-    step: 'credentials',
-    title: 'Provide Session Data',
-    description: 'Upload WhatsApp session JSON or paste session data',
+    step: "credentials",
+    title: "Provide Session Data",
+    description: "Upload WhatsApp session JSON or paste session data",
     content: (
       <div className="space-y-4">
         <div className="space-y-2">
@@ -75,21 +87,23 @@ export function WhatsAppWizard({ channel = 'whatsapp', onComplete, onCancel, exi
             type="file"
             accept=".json"
             onChange={(e) => {
-              const file = e.target.files?.[0]
+              const file = e.target.files?.[0];
               if (file) {
-                const reader = new FileReader()
+                const reader = new FileReader();
                 reader.onload = (event) => {
                   try {
-                    const content = event.target?.result as string
+                    const content = event.target?.result as string;
                     // Validate it's valid JSON
-                    JSON.parse(content)
-                    setSessionData(content)
-                    setError(undefined)
+                    JSON.parse(content);
+                    setSessionData(content);
+                    setError(undefined);
                   } catch {
-                    setError('Invalid JSON file. Please upload a valid WhatsApp session file.')
+                    setError(
+                      "Invalid JSON file. Please upload a valid WhatsApp session file.",
+                    );
                   }
-                }
-                reader.readAsText(file)
+                };
+                reader.readAsText(file);
               }
             }}
           />
@@ -103,7 +117,9 @@ export function WhatsAppWizard({ channel = 'whatsapp', onComplete, onCancel, exi
             <span className="w-full border-t" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Or paste directly</span>
+            <span className="bg-background px-2 text-muted-foreground">
+              Or paste directly
+            </span>
           </div>
         </div>
 
@@ -114,8 +130,8 @@ export function WhatsAppWizard({ channel = 'whatsapp', onComplete, onCancel, exi
             placeholder='{"creds": {...}, "keys": {...}}'
             value={sessionData}
             onChange={(e) => {
-              setSessionData(e.target.value)
-              setError(undefined)
+              setSessionData(e.target.value);
+              setError(undefined);
             }}
             rows={10}
             className="font-mono text-xs"
@@ -128,27 +144,27 @@ export function WhatsAppWizard({ channel = 'whatsapp', onComplete, onCancel, exi
     ),
     onValidate: async () => {
       if (!sessionData.trim()) {
-        setError('Session data is required')
-        return false
+        setError("Session data is required");
+        return false;
       }
 
       // Validate JSON format
       try {
-        JSON.parse(sessionData)
+        JSON.parse(sessionData);
       } catch {
-        setError('Invalid JSON format. Please provide valid session data.')
-        return false
+        setError("Invalid JSON format. Please provide valid session data.");
+        return false;
       }
 
-      return true
+      return true;
     },
-  }
+  };
 
   // Step 3: Validation
   const validationStep: WizardStepConfig = {
-    step: 'validation',
-    title: 'Validate Connection',
-    description: 'Testing your WhatsApp credentials',
+    step: "validation",
+    title: "Validate Connection",
+    description: "Testing your WhatsApp credentials",
     content: (
       <div className="space-y-4">
         {validationMetadata ? (
@@ -159,61 +175,70 @@ export function WhatsAppWizard({ channel = 'whatsapp', onComplete, onCancel, exi
             </div>
             {validationMetadata.phoneNumber && (
               <div className="text-sm text-muted-foreground">
-                Phone: <span className="font-mono">{validationMetadata.phoneNumber}</span>
+                Phone:{" "}
+                <span className="font-mono">
+                  {validationMetadata.phoneNumber}
+                </span>
               </div>
             )}
             <div className="text-sm text-muted-foreground">
-              Status: <span className="font-medium">{validationMetadata.status || 'Connected'}</span>
+              Status:{" "}
+              <span className="font-medium">
+                {validationMetadata.status || "Connected"}
+              </span>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Validating your credentials...</p>
+          <p className="text-sm text-muted-foreground">
+            Validating your credentials...
+          </p>
         )}
       </div>
     ),
     onValidate: async () => {
-      setLoading(true)
-      setError(undefined)
+      setLoading(true);
+      setError(undefined);
 
       try {
         const credentials: Record<string, string> = {
           sessionData,
-        }
+        };
 
-        const result = await validateCredentials(channel, credentials)
+        const result = await validateCredentials(channel, credentials);
 
         if (!result.valid) {
-          setError(result.errorMessage || 'Validation failed')
-          return false
+          setError(result.errorMessage || "Validation failed");
+          return false;
         }
 
         // Extract metadata
         setValidationMetadata({
           status: result.metadata?.status,
           phoneNumber: result.metadata?.phoneNumber,
-        })
+        });
 
-        return true
+        return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Validation failed')
-        return false
+        setError(err instanceof Error ? err.message : "Validation failed");
+        return false;
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     },
-  }
+  };
 
   // Step 4: Advanced Settings (Optional)
   const advancedStep: WizardStepConfig = {
-    step: 'advanced',
-    title: 'Advanced Settings (Optional)',
-    description: 'Configure channel behavior',
+    step: "advanced",
+    title: "Advanced Settings (Optional)",
+    description: "Configure channel behavior",
     content: (
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          These settings are optional. You can always change them later in the channel settings.
+          These settings are optional. You can always change them later in the
+          channel settings.
         </p>
-        
+
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="enabled">Enable Channel</Label>
@@ -277,33 +302,39 @@ export function WhatsAppWizard({ channel = 'whatsapp', onComplete, onCancel, exi
         </div>
       </div>
     ),
-  }
+  };
 
   // Step 5: Confirmation
   const confirmationStep: WizardStepConfig = {
-    step: 'confirmation',
-    title: 'Configuration Complete',
-    description: 'Your WhatsApp channel is ready',
+    step: "confirmation",
+    title: "Configuration Complete",
+    description: "Your WhatsApp channel is ready",
     content: (
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
           <div className="w-3 h-3 bg-green-600 dark:bg-green-400 rounded-full" />
-          <span className="font-medium">WhatsApp channel configured successfully</span>
+          <span className="font-medium">
+            WhatsApp channel configured successfully
+          </span>
         </div>
         <div className="bg-muted p-4 rounded-lg space-y-2">
           <div className="text-sm">
-            <span className="text-muted-foreground">Channel:</span>{' '}
+            <span className="text-muted-foreground">Channel:</span>{" "}
             <span className="font-medium">WhatsApp Business</span>
           </div>
           {validationMetadata?.phoneNumber && (
             <div className="text-sm">
-              <span className="text-muted-foreground">Phone:</span>{' '}
-              <span className="font-mono">{validationMetadata.phoneNumber}</span>
+              <span className="text-muted-foreground">Phone:</span>{" "}
+              <span className="font-mono">
+                {validationMetadata.phoneNumber}
+              </span>
             </div>
           )}
           <div className="text-sm">
-            <span className="text-muted-foreground">Status:</span>{' '}
-            <span className="font-medium text-green-600 dark:text-green-400">Active</span>
+            <span className="text-muted-foreground">Status:</span>{" "}
+            <span className="font-medium text-green-600 dark:text-green-400">
+              Active
+            </span>
           </div>
         </div>
         <p className="text-sm text-muted-foreground">
@@ -312,8 +343,8 @@ export function WhatsAppWizard({ channel = 'whatsapp', onComplete, onCancel, exi
       </div>
     ),
     onValidate: async () => {
-      setLoading(true)
-      setError(undefined)
+      setLoading(true);
+      setError(undefined);
 
       try {
         // Save channel config via gateway config.patch
@@ -327,24 +358,34 @@ export function WhatsAppWizard({ channel = 'whatsapp', onComplete, onCancel, exi
               historyLimit,
             },
           },
-        }
+        };
 
         // Try config.patch via WebSocket first (works for remote gateways)
         try {
-          const { patchGatewayConfig, resolveToken, inferGatewayKind } = await import('@/lib/gateway-context')
-          const { readConfig } = await import('@/lib/config')
-          const desktopConfig = await readConfig()
-          const gwUrl = desktopConfig?.gatewayUrl || 'http://localhost:18789'
-          const token = desktopConfig?.gatewayToken || await resolveToken()
+          const { patchGatewayConfig, resolveToken, inferGatewayKind } =
+            await import("@/lib/gateway-context");
+          const { readConfig } = await import("@/lib/config");
+          const desktopConfig = await readConfig();
+          const gwUrl = desktopConfig?.gatewayUrl || "http://localhost:18789";
+          const token = desktopConfig?.gatewayToken || (await resolveToken());
           await patchGatewayConfig(
-            { url: gwUrl, token: token || undefined, kind: inferGatewayKind(gwUrl) },
+            {
+              url: gwUrl,
+              token: token || undefined,
+              kind: inferGatewayKind(gwUrl),
+            },
             patch,
-          )
+          );
         } catch {
           // Fallback: try local IPC
-          const { invoke } = await import('@tauri-apps/api/core')
-          const configResponse = await invoke<{ config: Record<string, unknown> }>('get_edwinpai_config')
-          const currentConfig = configResponse.config as Record<string, unknown>
+          const { invoke } = await import("@tauri-apps/api/core");
+          const configResponse = await invoke<{
+            config: Record<string, unknown>;
+          }>("get_edwinpai_config");
+          const currentConfig = configResponse.config as Record<
+            string,
+            unknown
+          >;
           const updatedConfig = {
             ...currentConfig,
             channels: {
@@ -357,36 +398,47 @@ export function WhatsAppWizard({ channel = 'whatsapp', onComplete, onCancel, exi
                 historyLimit,
               },
             },
-          }
-          await invoke('update_edwinpai_config', { config: updatedConfig })
+          };
+          await invoke("update_edwinpai_config", { config: updatedConfig });
         }
 
-        onComplete?.({ enabled, sessionData } as unknown as import("@/types/channels").ChannelConfig)
-        return true
+        onComplete?.({
+          enabled,
+          sessionData,
+        } as unknown as import("@/types/channels").ChannelConfig);
+        return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to save configuration')
-        return false
+        setError(
+          err instanceof Error ? err.message : "Failed to save configuration",
+        );
+        return false;
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     },
-    nextLabel: 'Save & Enable',
-  }
+    nextLabel: "Save & Enable",
+  };
 
-  const steps = [introStep, credentialsStep, validationStep, advancedStep, confirmationStep]
+  const steps = [
+    introStep,
+    credentialsStep,
+    validationStep,
+    advancedStep,
+    confirmationStep,
+  ];
 
   const handleNext = () => {
     if (currentStepIndex < steps.length - 1) {
-      setCurrentStepIndex(currentStepIndex + 1)
+      setCurrentStepIndex(currentStepIndex + 1);
     }
-  }
+  };
 
   const handleBack = () => {
     if (currentStepIndex > 0) {
-      setCurrentStepIndex(currentStepIndex - 1)
-      setError(undefined)
+      setCurrentStepIndex(currentStepIndex - 1);
+      setError(undefined);
     }
-  }
+  };
 
   return (
     <WizardShell
@@ -400,5 +452,5 @@ export function WhatsAppWizard({ channel = 'whatsapp', onComplete, onCancel, exi
       error={error}
       loading={loading}
     />
-  )
+  );
 }

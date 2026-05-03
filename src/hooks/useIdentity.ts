@@ -40,9 +40,13 @@ interface UseIdentityReturn {
       keyId?: string;
       counterparty?: string;
       useIdentityKey?: boolean;
-    }
+    },
   ) => Promise<{ signature: Uint8Array; publicKey: string }>;
-  verifyMessage: (data: Uint8Array, signature: Uint8Array, publicKey: string) => Promise<boolean>;
+  verifyMessage: (
+    data: Uint8Array,
+    signature: Uint8Array,
+    publicKey: string,
+  ) => Promise<boolean>;
   generateIdenticon: (publicKey: string, size?: number) => Promise<string>;
 }
 
@@ -71,21 +75,24 @@ export function useIdentity(): UseIdentityReturn {
     }
   }, []);
 
-  const deriveKey = useCallback(async (params: DeriveKeyRequest): Promise<string> => {
-    try {
-      const response = await deriveCryptoKey(
-        params.protocolId,
-        params.keyId,
-        params.counterparty,
-        params.securityLevel,
-      );
-      return response.public_key;
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      console.error("Failed to derive key:", errorMsg);
-      throw new Error(errorMsg);
-    }
-  }, []);
+  const deriveKey = useCallback(
+    async (params: DeriveKeyRequest): Promise<string> => {
+      try {
+        const response = await deriveCryptoKey(
+          params.protocolId,
+          params.keyId,
+          params.counterparty,
+          params.securityLevel,
+        );
+        return response.public_key;
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        console.error("Failed to derive key:", errorMsg);
+        throw new Error(errorMsg);
+      }
+    },
+    [],
+  );
 
   const signMessage = useCallback(
     async (
@@ -114,7 +121,11 @@ export function useIdentity(): UseIdentityReturn {
   );
 
   const verifyMessage = useCallback(
-    async (data: Uint8Array, signature: Uint8Array, publicKey: string): Promise<boolean> => {
+    async (
+      data: Uint8Array,
+      signature: Uint8Array,
+      publicKey: string,
+    ): Promise<boolean> => {
       try {
         const response = await verifyCryptoMessage(data, signature, publicKey);
         return response.valid;
@@ -127,16 +138,19 @@ export function useIdentity(): UseIdentityReturn {
     [],
   );
 
-  const generateIdenticon = useCallback(async (publicKey: string, size?: number): Promise<string> => {
-    try {
-      const response = await generateCryptoIdenticon(publicKey, size);
-      return response.svg;
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      console.error("Failed to generate identicon:", errorMsg);
-      throw new Error(errorMsg);
-    }
-  }, []);
+  const generateIdenticon = useCallback(
+    async (publicKey: string, size?: number): Promise<string> => {
+      try {
+        const response = await generateCryptoIdenticon(publicKey, size);
+        return response.svg;
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        console.error("Failed to generate identicon:", errorMsg);
+        throw new Error(errorMsg);
+      }
+    },
+    [],
+  );
 
   // Auto-load identity on mount
   useEffect(() => {

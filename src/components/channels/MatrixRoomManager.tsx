@@ -4,21 +4,29 @@
  * Reads rooms from gateway config and patches via config.patch.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { Hash, Plus, Trash2, RefreshCw, CheckCircle, AlertCircle, MessageSquare } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
+import { useState, useEffect, useCallback } from "react";
+import {
+  Hash,
+  Plus,
+  Trash2,
+  RefreshCw,
+  CheckCircle,
+  AlertCircle,
+  MessageSquare,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   fetchGatewayConfig,
   patchGatewayConfig,
   resolveToken,
   inferGatewayKind,
   type GatewayTarget,
-} from '@/lib/gateway-context';
-import { readConfig, updateConfig } from '@/lib/config';
+} from "@/lib/gateway-context";
+import { readConfig, updateConfig } from "@/lib/config";
 
 interface RoomConfig {
   allow?: boolean;
@@ -38,22 +46,29 @@ interface MatrixRoomManagerProps {
 
 export function MatrixRoomManager({ onClose }: MatrixRoomManagerProps) {
   const [rooms, setRooms] = useState<RoomEntry[]>([]);
-  const [newRoomId, setNewRoomId] = useState('');
+  const [newRoomId, setNewRoomId] = useState("");
   const [newAutoReply, setNewAutoReply] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [status, setStatus] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const buildTarget = useCallback(async (): Promise<GatewayTarget> => {
     const config = await readConfig().catch(() => null);
-    let url = config?.gatewayUrl || 'http://localhost:18789';
+    let url = config?.gatewayUrl || "http://localhost:18789";
     const token = config?.gatewayToken || (await resolveToken());
 
     // Auto-migrate 127.0.0.1 → localhost (gateway treats localhost as trusted control-plane host)
     try {
       const urlObj = new URL(url);
-      if (urlObj.hostname === '::1' || urlObj.hostname === '0.0.0.0' || urlObj.hostname.startsWith('127.')) {
-        urlObj.hostname = 'localhost';
+      if (
+        urlObj.hostname === "::1" ||
+        urlObj.hostname === "0.0.0.0" ||
+        urlObj.hostname.startsWith("127.")
+      ) {
+        urlObj.hostname = "localhost";
         const migrated = urlObj.toString();
         url = migrated;
         updateConfig({ gatewayUrl: migrated }).catch(() => {
@@ -73,19 +88,26 @@ export function MatrixRoomManager({ onClose }: MatrixRoomManagerProps) {
     try {
       const target = await buildTarget();
       const gwConfig = await fetchGatewayConfig(target);
-      const channels = (gwConfig as Record<string, unknown>).channels as Record<string, unknown> | undefined;
+      const channels = (gwConfig as Record<string, unknown>).channels as
+        | Record<string, unknown>
+        | undefined;
       const matrix = channels?.matrix as Record<string, unknown> | undefined;
       const groups = (matrix?.groups || {}) as Record<string, RoomConfig>;
 
-      const entries: RoomEntry[] = Object.entries(groups).map(([roomId, config]) => ({
-        roomId,
-        config,
-      }));
+      const entries: RoomEntry[] = Object.entries(groups).map(
+        ([roomId, config]) => ({
+          roomId,
+          config,
+        }),
+      );
 
       setRooms(entries);
       setStatus(null);
     } catch (err) {
-      setStatus({ type: 'error', message: `Failed to load rooms: ${err instanceof Error ? err.message : String(err)}` });
+      setStatus({
+        type: "error",
+        message: `Failed to load rooms: ${err instanceof Error ? err.message : String(err)}`,
+      });
     } finally {
       setLoading(false);
     }
@@ -100,8 +122,12 @@ export function MatrixRoomManager({ onClose }: MatrixRoomManagerProps) {
     if (!roomId) return;
 
     // Basic validation — room IDs start with !
-    if (!roomId.startsWith('!') && !roomId.startsWith('#')) {
-      setStatus({ type: 'error', message: 'Room ID must start with ! (e.g., !abc:server.org) or # for aliases' });
+    if (!roomId.startsWith("!") && !roomId.startsWith("#")) {
+      setStatus({
+        type: "error",
+        message:
+          "Room ID must start with ! (e.g., !abc:server.org) or # for aliases",
+      });
       return;
     }
 
@@ -124,12 +150,18 @@ export function MatrixRoomManager({ onClose }: MatrixRoomManagerProps) {
       };
 
       await patchGatewayConfig(target, patch);
-      setNewRoomId('');
-      setStatus({ type: 'success', message: `Room ${roomId} added. Gateway reloading.` });
+      setNewRoomId("");
+      setStatus({
+        type: "success",
+        message: `Room ${roomId} added. Gateway reloading.`,
+      });
       // Reload after brief delay for gateway restart
       setTimeout(() => loadRooms(), 2000);
     } catch (err) {
-      setStatus({ type: 'error', message: `Failed to add room: ${err instanceof Error ? err.message : String(err)}` });
+      setStatus({
+        type: "error",
+        message: `Failed to add room: ${err instanceof Error ? err.message : String(err)}`,
+      });
     } finally {
       setSaving(false);
     }
@@ -152,10 +184,13 @@ export function MatrixRoomManager({ onClose }: MatrixRoomManagerProps) {
       };
 
       await patchGatewayConfig(target, patch);
-      setStatus({ type: 'success', message: `Updated ${roomId}` });
+      setStatus({ type: "success", message: `Updated ${roomId}` });
       setTimeout(() => loadRooms(), 2000);
     } catch (err) {
-      setStatus({ type: 'error', message: `Failed: ${err instanceof Error ? err.message : String(err)}` });
+      setStatus({
+        type: "error",
+        message: `Failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
     } finally {
       setSaving(false);
     }
@@ -179,10 +214,13 @@ export function MatrixRoomManager({ onClose }: MatrixRoomManagerProps) {
       };
 
       await patchGatewayConfig(target, patch);
-      setStatus({ type: 'success', message: `Room ${roomId} disabled.` });
+      setStatus({ type: "success", message: `Room ${roomId} disabled.` });
       setTimeout(() => loadRooms(), 2000);
     } catch (err) {
-      setStatus({ type: 'error', message: `Failed: ${err instanceof Error ? err.message : String(err)}` });
+      setStatus({
+        type: "error",
+        message: `Failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
     } finally {
       setSaving(false);
     }
@@ -196,8 +234,15 @@ export function MatrixRoomManager({ onClose }: MatrixRoomManagerProps) {
           <h3 className="text-lg font-semibold">Matrix Rooms</h3>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={loadRooms} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={loadRooms}
+            disabled={loading}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
           {onClose && (
@@ -210,10 +255,18 @@ export function MatrixRoomManager({ onClose }: MatrixRoomManagerProps) {
 
       {/* Status */}
       {status && (
-        <div className={`flex items-center gap-2 text-sm rounded-md px-3 py-2 ${
-          status.type === 'success' ? 'text-green-600 bg-green-500/10' : 'text-destructive bg-destructive/10'
-        }`}>
-          {status.type === 'success' ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+        <div
+          className={`flex items-center gap-2 text-sm rounded-md px-3 py-2 ${
+            status.type === "success"
+              ? "text-green-600 bg-green-500/10"
+              : "text-destructive bg-destructive/10"
+          }`}
+        >
+          {status.type === "success" ? (
+            <CheckCircle className="h-4 w-4" />
+          ) : (
+            <AlertCircle className="h-4 w-4" />
+          )}
           {status.message}
         </div>
       )}
@@ -223,10 +276,15 @@ export function MatrixRoomManager({ onClose }: MatrixRoomManagerProps) {
         <div className="space-y-2">
           <Label>Configured Rooms</Label>
           {rooms.map((room) => (
-            <div key={room.roomId} className="flex items-center justify-between p-3 rounded-md border bg-muted/30">
+            <div
+              key={room.roomId}
+              className="flex items-center justify-between p-3 rounded-md border bg-muted/30"
+            >
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-sm font-mono truncate">{room.roomId}</span>
+                <span className="text-sm font-mono truncate">
+                  {room.roomId}
+                </span>
                 {room.config.allow === false ? (
                   <Badge variant="secondary">Disabled</Badge>
                 ) : (
@@ -235,10 +293,14 @@ export function MatrixRoomManager({ onClose }: MatrixRoomManagerProps) {
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Auto-reply</span>
+                  <span className="text-xs text-muted-foreground">
+                    Auto-reply
+                  </span>
                   <Switch
                     checked={room.config.autoReply ?? false}
-                    onCheckedChange={(checked) => handleToggleAutoReply(room.roomId, checked)}
+                    onCheckedChange={(checked) =>
+                      handleToggleAutoReply(room.roomId, checked)
+                    }
                     disabled={saving}
                   />
                 </div>
@@ -272,16 +334,21 @@ export function MatrixRoomManager({ onClose }: MatrixRoomManagerProps) {
             value={newRoomId}
             onChange={(e) => setNewRoomId(e.target.value)}
             className="flex-1 font-mono text-sm"
-            onKeyDown={(e) => e.key === 'Enter' && handleAddRoom()}
+            onKeyDown={(e) => e.key === "Enter" && handleAddRoom()}
           />
-          <Button onClick={handleAddRoom} disabled={saving || !newRoomId.trim()}>
+          <Button
+            onClick={handleAddRoom}
+            disabled={saving || !newRoomId.trim()}
+          >
             <Plus className="h-4 w-4 mr-1" />
-            {saving ? 'Adding...' : 'Add'}
+            {saving ? "Adding..." : "Add"}
           </Button>
         </div>
         <div className="flex items-center gap-2">
           <Switch checked={newAutoReply} onCheckedChange={setNewAutoReply} />
-          <span className="text-xs text-muted-foreground">Auto-reply in this room (respond without @mention)</span>
+          <span className="text-xs text-muted-foreground">
+            Auto-reply in this room (respond without @mention)
+          </span>
         </div>
       </div>
     </div>

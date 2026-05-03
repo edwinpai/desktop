@@ -2,20 +2,20 @@
  * Invitation Manager - Create and share QR codes for gateway invitations
  */
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import type { AccessLevel, InvitationData } from '@/types/api';
-import { useInvitations } from '@/hooks/useInvitations';
+} from "@/components/ui/select";
+import type { AccessLevel, InvitationData } from "@/types/api";
+import { useInvitations } from "@/hooks/useInvitations";
 
 interface InvitationManagerProps {
   onInvitationCreated?: (invitation: InvitationData) => void;
@@ -24,7 +24,7 @@ interface InvitationManagerProps {
 
 export function InvitationManager({
   onInvitationCreated,
-  defaultLevel = 'guest',
+  defaultLevel = "guest",
 }: InvitationManagerProps) {
   const [level, setLevel] = useState<AccessLevel>(defaultLevel);
   const [expiresInHours, setExpiresInHours] = useState<number>(24);
@@ -49,8 +49,8 @@ export function InvitationManager({
   const handleCopyQR = () => {
     if (!qrCodeSvg) return;
 
-    const blob = new Blob([qrCodeSvg], { type: 'image/svg+xml' });
-    const item = new ClipboardItem({ 'image/svg+xml': blob });
+    const blob = new Blob([qrCodeSvg], { type: "image/svg+xml" });
+    const item = new ClipboardItem({ "image/svg+xml": blob });
     navigator.clipboard.write([item]);
   };
 
@@ -76,9 +76,9 @@ export function InvitationManager({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
-                {level === 'member'
-                  ? 'Members can read and write messages'
-                  : 'Guests can only read messages'}
+                {level === "member"
+                  ? "Members can read and write messages"
+                  : "Guests can only read messages"}
               </p>
             </div>
 
@@ -108,14 +108,18 @@ export function InvitationManager({
               </div>
             )}
 
-            <Button onClick={handleCreate} disabled={isCreating} className="w-full">
+            <Button
+              onClick={handleCreate}
+              disabled={isCreating}
+              className="w-full"
+            >
               {isCreating ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
                   Creating...
                 </>
               ) : (
-                'Create Invitation'
+                "Create Invitation"
               )}
             </Button>
           </div>
@@ -152,19 +156,27 @@ export function InvitationManager({
             {/* Invitation Details */}
             <div className="space-y-3 mb-4">
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Access Level</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Access Level
+                </p>
                 <p className="text-sm font-medium capitalize">
                   {currentInvitation.invitation.level}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Expires</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Expires
+                </p>
                 <p className="text-sm font-medium">
-                  {new Date(currentInvitation.invitation.expiresAt).toLocaleString()}
+                  {new Date(
+                    currentInvitation.invitation.expiresAt,
+                  ).toLocaleString()}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Gateway</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Gateway
+                </p>
                 <p className="text-sm font-medium font-mono break-all">
                   {currentInvitation.invitation.gatewayAddress}
                 </p>
@@ -173,7 +185,11 @@ export function InvitationManager({
 
             {/* Action Buttons */}
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleCopyQR} className="flex-1">
+              <Button
+                variant="outline"
+                onClick={handleCopyQR}
+                className="flex-1"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"
@@ -191,7 +207,11 @@ export function InvitationManager({
                 </svg>
                 Copy QR
               </Button>
-              <Button variant="outline" onClick={handleCopyLink} className="flex-1">
+              <Button
+                variant="outline"
+                onClick={handleCopyLink}
+                className="flex-1"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"
@@ -215,8 +235,8 @@ export function InvitationManager({
           {/* Security Notice */}
           <div className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-md">
             <p className="text-xs text-amber-800">
-              <strong>Security Notice:</strong> This invitation can only be used once.
-              Anyone with this QR code or link can join your gateway with{' '}
+              <strong>Security Notice:</strong> This invitation can only be used
+              once. Anyone with this QR code or link can join your gateway with{" "}
               {currentInvitation.invitation.level} access.
             </p>
           </div>

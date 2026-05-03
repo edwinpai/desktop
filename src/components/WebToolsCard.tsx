@@ -9,13 +9,24 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { Loader2, Save, Search, ExternalLink } from "lucide-react";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { fetchGatewayConfig, patchGatewayConfig, inferGatewayKind, type GatewayTarget } from "@/lib/gateway-context";
+import {
+  fetchGatewayConfig,
+  patchGatewayConfig,
+  inferGatewayKind,
+  type GatewayTarget,
+} from "@/lib/gateway-context";
 
 interface WebToolsCardProps {
   gatewayUrl: string;
@@ -29,7 +40,10 @@ export function WebToolsCard({ gatewayUrl, gatewayToken }: WebToolsCardProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [saveResult, setSaveResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [saveResult, setSaveResult] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
 
   const target = useMemo<GatewayTarget>(() => {
     const url = gatewayUrl || "http://localhost:18789";
@@ -82,7 +96,10 @@ export function WebToolsCard({ gatewayUrl, gatewayToken }: WebToolsCardProps) {
       };
 
       await patchGatewayConfig(target, patch);
-      setSaveResult({ ok: true, message: "Saved! Web search settings updated." });
+      setSaveResult({
+        ok: true,
+        message: "Saved! Web search settings updated.",
+      });
       setHasChanges(false);
       if (searchApiKey.trim()) {
         setHasExistingKey(true);
@@ -129,7 +146,8 @@ export function WebToolsCard({ gatewayUrl, gatewayToken }: WebToolsCardProps) {
           <div className="space-y-0.5">
             <Label htmlFor="web-search-enabled">Web Search</Label>
             <p className="text-sm text-muted-foreground">
-              Let your agent search the web with the <code>web_search</code> tool
+              Let your agent search the web with the <code>web_search</code>{" "}
+              tool
             </p>
           </div>
           <Switch
@@ -153,7 +171,11 @@ export function WebToolsCard({ gatewayUrl, gatewayToken }: WebToolsCardProps) {
                 setSearchApiKey(e.target.value);
                 setHasChanges(true);
               }}
-              placeholder={hasExistingKey ? "Key configured — leave blank to keep" : "BSA..."}
+              placeholder={
+                hasExistingKey
+                  ? "Key configured — leave blank to keep"
+                  : "BSA..."
+              }
             />
             <p className="text-xs text-muted-foreground">
               Get a free API key at{" "}

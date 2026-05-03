@@ -4,11 +4,11 @@
  * Tests subscription state management, polling, retry logic
  */
 
-import { act, renderHook } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useSubscription } from '@/hooks/useSubscription';
-import type { CheckSubscriptionResponse, SubscriptionState } from '@/types';
+import { useSubscription } from "@/hooks/useSubscription";
+import type { CheckSubscriptionResponse, SubscriptionState } from "@/types";
 
 // createMockIPC replaced with vi.hoisted inline mock
 
@@ -19,7 +19,7 @@ const { mockInvoke } = vi.hoisted(() => {
   const mockInvoke = vi.fn<(cmd: string) => Promise<unknown>>(async () => null);
   return { mockInvoke };
 });
-vi.mock('@tauri-apps/api/core', () => ({
+vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockInvoke,
 }));
 
@@ -27,7 +27,8 @@ vi.mock('@tauri-apps/api/core', () => ({
 const mockIPC = {
   mock: (command: string, response: IPCResponse) => {
     mockInvoke.mockImplementation(async (cmd: string) => {
-      if (cmd === command) return typeof response === 'function' ? response() : response;
+      if (cmd === command)
+        return typeof response === "function" ? response() : response;
       return null;
     });
   },
@@ -61,7 +62,7 @@ interface MockSubscriptionStore {
 }
 
 const mockStore: MockSubscriptionStore = {
-  state: 'NotFound',
+  state: "NotFound",
   isLoading: false,
   isRefreshing: false,
   error: undefined,
@@ -84,16 +85,16 @@ const mockStore: MockSubscriptionStore = {
   canRetry: vi.fn(() => true),
 };
 
-vi.mock('@/stores/subscriptionStore', () => ({
+vi.mock("@/stores/subscriptionStore", () => ({
   useSubscriptionStore: () => mockStore,
 }));
 
-describe('useSubscription', () => {
+describe("useSubscription", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     // Reset mockStore state
-    mockStore.state = 'NotFound';
+    mockStore.state = "NotFound";
     mockStore.isLoading = false;
     mockStore.isRefreshing = false;
     mockStore.error = undefined;
@@ -105,23 +106,23 @@ describe('useSubscription', () => {
     vi.useRealTimers();
   });
 
-  it('should initialize with NotFound state', () => {
+  it("should initialize with NotFound state", () => {
     const { result } = renderHook(() => useSubscription({ autoCheck: false }));
 
-    expect(result.current.state).toBe('NotFound');
+    expect(result.current.state).toBe("NotFound");
     expect(result.current.isLoading).toBe(false);
   });
 
-  it('should auto-check on mount when enabled', async () => {
+  it("should auto-check on mount when enabled", async () => {
     const response: CheckSubscriptionResponse = {
-      type: 'CheckSubscriptionResponse',
-      state: 'Active',
-      txid: 'abc123',
+      type: "CheckSubscriptionResponse",
+      state: "Active",
+      txid: "abc123",
       vout: 0,
       cachedProof: false,
     };
 
-    mockIPC.mock('check_subscription', response);
+    mockIPC.mock("check_subscription", response);
 
     await act(async () => {
       renderHook(() => useSubscription({ autoCheck: true }));
@@ -133,22 +134,22 @@ describe('useSubscription', () => {
     expect(mockStore.setSubscription).toHaveBeenCalledWith(response);
   });
 
-  it('should skip auto-check when disabled', () => {
+  it("should skip auto-check when disabled", () => {
     renderHook(() => useSubscription({ autoCheck: false }));
 
     expect(mockStore.setLoading).not.toHaveBeenCalled();
   });
 
-  it('should check subscription status', async () => {
+  it("should check subscription status", async () => {
     const response: CheckSubscriptionResponse = {
-      type: 'CheckSubscriptionResponse',
-      state: 'Active',
-      txid: 'abc123',
+      type: "CheckSubscriptionResponse",
+      state: "Active",
+      txid: "abc123",
       vout: 0,
       cachedProof: false,
     };
 
-    mockIPC.mock('check_subscription', response);
+    mockIPC.mock("check_subscription", response);
 
     const { result } = renderHook(() => useSubscription({ autoCheck: false }));
 
@@ -159,16 +160,16 @@ describe('useSubscription', () => {
     expect(mockStore.setSubscription).toHaveBeenCalledWith(response);
   });
 
-  it('should force refresh from overlay', async () => {
+  it("should force refresh from overlay", async () => {
     const response: CheckSubscriptionResponse = {
-      type: 'CheckSubscriptionResponse',
-      state: 'Active',
-      txid: 'abc123',
+      type: "CheckSubscriptionResponse",
+      state: "Active",
+      txid: "abc123",
       vout: 0,
       cachedProof: false,
     };
 
-    mockIPC.mock('check_subscription', response);
+    mockIPC.mock("check_subscription", response);
 
     const { result } = renderHook(() => useSubscription({ autoCheck: false }));
 
@@ -180,7 +181,7 @@ describe('useSubscription', () => {
     expect(mockStore.setRefreshing).toHaveBeenCalledWith(false);
   });
 
-  it('should clear subscription state', () => {
+  it("should clear subscription state", () => {
     const { result } = renderHook(() => useSubscription({ autoCheck: false }));
 
     act(() => {
@@ -190,38 +191,40 @@ describe('useSubscription', () => {
     expect(mockStore.clearSubscription).toHaveBeenCalled();
   });
 
-  it('should handle errors and retry', async () => {
-    mockIPC.mock('check_subscription', () => {
-      throw new Error('Network error');
+  it("should handle errors and retry", async () => {
+    mockIPC.mock("check_subscription", () => {
+      throw new Error("Network error");
     });
 
     mockStore.canRetry.mockReturnValue(true);
 
     const { result } = renderHook(() =>
-      useSubscription({ autoCheck: false, autoRetry: true, maxRetries: 3 })
+      useSubscription({ autoCheck: false, autoRetry: true, maxRetries: 3 }),
     );
 
     await act(async () => {
       await result.current.check();
     });
 
-    expect(mockStore.setError).toHaveBeenCalledWith('Network error');
+    expect(mockStore.setError).toHaveBeenCalledWith("Network error");
     expect(mockStore.incrementRetry).toHaveBeenCalled();
   });
 
-  it('should setup polling for Cached state', async () => {
+  it("should setup polling for Cached state", async () => {
     const cachedResponse: CheckSubscriptionResponse = {
-      type: 'CheckSubscriptionResponse',
-      state: 'Cached',
-      txid: 'abc123',
+      type: "CheckSubscriptionResponse",
+      state: "Cached",
+      txid: "abc123",
       vout: 0,
       cachedProof: true,
       verifiedAt: new Date().toISOString(),
     };
 
-    mockIPC.mock('check_subscription', cachedResponse);
+    mockIPC.mock("check_subscription", cachedResponse);
 
-    const { result } = renderHook(() => useSubscription({ autoCheck: false, pollingInterval: 1000 }));
+    const { result } = renderHook(() =>
+      useSubscription({ autoCheck: false, pollingInterval: 1000 }),
+    );
 
     // Manually trigger check to setup polling
     await act(async () => {
@@ -243,16 +246,16 @@ describe('useSubscription', () => {
     expect(mockStore.setSubscription).toHaveBeenCalledTimes(1);
   });
 
-  it('should not start new check if already loading', async () => {
+  it("should not start new check if already loading", async () => {
     const response: CheckSubscriptionResponse = {
-      type: 'CheckSubscriptionResponse',
-      state: 'Active',
-      txid: 'abc123',
+      type: "CheckSubscriptionResponse",
+      state: "Active",
+      txid: "abc123",
       vout: 0,
       cachedProof: false,
     };
 
-    mockIPC.mock('check_subscription', response);
+    mockIPC.mock("check_subscription", response);
     mockStore.isLoading = true;
 
     const { result } = renderHook(() => useSubscription({ autoCheck: false }));
@@ -265,11 +268,11 @@ describe('useSubscription', () => {
     expect(mockIPC.getInvokeMock()).not.toHaveBeenCalled();
   });
 
-  it('should transition from Cached to GraceExceeded after 72 hours', async () => {
-    mockStore.state = 'Cached';
+  it("should transition from Cached to GraceExceeded after 72 hours", async () => {
+    mockStore.state = "Cached";
     mockStore.graceExpiresAt = new Date().toISOString(); // Set a grace expiry
     mockStore.getGracePeriodRemaining.mockReturnValue(0); // Grace period has expired
-    mockStore.txid = 'test-txid';
+    mockStore.txid = "test-txid";
     mockStore.vout = 0;
     mockStore.verifiedAt = new Date().toISOString();
     mockStore.blockHeight = 12345;
@@ -283,7 +286,7 @@ describe('useSubscription', () => {
 
     // Verify that setSubscription was called with GraceExceeded state
     expect(mockStore.setSubscription).toHaveBeenCalledWith(
-      expect.objectContaining({ state: 'GraceExceeded' })
+      expect.objectContaining({ state: "GraceExceeded" }),
     );
   });
 });

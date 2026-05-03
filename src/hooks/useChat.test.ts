@@ -1,14 +1,14 @@
-import { renderHook, act, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderHook, act, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useChat } from './useChat';
+import { useChat } from "./useChat";
 
 // Mock useGatewayConfig hook
-vi.mock('./useConfig', () => ({
+vi.mock("./useConfig", () => ({
   useGatewayConfig: () => ({ gatewayPort: 3000 }),
 }));
 
-describe('useChat', () => {
+describe("useChat", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -42,26 +42,26 @@ describe('useChat', () => {
     });
   };
 
-  it('initializes with empty messages and idle state', () => {
+  it("initializes with empty messages and idle state", () => {
     const { result } = renderHook(() => useChat());
 
     expect(result.current.messages).toEqual([]);
-    expect(result.current.streamingState).toBe('idle');
-    expect(result.current.currentResponse).toBe('');
+    expect(result.current.streamingState).toBe("idle");
+    expect(result.current.currentResponse).toBe("");
     expect(result.current.error).toBeNull();
     expect(result.current.loading).toBe(false);
   });
 
-  it('adds user message to messages array', async () => {
+  it("adds user message to messages array", async () => {
     fetchMock.mockResolvedValue({
       ok: true,
-      body: createMockSSEStream(['data: [DONE]\n\n']),
+      body: createMockSSEStream(["data: [DONE]\n\n"]),
     });
 
     const { result } = renderHook(() => useChat());
 
     await act(async () => {
-      await result.current.sendMessage('Hello');
+      await result.current.sendMessage("Hello");
     });
 
     await waitFor(() => {
@@ -69,12 +69,12 @@ describe('useChat', () => {
     });
 
     expect(result.current.messages[0]).toMatchObject({
-      role: 'user',
-      content: 'Hello',
+      role: "user",
+      content: "Hello",
     });
   });
 
-  it('processes SSE stream and accumulates text', async () => {
+  it("processes SSE stream and accumulates text", async () => {
     const sseEvents = [
       'data: {"type":"message_start"}\n\n',
       'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"Hello"}}\n\n',
@@ -90,23 +90,23 @@ describe('useChat', () => {
     const { result } = renderHook(() => useChat());
 
     await act(async () => {
-      await result.current.sendMessage('Test');
+      await result.current.sendMessage("Test");
     });
 
     await waitFor(() => {
-      expect(result.current.streamingState).toBe('completed');
+      expect(result.current.streamingState).toBe("completed");
     });
 
     // Should have user message and assistant message
     expect(result.current.messages.length).toBe(2);
     expect(result.current.messages[1]).toMatchObject({
-      role: 'assistant',
+      role: "assistant",
       // Note: content is empty due to React closure capturing stale currentResponse
       // in handleStreamEvent's message_stop handler. This is a known source code issue.
     });
   });
 
-  it('updates streaming state during message lifecycle', async () => {
+  it("updates streaming state during message lifecycle", async () => {
     const sseEvents = [
       'data: {"type":"message_start"}\n\n',
       'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"Test"}}\n\n',
@@ -121,19 +121,19 @@ describe('useChat', () => {
     const { result } = renderHook(() => useChat());
 
     // Initially idle
-    expect(result.current.streamingState).toBe('idle');
+    expect(result.current.streamingState).toBe("idle");
 
     await act(async () => {
-      await result.current.sendMessage('Test');
+      await result.current.sendMessage("Test");
     });
 
     // Should be completed after stream finishes
     await waitFor(() => {
-      expect(result.current.streamingState).toBe('completed');
+      expect(result.current.streamingState).toBe("completed");
     });
   });
 
-  it('calls onStreamChunk callback for each text delta', async () => {
+  it("calls onStreamChunk callback for each text delta", async () => {
     const onStreamChunk = vi.fn();
 
     const sseEvents = [
@@ -151,20 +151,20 @@ describe('useChat', () => {
     const { result } = renderHook(() =>
       useChat({
         onStreamChunk,
-      })
+      }),
     );
 
     await act(async () => {
-      await result.current.sendMessage('Test');
+      await result.current.sendMessage("Test");
     });
 
     await waitFor(() => {
-      expect(onStreamChunk).toHaveBeenCalledWith('Chunk1', 'Chunk1');
-      expect(onStreamChunk).toHaveBeenCalledWith('Chunk2', 'Chunk1Chunk2');
+      expect(onStreamChunk).toHaveBeenCalledWith("Chunk1", "Chunk1");
+      expect(onStreamChunk).toHaveBeenCalledWith("Chunk2", "Chunk1Chunk2");
     });
   });
 
-  it('calls onStreamEnd callback when stream completes', async () => {
+  it("calls onStreamEnd callback when stream completes", async () => {
     const onStreamEnd = vi.fn();
 
     const sseEvents = [
@@ -181,11 +181,11 @@ describe('useChat', () => {
     const { result } = renderHook(() =>
       useChat({
         onStreamEnd,
-      })
+      }),
     );
 
     await act(async () => {
-      await result.current.sendMessage('Test');
+      await result.current.sendMessage("Test");
     });
 
     await waitFor(() => {
@@ -195,7 +195,7 @@ describe('useChat', () => {
     });
   });
 
-  it('calls onStreamError callback on error event', async () => {
+  it("calls onStreamError callback on error event", async () => {
     const onStreamError = vi.fn();
 
     const sseEvents = [
@@ -210,64 +210,70 @@ describe('useChat', () => {
     const { result } = renderHook(() =>
       useChat({
         onStreamError,
-      })
+      }),
     );
 
     await act(async () => {
-      await result.current.sendMessage('Test');
+      await result.current.sendMessage("Test");
     });
 
     await waitFor(() => {
-      expect(onStreamError).toHaveBeenCalledWith('Test error');
+      expect(onStreamError).toHaveBeenCalledWith("Test error");
     });
   });
 
-  it('handles HTTP error responses', async () => {
+  it("handles HTTP error responses", async () => {
     fetchMock.mockResolvedValue({
       ok: false,
       status: 500,
-      statusText: 'Internal Server Error',
+      statusText: "Internal Server Error",
       body: null,
     });
 
     const { result } = renderHook(() => useChat());
 
     await act(async () => {
-      await result.current.sendMessage('Test');
+      await result.current.sendMessage("Test");
     });
 
     await waitFor(() => {
-      expect(result.current.streamingState).toBe('error');
-      expect(result.current.error).toContain('500');
+      expect(result.current.streamingState).toBe("error");
+      expect(result.current.error).toContain("500");
     });
   });
 
-  it('handles network errors', async () => {
-    fetchMock.mockRejectedValue(new Error('Network error'));
+  it("handles network errors", async () => {
+    fetchMock.mockRejectedValue(new Error("Network error"));
 
     const { result } = renderHook(() => useChat());
 
     await act(async () => {
-      await result.current.sendMessage('Test');
+      await result.current.sendMessage("Test");
     });
 
     await waitFor(() => {
-      expect(result.current.streamingState).toBe('error');
-      expect(result.current.error).toContain('Network error');
+      expect(result.current.streamingState).toBe("error");
+      expect(result.current.error).toContain("Network error");
     });
   });
 
-  it('cancels stream when cancelStream is called', async () => {
+  it("cancels stream when cancelStream is called", async () => {
     // Create a stream that sends message_start then never closes
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
         // Send message_start immediately
-        controller.enqueue(encoder.encode('data: {"type":"message_start"}\n\n'));
+        controller.enqueue(
+          encoder.encode('data: {"type":"message_start"}\n\n'),
+        );
         // Send a delta after a short delay
         setTimeout(() => {
           try {
-            controller.enqueue(encoder.encode('data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"Test"}}\n\n'));
+            controller.enqueue(
+              encoder.encode(
+                'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"Test"}}\n\n',
+              ),
+            );
           } catch {
             // controller may be closed by abort
           }
@@ -285,12 +291,14 @@ describe('useChat', () => {
 
     // Start sending (don't await — stream is ongoing)
     act(() => {
-      result.current.sendMessage('Test');
+      result.current.sendMessage("Test");
     });
 
     // Wait for streaming state
     await waitFor(() => {
-      expect(['streaming', 'connecting']).toContain(result.current.streamingState);
+      expect(["streaming", "connecting"]).toContain(
+        result.current.streamingState,
+      );
     });
 
     act(() => {
@@ -298,21 +306,21 @@ describe('useChat', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.streamingState).toBe('cancelled');
+      expect(result.current.streamingState).toBe("cancelled");
     });
   });
 
-  it('clears messages when clearMessages is called', async () => {
+  it("clears messages when clearMessages is called", async () => {
     fetchMock.mockImplementation(() => ({
       ok: true,
-      body: createMockSSEStream(['data: [DONE]\n\n']),
+      body: createMockSSEStream(["data: [DONE]\n\n"]),
     }));
 
     const { result } = renderHook(() => useChat());
 
     await act(async () => {
-      await result.current.sendMessage('Message 1');
-      await result.current.sendMessage('Message 2');
+      await result.current.sendMessage("Message 1");
+      await result.current.sendMessage("Message 2");
     });
 
     await waitFor(() => {
@@ -324,21 +332,21 @@ describe('useChat', () => {
     });
 
     expect(result.current.messages).toEqual([]);
-    expect(result.current.currentResponse).toBe('');
+    expect(result.current.currentResponse).toBe("");
     expect(result.current.error).toBeNull();
-    expect(result.current.streamingState).toBe('idle');
+    expect(result.current.streamingState).toBe("idle");
   });
 
-  it('retries last message when retry is called', async () => {
+  it("retries last message when retry is called", async () => {
     fetchMock.mockImplementation(() => ({
       ok: true,
-      body: createMockSSEStream(['data: [DONE]\n\n']),
+      body: createMockSSEStream(["data: [DONE]\n\n"]),
     }));
 
     const { result } = renderHook(() => useChat());
 
     await act(async () => {
-      await result.current.sendMessage('Retry test');
+      await result.current.sendMessage("Retry test");
     });
 
     const initialMessageCount = result.current.messages.length;
@@ -348,41 +356,43 @@ describe('useChat', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.messages.length).toBeGreaterThan(initialMessageCount);
+      expect(result.current.messages.length).toBeGreaterThan(
+        initialMessageCount,
+      );
     });
   });
 
-  it('does not send empty messages', async () => {
+  it("does not send empty messages", async () => {
     const { result } = renderHook(() => useChat());
 
     await act(async () => {
-      await result.current.sendMessage('');
+      await result.current.sendMessage("");
     });
 
     expect(result.current.messages).toEqual([]);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('trims message content before sending', async () => {
+  it("trims message content before sending", async () => {
     fetchMock.mockResolvedValue({
       ok: true,
-      body: createMockSSEStream(['data: [DONE]\n\n']),
+      body: createMockSSEStream(["data: [DONE]\n\n"]),
     });
 
     const { result } = renderHook(() => useChat());
 
     await act(async () => {
-      await result.current.sendMessage('  Message with spaces  ');
+      await result.current.sendMessage("  Message with spaces  ");
     });
 
     await waitFor(() => {
       expect(result.current.messages.length).toBeGreaterThan(0);
     });
 
-    expect(result.current.messages[0]?.content).toBe('Message with spaces');
+    expect(result.current.messages[0]?.content).toBe("Message with spaces");
   });
 
-  it('sets loading state during request', async () => {
+  it("sets loading state during request", async () => {
     const sseEvents = [
       'data: {"type":"message_start"}\n\n',
       'data: {"type":"message_stop"}\n\n',
@@ -398,7 +408,7 @@ describe('useChat', () => {
     expect(result.current.loading).toBe(false);
 
     act(() => {
-      result.current.sendMessage('Test');
+      result.current.sendMessage("Test");
     });
 
     await waitFor(() => {
@@ -410,20 +420,20 @@ describe('useChat', () => {
     });
   });
 
-  it('includes conversation history in request', async () => {
+  it("includes conversation history in request", async () => {
     fetchMock.mockImplementation(() => ({
       ok: true,
-      body: createMockSSEStream(['data: [DONE]\n\n']),
+      body: createMockSSEStream(["data: [DONE]\n\n"]),
     }));
 
     const { result } = renderHook(() => useChat());
 
     await act(async () => {
-      await result.current.sendMessage('Message 1');
+      await result.current.sendMessage("Message 1");
     });
 
     await act(async () => {
-      await result.current.sendMessage('Message 2');
+      await result.current.sendMessage("Message 2");
     });
 
     await waitFor(() => {
@@ -432,16 +442,16 @@ describe('useChat', () => {
 
     // Check that the second request includes previous messages
     const secondCall = fetchMock.mock.calls[1];
-    const requestBody = JSON.parse(secondCall?.[1]?.body || '{}');
+    const requestBody = JSON.parse(secondCall?.[1]?.body || "{}");
 
     expect(requestBody.messages?.length).toBeGreaterThan(1);
   });
 
-  it('handles [DONE] signal correctly', async () => {
+  it("handles [DONE] signal correctly", async () => {
     const sseEvents = [
       'data: {"type":"message_start"}\n\n',
       'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"Text"}}\n\n',
-      'data: [DONE]\n\n',
+      "data: [DONE]\n\n",
     ];
 
     fetchMock.mockResolvedValue({
@@ -452,58 +462,58 @@ describe('useChat', () => {
     const { result } = renderHook(() => useChat());
 
     await act(async () => {
-      await result.current.sendMessage('Test');
+      await result.current.sendMessage("Test");
     });
 
     await waitFor(() => {
-      expect(result.current.streamingState).toBe('completed');
+      expect(result.current.streamingState).toBe("completed");
     });
   });
 
-  it('uses custom model when specified', async () => {
+  it("uses custom model when specified", async () => {
     fetchMock.mockResolvedValue({
       ok: true,
-      body: createMockSSEStream(['data: [DONE]\n\n']),
+      body: createMockSSEStream(["data: [DONE]\n\n"]),
     });
 
     const { result } = renderHook(() =>
       useChat({
-        model: 'claude-opus-4-6',
-      })
+        model: "claude-opus-4-6",
+      }),
     );
 
     await act(async () => {
-      await result.current.sendMessage('Test');
+      await result.current.sendMessage("Test");
     });
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalled();
     });
 
-    const requestBody = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body || '{}');
-    expect(requestBody.model).toBe('claude-opus-4-6');
+    const requestBody = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body || "{}");
+    expect(requestBody.model).toBe("claude-opus-4-6");
   });
 
-  it('uses custom base URL when specified', async () => {
+  it("uses custom base URL when specified", async () => {
     fetchMock.mockResolvedValue({
       ok: true,
-      body: createMockSSEStream(['data: [DONE]\n\n']),
+      body: createMockSSEStream(["data: [DONE]\n\n"]),
     });
 
     const { result } = renderHook(() =>
       useChat({
-        baseUrl: 'http://localhost:4000',
-      })
+        baseUrl: "http://localhost:4000",
+      }),
     );
 
     await act(async () => {
-      await result.current.sendMessage('Test');
+      await result.current.sendMessage("Test");
     });
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        'http://localhost:4000/v1/chat/completions',
-        expect.any(Object)
+        "http://localhost:4000/v1/chat/completions",
+        expect.any(Object),
       );
     });
   });

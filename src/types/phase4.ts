@@ -9,7 +9,7 @@
  * - App Routing (navigation structure)
  */
 
-import type { DiscoveredPeer as BaseDiscoveredPeer } from './api';
+import type { DiscoveredPeer as BaseDiscoveredPeer } from "./api";
 
 // ============================================================================
 // Gateway Discovery Types
@@ -19,16 +19,16 @@ import type { DiscoveredPeer as BaseDiscoveredPeer } from './api';
  * Scan status for mDNS discovery operations
  */
 export type DiscoveryScanStatus =
-  | 'idle'       // No active scan
-  | 'scanning'   // Currently scanning
-  | 'error'      // Scan failed
-  | 'complete';  // Scan completed successfully
+  | "idle" // No active scan
+  | "scanning" // Currently scanning
+  | "error" // Scan failed
+  | "complete"; // Scan completed successfully
 
 /**
  * Extended DiscoveredPeer with UI-specific state for client mode
  * Combines backend discovery data with frontend interaction state
  */
-export interface DiscoveredPeerUI extends Omit<BaseDiscoveredPeer, 'lastSeen'> {
+export interface DiscoveredPeerUI extends Omit<BaseDiscoveredPeer, "lastSeen"> {
   /** Whether this peer is currently selected in the UI */
   selected: boolean;
   /** Whether connection attempt is in progress */
@@ -83,7 +83,7 @@ export interface DiscoveryActions {
  * Permission level for multi-user access
  * Maps to backend AccessLevel enum
  */
-export type PermissionLevel = 'owner' | 'member' | 'guest';
+export type PermissionLevel = "owner" | "member" | "guest";
 
 /**
  * Form data for invitation creation
@@ -178,7 +178,10 @@ export interface AccessControlActions {
   /** Invalidate invitation token */
   revokeInvitation: (token: string) => Promise<void>;
   /** Update user permission level */
-  updatePermission: (publicKey: string, level: PermissionLevel) => Promise<void>;
+  updatePermission: (
+    publicKey: string,
+    level: PermissionLevel,
+  ) => Promise<void>;
   /** Refresh user/invitation lists */
   refresh: () => Promise<void>;
 }
@@ -191,7 +194,7 @@ export interface AccessControlActions {
  * Operating mode for EdwinPAI Desktop
  * Determines whether app runs as gateway or client
  */
-export type OperatingMode = 'gateway' | 'client';
+export type OperatingMode = "gateway" | "client";
 
 /**
  * Mode selection data for GeneralSettings
@@ -223,16 +226,16 @@ export interface ModeActions {
  * Available routes in the application
  */
 export type Route =
-  | '/'                    // Welcome/onboarding
-  | '/chat'                // Main chat interface
-  | '/settings'            // General settings
-  | '/settings/identity'   // Identity management
-  | '/settings/subscription' // Subscription settings
-  | '/settings/access'     // Access control (gateway mode only)
-  | '/settings/channels'   // Channel configuration
-  | '/discovery'           // Gateway discovery (client mode only)
-  | '/onboarding/gateway'  // Gateway setup wizard
-  | '/onboarding/client';  // Client setup wizard
+  | "/" // Welcome/onboarding
+  | "/chat" // Main chat interface
+  | "/settings" // General settings
+  | "/settings/identity" // Identity management
+  | "/settings/subscription" // Subscription settings
+  | "/settings/access" // Access control (gateway mode only)
+  | "/settings/channels" // Channel configuration
+  | "/discovery" // Gateway discovery (client mode only)
+  | "/onboarding/gateway" // Gateway setup wizard
+  | "/onboarding/client"; // Client setup wizard
 
 /**
  * Navigation item for sidebar/menu
@@ -284,10 +287,10 @@ export interface RoutingActions {
  * Step in client mode setup wizard
  */
 export type ClientSetupStep =
-  | 'welcome'           // Introduction
-  | 'discovery'         // mDNS gateway discovery
-  | 'auth'              // BRC-103 authentication
-  | 'complete';         // Setup complete
+  | "welcome" // Introduction
+  | "discovery" // mDNS gateway discovery
+  | "auth" // BRC-103 authentication
+  | "complete"; // Setup complete
 
 /**
  * Wizard step state
@@ -368,24 +371,13 @@ export interface UseWizardReturn {
 // ============================================================================
 
 // From api.ts (base types)
-export type {
-  DiscoveredPeer
-} from './api';
+export type { DiscoveredPeer } from "./api";
 
 // From gateway.ts
-export type {
-  GatewayStatus,
-  HealthCheckResponse
-} from './gateway';
+export type { GatewayStatus, HealthCheckResponse } from "./gateway";
 
 // From identity.ts
-export type {
-  Identity,
-  Petname
-} from './identity';
+export type { Identity, Petname } from "./identity";
 
 // From subscription.ts
-export type {
-  SubscriptionState,
-  SubscriptionStatus
-} from './subscription';
+export type { SubscriptionState, SubscriptionStatus } from "./subscription";

@@ -2,9 +2,9 @@
  * useInvitations - QR code generation and scanning for gateway invitations
  */
 
-import { useState, useCallback } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import type { AccessLevel, InvitationData } from '@/types/api';
+import { useState, useCallback } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import type { AccessLevel, InvitationData } from "@/types/api";
 
 interface CreateInvitationParams {
   level: AccessLevel;
@@ -45,7 +45,9 @@ interface UseInvitationsReturn {
   isScanning: boolean;
   isAccepting: boolean;
   error: string | null;
-  createInvitation: (params: CreateInvitationParams) => Promise<InvitationData | null>;
+  createInvitation: (
+    params: CreateInvitationParams,
+  ) => Promise<InvitationData | null>;
   viewInvitation: (token: string) => Promise<boolean>;
   scanQRCode: (qrData: string) => Promise<InvitationData | null>;
   acceptInvitation: (params: AcceptInvitationParams) => Promise<boolean>;
@@ -56,9 +58,8 @@ interface UseInvitationsReturn {
  * Hook for creating and redeeming gateway invitations via QR codes
  */
 export function useInvitations(): UseInvitationsReturn {
-  const [currentInvitation, setCurrentInvitation] = useState<InvitationData | null>(
-    null
-  );
+  const [currentInvitation, setCurrentInvitation] =
+    useState<InvitationData | null>(null);
   const [qrCodeSvg, setQrCodeSvg] = useState<string | null>(null);
   const [deepLink, setDeepLink] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -72,29 +73,35 @@ export function useInvitations(): UseInvitationsReturn {
         setIsCreating(true);
         setError(null);
 
-        const response = await invoke<CreateInvitationResponse>('create_invitation', {
-          request: {
-            level: params.level,
-            expiresInHours: params.expiresInHours,
+        const response = await invoke<CreateInvitationResponse>(
+          "create_invitation",
+          {
+            request: {
+              level: params.level,
+              expiresInHours: params.expiresInHours,
+            },
           },
-        });
+        );
 
         // Parse invitation data from JSON string
-        const invitationData: InvitationData = JSON.parse(response.invitationData);
+        const invitationData: InvitationData = JSON.parse(
+          response.invitationData,
+        );
         setCurrentInvitation(invitationData);
         setQrCodeSvg(response.qrCodeSvg);
         setDeepLink(response.deepLink);
 
         return invitationData;
       } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Failed to create invitation';
+        const errorMsg =
+          err instanceof Error ? err.message : "Failed to create invitation";
         setError(errorMsg);
         return null;
       } finally {
         setIsCreating(false);
       }
     },
-    []
+    [],
   );
 
   const scanQRCode = useCallback(
@@ -103,26 +110,27 @@ export function useInvitations(): UseInvitationsReturn {
         setIsScanning(true);
         setError(null);
 
-        const response = await invoke<ScanQRResponse>('scan_qr_code', {
+        const response = await invoke<ScanQRResponse>("scan_qr_code", {
           request: { qrData },
         });
 
         if (!response.isValid) {
-          setError(response.error || 'Invalid QR code');
+          setError(response.error || "Invalid QR code");
           return null;
         }
 
         setCurrentInvitation(response.invitation);
         return response.invitation;
       } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Failed to scan QR code';
+        const errorMsg =
+          err instanceof Error ? err.message : "Failed to scan QR code";
         setError(errorMsg);
         return null;
       } finally {
         setIsScanning(false);
       }
     },
-    []
+    [],
   );
 
   const acceptInvitation = useCallback(
@@ -131,26 +139,29 @@ export function useInvitations(): UseInvitationsReturn {
         setIsAccepting(true);
         setError(null);
 
-        const response = await invoke<AcceptInvitationResponse>('accept_invitation', {
-          request: { invitation: params.invitation },
-        });
+        const response = await invoke<AcceptInvitationResponse>(
+          "accept_invitation",
+          {
+            request: { invitation: params.invitation },
+          },
+        );
 
         if (!response.success) {
-          setError(response.error || 'Failed to accept invitation');
+          setError(response.error || "Failed to accept invitation");
           return false;
         }
 
         return true;
       } catch (err) {
         const errorMsg =
-          err instanceof Error ? err.message : 'Failed to accept invitation';
+          err instanceof Error ? err.message : "Failed to accept invitation";
         setError(errorMsg);
         return false;
       } finally {
         setIsAccepting(false);
       }
     },
-    []
+    [],
   );
 
   const viewInvitation = useCallback(
@@ -158,21 +169,27 @@ export function useInvitations(): UseInvitationsReturn {
       try {
         setError(null);
 
-        const response = await invoke<CreateInvitationResponse>('get_invitation_qr', { token });
+        const response = await invoke<CreateInvitationResponse>(
+          "get_invitation_qr",
+          { token },
+        );
 
-        const invitationData: InvitationData = JSON.parse(response.invitationData);
+        const invitationData: InvitationData = JSON.parse(
+          response.invitationData,
+        );
         setCurrentInvitation(invitationData);
         setQrCodeSvg(response.qrCodeSvg);
         setDeepLink(response.deepLink);
 
         return true;
       } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Failed to load invitation';
+        const errorMsg =
+          err instanceof Error ? err.message : "Failed to load invitation";
         setError(errorMsg);
         return false;
       }
     },
-    []
+    [],
   );
 
   const clearInvitation = useCallback(() => {

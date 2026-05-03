@@ -1,10 +1,21 @@
-import { useState, KeyboardEvent, ClipboardEvent, ChangeEvent, useRef, useEffect, useCallback } from "react";
+import {
+  useState,
+  KeyboardEvent,
+  ClipboardEvent,
+  ChangeEvent,
+  useRef,
+  useEffect,
+  useCallback,
+} from "react";
 import { Send, Square, Paperclip, X, FileText, Image } from "lucide-react";
 
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { SlashCommandMenu, type SlashCommand } from "@/components/chat/SlashCommandMenu";
+import {
+  SlashCommandMenu,
+  type SlashCommand,
+} from "@/components/chat/SlashCommandMenu";
 
 export interface InputAttachment {
   type?: string;
@@ -19,10 +30,14 @@ export interface ChatDraft {
 }
 
 const DRAFT_PERSIST_DEBOUNCE_MS = 300;
-const getDraftStorageKey = (sessionKey?: string) => (sessionKey ? `edwinpai:chat:draft:${sessionKey}` : null);
+const getDraftStorageKey = (sessionKey?: string) =>
+  sessionKey ? `edwinpai:chat:draft:${sessionKey}` : null;
 
 interface InputBarProps {
-  onSendMessage: (message: string, opts?: { attachments?: InputAttachment[] }) => void;
+  onSendMessage: (
+    message: string,
+    opts?: { attachments?: InputAttachment[] },
+  ) => void;
   onAbortRun?: () => void;
   onSlashCommand?: (command: string, args: string) => void;
   isStreaming?: boolean;
@@ -55,7 +70,9 @@ export function InputBar({
     }
     return "";
   });
-  const [attachments, setAttachments] = useState<InputAttachment[]>(() => draft?.attachments ?? []);
+  const [attachments, setAttachments] = useState<InputAttachment[]>(
+    () => draft?.attachments ?? [],
+  );
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashQuery, setSlashQuery] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -66,39 +83,50 @@ export function InputBar({
     latestDraftRef.current = { value, attachments };
   }, [attachments, value]);
 
-  const persistTextDraft = useCallback((nextValue: string) => {
-    if (!draftStorageKey || typeof window === "undefined") return;
-    if (nextValue) {
-      window.localStorage.setItem(draftStorageKey, nextValue);
-    } else {
-      window.localStorage.removeItem(draftStorageKey);
-    }
-  }, [draftStorageKey]);
+  const persistTextDraft = useCallback(
+    (nextValue: string) => {
+      if (!draftStorageKey || typeof window === "undefined") return;
+      if (nextValue) {
+        window.localStorage.setItem(draftStorageKey, nextValue);
+      } else {
+        window.localStorage.removeItem(draftStorageKey);
+      }
+    },
+    [draftStorageKey],
+  );
 
-  const flushDraft = useCallback((nextDraft: ChatDraft) => {
-    persistTextDraft(nextDraft.value);
-    onDraftChange?.(nextDraft);
-  }, [onDraftChange, persistTextDraft]);
+  const flushDraft = useCallback(
+    (nextDraft: ChatDraft) => {
+      persistTextDraft(nextDraft.value);
+      onDraftChange?.(nextDraft);
+    },
+    [onDraftChange, persistTextDraft],
+  );
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      const nextValue = typeof draft?.value === "string"
-        ? draft.value
-        : (draftStorageKey && typeof window !== "undefined"
-          ? window.localStorage.getItem(draftStorageKey) ?? ""
-          : "");
+      const nextValue =
+        typeof draft?.value === "string"
+          ? draft.value
+          : draftStorageKey && typeof window !== "undefined"
+            ? (window.localStorage.getItem(draftStorageKey) ?? "")
+            : "";
       const nextAttachments = draft?.attachments ?? [];
       setValue((prev) => (prev === nextValue ? prev : nextValue));
       setAttachments((prev) => {
         const sameLength = prev.length === nextAttachments.length;
-        const sameItems = sameLength && prev.every((item, index) => {
-          const next = nextAttachments[index];
-          return next
-            && item.type === next.type
-            && item.mimeType === next.mimeType
-            && item.fileName === next.fileName
-            && item.content === next.content;
-        });
+        const sameItems =
+          sameLength &&
+          prev.every((item, index) => {
+            const next = nextAttachments[index];
+            return (
+              next &&
+              item.type === next.type &&
+              item.mimeType === next.mimeType &&
+              item.fileName === next.fileName &&
+              item.content === next.content
+            );
+          });
         return sameItems ? prev : nextAttachments;
       });
     }, 0);
@@ -170,8 +198,10 @@ export function InputBar({
     // Intercept slash commands
     if (trimmedValue.startsWith("/") && onSlashCommand) {
       const spaceIdx = trimmedValue.indexOf(" ");
-      const command = spaceIdx === -1 ? trimmedValue : trimmedValue.slice(0, spaceIdx);
-      const args = spaceIdx === -1 ? "" : trimmedValue.slice(spaceIdx + 1).trim();
+      const command =
+        spaceIdx === -1 ? trimmedValue : trimmedValue.slice(0, spaceIdx);
+      const args =
+        spaceIdx === -1 ? "" : trimmedValue.slice(spaceIdx + 1).trim();
       onSlashCommand(command, args);
       setValue("");
       setAttachments([]);
@@ -211,7 +241,9 @@ export function InputBar({
             const reader = new FileReader();
             reader.onload = () => {
               const result = String(reader.result ?? "");
-              const base64 = result.includes(",") ? result.split(",")[1] ?? "" : result;
+              const base64 = result.includes(",")
+                ? (result.split(",")[1] ?? "")
+                : result;
               const isImage = file.type.startsWith("image/");
               resolve({
                 type: isImage ? "image" : "file",
@@ -220,10 +252,11 @@ export function InputBar({
                 content: base64,
               });
             };
-            reader.onerror = () => reject(reader.error ?? new Error("Failed to read file"));
+            reader.onerror = () =>
+              reject(reader.error ?? new Error("Failed to read file"));
             reader.readAsDataURL(file);
-          })
-      )
+          }),
+      ),
     );
 
     if (selected.length > 0) {
@@ -239,7 +272,10 @@ export function InputBar({
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     // Let SlashCommandMenu handle navigation when visible
-    if (showSlashMenu && (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Tab")) {
+    if (
+      showSlashMenu &&
+      (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Tab")
+    ) {
       return; // SlashCommandMenu captures these via window listener
     }
     // Escape closes slash menu or aborts run
@@ -330,7 +366,7 @@ export function InputBar({
             disabled={false}
             className={cn(
               "min-h-[60px] max-h-[200px] resize-none",
-              "focus-visible:ring-2"
+              "focus-visible:ring-2",
             )}
             rows={1}
           />
@@ -339,7 +375,7 @@ export function InputBar({
             <div
               className={cn(
                 "absolute bottom-2 right-2 text-xs",
-                isAtLimit ? "text-destructive" : "text-muted-foreground"
+                isAtLimit ? "text-destructive" : "text-muted-foreground",
               )}
             >
               {charCount}/{maxLength}
@@ -375,13 +411,18 @@ export function InputBar({
       {attachments.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
           {attachments.map((attachment, index) => (
-            <div key={`${attachment.fileName}-${index}`} className="flex items-center gap-2 rounded-md border px-2 py-1 text-xs bg-muted/40">
+            <div
+              key={`${attachment.fileName}-${index}`}
+              className="flex items-center gap-2 rounded-md border px-2 py-1 text-xs bg-muted/40"
+            >
               {attachment.mimeType.startsWith("image/") ? (
                 <Image className="h-3 w-3 text-muted-foreground shrink-0" />
               ) : (
                 <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
               )}
-              <span className="max-w-[220px] truncate">{attachment.fileName}</span>
+              <span className="max-w-[220px] truncate">
+                {attachment.fileName}
+              </span>
               <button
                 type="button"
                 onClick={() => removeAttachment(index)}
@@ -398,9 +439,12 @@ export function InputBar({
       {/* Helper text */}
       <div className="mt-1 text-xs text-muted-foreground">
         Press <kbd className="px-1 py-0.5 bg-muted rounded">Enter</kbd> to send,{" "}
-        <kbd className="px-1 py-0.5 bg-muted rounded">Shift+Enter</kbd> for new line
+        <kbd className="px-1 py-0.5 bg-muted rounded">Shift+Enter</kbd> for new
+        line
         {isStreaming && (
-          <>, <kbd className="px-1 py-0.5 bg-muted rounded">Esc</kbd> to stop</>
+          <>
+            , <kbd className="px-1 py-0.5 bg-muted rounded">Esc</kbd> to stop
+          </>
         )}
       </div>
     </div>

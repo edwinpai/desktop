@@ -91,7 +91,7 @@ export function verifyContrast(
   foreground: string,
   background: string,
   textSize: TextSize = "normal",
-  level: ContrastLevel = "AA"
+  level: ContrastLevel = "AA",
 ): ContrastResult {
   const fgRgb = hexToRgb(foreground);
   const bgRgb = hexToRgb(background);
@@ -144,7 +144,7 @@ export function batchVerifyContrast(
     size?: TextSize;
     level?: ContrastLevel;
     label?: string;
-  }>
+  }>,
 ): Array<ContrastResult & { label?: string }> {
   return pairs.map(({ fg, bg, size = "normal", level = "AA", label }) => ({
     ...verifyContrast(fg, bg, size, level),
@@ -155,9 +155,7 @@ export function batchVerifyContrast(
 /**
  * Generate accessibility report for color palette
  */
-export function generateAccessibilityReport(
-  palette: Record<string, string>
-): {
+export function generateAccessibilityReport(palette: Record<string, string>): {
   total: number;
   passed: number;
   failed: number;
@@ -203,15 +201,16 @@ export function generateAccessibilityReport(
  */
 export function createFocusTrap(element: HTMLElement): () => void {
   const focusableSelectors = [
-    'a[href]',
-    'button:not([disabled])',
-    'textarea:not([disabled])',
-    'input:not([disabled])',
-    'select:not([disabled])',
+    "a[href]",
+    "button:not([disabled])",
+    "textarea:not([disabled])",
+    "input:not([disabled])",
+    "select:not([disabled])",
     '[tabindex]:not([tabindex="-1"])',
   ].join(", ");
 
-  const focusableElements = element.querySelectorAll<HTMLElement>(focusableSelectors);
+  const focusableElements =
+    element.querySelectorAll<HTMLElement>(focusableSelectors);
   const firstFocusable = focusableElements[0];
   const lastFocusable = focusableElements[focusableElements.length - 1];
 
@@ -247,7 +246,10 @@ export function createFocusTrap(element: HTMLElement): () => void {
 /**
  * Announce message to screen readers
  */
-export function announceToScreenReader(message: string, priority: "polite" | "assertive" = "polite"): void {
+export function announceToScreenReader(
+  message: string,
+  priority: "polite" | "assertive" = "polite",
+): void {
   const announcement = document.createElement("div");
   announcement.setAttribute("role", "status");
   announcement.setAttribute("aria-live", priority);

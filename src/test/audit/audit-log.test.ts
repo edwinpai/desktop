@@ -38,7 +38,8 @@ describe("Audit Log", () => {
         timestamp: "2026-02-09T12:00:00.000Z",
         operation: "sign",
         protocolID: "edwinpai-chat",
-        keyID: "session-001",        success: false,
+        keyID: "session-001",
+        success: false,
         error: "ERR_KEY_NOT_FOUND",
       };
 
@@ -77,7 +78,8 @@ describe("Audit Log", () => {
       operations.forEach((op) => {
         const entry: AuditLogEntry = {
           timestamp: new Date().toISOString(),
-          operation: op,          success: true,
+          operation: op,
+          success: true,
         };
 
         expect(entry.operation).toBe(op);
@@ -123,11 +125,12 @@ describe("Audit Log", () => {
         timestamp: "2026-02-09T12:34:56.789Z",
         operation: "sign",
         protocolID: "test",
-        keyID: "test",        success: true,
+        keyID: "test",
+        success: true,
       };
 
       expect(entry.timestamp).toMatch(
-        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
       );
     });
 
@@ -154,7 +157,8 @@ describe("Audit Log", () => {
         timestamp: new Date().toISOString(),
         operation: "sign",
         protocolID: "test",
-        keyID: "test",        payloadHash:
+        keyID: "test",
+        payloadHash:
           "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
         success: true,
       };
@@ -215,13 +219,15 @@ describe("Audit Log", () => {
           timestamp: "2026-02-09T12:00:00.000Z",
           operation: "sign" as AuditOperation,
           protocolID: "test",
-          keyID: "key1",          success: true,
+          keyID: "key1",
+          success: true,
         },
         {
           timestamp: "2026-02-09T12:00:01.000Z",
           operation: "verify" as AuditOperation,
           protocolID: "test",
-          keyID: "key2",          success: true,
+          keyID: "key2",
+          success: true,
         },
       ];
 
@@ -240,11 +246,13 @@ describe("Audit Log", () => {
       const entries: AuditLogEntry[] = [
         {
           timestamp: "2026-02-09T12:00:00.000Z",
-          operation: "sign",          success: true,
+          operation: "sign",
+          success: true,
         },
         {
           timestamp: "2026-02-09T12:00:01.000Z",
-          operation: "verify",          success: true,
+          operation: "verify",
+          success: true,
         },
       ];
 
@@ -259,7 +267,8 @@ describe("Audit Log", () => {
         timestamp: "2026-02-09T12:00:00.000Z",
         operation: "sign",
         protocolID: "test",
-        keyID: "test",        success: true,
+        keyID: "test",
+        success: true,
       };
 
       // Entries should be frozen after creation
@@ -281,7 +290,8 @@ describe("Audit Log", () => {
       errorCodes.forEach((code) => {
         const entry: AuditLogEntry = {
           timestamp: new Date().toISOString(),
-          operation: "sign",          success: false,
+          operation: "sign",
+          success: false,
           error: code,
         };
 

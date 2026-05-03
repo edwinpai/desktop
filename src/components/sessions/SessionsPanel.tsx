@@ -28,10 +28,7 @@ interface SessionsPanelProps {
 
 function getSessionTitle(session: Session): string {
   return (
-    session.displayName ||
-    session.label ||
-    session.derivedTitle ||
-    session.key
+    session.displayName || session.label || session.derivedTitle || session.key
   );
 }
 
@@ -124,14 +121,14 @@ export function SessionsPanel({
 
                 {/* Title row */}
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium truncate">
-                    {title}
-                  </span>
+                  <span className="text-sm font-medium truncate">{title}</span>
 
                   {/* Action buttons - visible on hover / always on active */}
                   <div
                     className={`flex items-center gap-0.5 shrink-0 ${
-                      isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      isActive
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100"
                     } transition-opacity`}
                   >
                     {onResetSession && (
@@ -174,7 +171,10 @@ export function SessionsPanel({
                 {/* Model badge */}
                 {session.model && (
                   <div className="flex items-center gap-1 mt-0.5">
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] px-1.5 py-0"
+                    >
                       {session.model}
                     </Badge>
                   </div>

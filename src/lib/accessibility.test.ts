@@ -119,11 +119,15 @@ describe("accessibility", () => {
     it("applies correct thresholds", () => {
       // Test AA normal (4.5:1)
       const aaNormal = verifyContrast("#767676", "#FFFFFF", "normal", "AA");
-      expect(aaNormal.ratio).toBeGreaterThanOrEqual(WCAG_CONTRAST_RATIOS.AA_NORMAL);
+      expect(aaNormal.ratio).toBeGreaterThanOrEqual(
+        WCAG_CONTRAST_RATIOS.AA_NORMAL,
+      );
 
       // Test AA large (3:1)
       const aaLarge = verifyContrast("#959595", "#FFFFFF", "large", "AA");
-      expect(aaLarge.ratio).toBeGreaterThanOrEqual(WCAG_CONTRAST_RATIOS.AA_LARGE);
+      expect(aaLarge.ratio).toBeGreaterThanOrEqual(
+        WCAG_CONTRAST_RATIOS.AA_LARGE,
+      );
     });
 
     it("returns failure for invalid colors", () => {

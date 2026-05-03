@@ -11,9 +11,9 @@
 import { APP_VERSION } from "@/lib/app-version";
 
 export interface GatewayTarget {
-  url: string;        // e.g., "http://127.0.0.1:18789"
-  token?: string;     // auth token
-  kind: "local" | "docker" | "remote";  // inferred from URL/context
+  url: string; // e.g., "http://127.0.0.1:18789"
+  token?: string; // auth token
+  kind: "local" | "docker" | "remote"; // inferred from URL/context
 }
 
 export interface GatewayConfig {
@@ -48,7 +48,9 @@ export interface ChannelInfo {
  * Try to read the gateway token from desktop config or shared config.
  * Used as fallback when no token is provided.
  */
-export async function resolveToken(providedToken?: string): Promise<string | undefined> {
+export async function resolveToken(
+  providedToken?: string,
+): Promise<string | undefined> {
   if (providedToken) return providedToken;
 
   try {
@@ -63,7 +65,9 @@ export async function resolveToken(providedToken?: string): Promise<string | und
   try {
     // Try shared edwinpai.json via Tauri IPC
     const { invoke } = await import("@tauri-apps/api/core");
-    const result = await invoke<{ config: Record<string, unknown> }>("get_edwinpai_config");
+    const result = await invoke<{ config: Record<string, unknown> }>(
+      "get_edwinpai_config",
+    );
     const gw = (result.config?.gateway ?? {}) as Record<string, unknown>;
     const auth = (gw.auth ?? {}) as Record<string, unknown>;
     if (typeof auth.token === "string") return auth.token;
@@ -125,7 +129,11 @@ export function buildWsUrlCandidates(httpUrl: string): string[] {
  * This queries the REMOTE gateway, not local files.
  */
 
-function getWsUrlCandidate(wsUrlCandidates: string[], attempt: number, httpUrl: string): string {
+function getWsUrlCandidate(
+  wsUrlCandidates: string[],
+  attempt: number,
+  httpUrl: string,
+): string {
   return (
     wsUrlCandidates[Math.min(attempt, wsUrlCandidates.length - 1)] ??
     httpUrl.replace(/^http/, "ws")
@@ -215,10 +223,14 @@ export async function fetchGatewayConfig(
               closeWebSocketQuietly(socket);
               if (frame.ok && frame.payload) {
                 const payload = frame.payload as Record<string, unknown>;
-                const config = (payload.config ?? payload.parsed ?? payload) as GatewayConfig;
+                const config = (payload.config ??
+                  payload.parsed ??
+                  payload) as GatewayConfig;
                 resolve(config);
               } else {
-                reject(new Error(frame.error?.message ?? "Failed to fetch config"));
+                reject(
+                  new Error(frame.error?.message ?? "Failed to fetch config"),
+                );
               }
             }
           }
@@ -246,7 +258,11 @@ export async function fetchGatewayConfig(
         if (event.code !== 1000) {
           if (!handshakeDone && retry()) return;
           clearTimeout(timeout);
-          reject(new Error(`Connection closed: ${event.reason || `code ${event.code}`}`));
+          reject(
+            new Error(
+              `Connection closed: ${event.reason || `code ${event.code}`}`,
+            ),
+          );
         }
       });
     };
@@ -260,7 +276,10 @@ export async function signGatewayParams<T extends Record<string, unknown>>(
 ): Promise<T & { signedEnvelope: Record<string, unknown> }> {
   try {
     const { invoke } = await import("@tauri-apps/api/core");
-    const signed = await invoke<{ payload: string; envelope: Record<string, unknown> }>("sign_request", {
+    const signed = await invoke<{
+      payload: string;
+      envelope: Record<string, unknown>;
+    }>("sign_request", {
       payload: JSON.stringify(params),
     });
     return { ...params, signedEnvelope: signed.envelope };
@@ -347,7 +366,9 @@ export async function callGatewayMethod(
               if (frame.ok) {
                 resolve(frame.payload);
               } else {
-                reject(new Error(frame.error?.message ?? "Gateway request failed"));
+                reject(
+                  new Error(frame.error?.message ?? "Gateway request failed"),
+                );
               }
             }
           }
@@ -376,7 +397,11 @@ export async function callGatewayMethod(
         if (event.code !== 1000) {
           if (!handshakeDone && retry()) return;
           clearTimeout(timeout);
-          reject(new Error(`Connection closed: ${event.reason || `code ${event.code}`}`));
+          reject(
+            new Error(
+              `Connection closed: ${event.reason || `code ${event.code}`}`,
+            ),
+          );
         }
       });
     };
@@ -400,10 +425,13 @@ export interface ChannelAccountStatus {
 }
 
 export interface ChannelStatusResult {
-  channels: Record<string, {
-    accounts: ChannelAccountStatus[];
-    defaultAccountId?: string;
-  }>;
+  channels: Record<
+    string,
+    {
+      accounts: ChannelAccountStatus[];
+      defaultAccountId?: string;
+    }
+  >;
 }
 
 export interface WebLoginStartResult {
@@ -423,27 +451,32 @@ export async function fetchChannelStatus(
   target: GatewayTarget,
   timeoutMs = 10000,
 ): Promise<ChannelStatusResult> {
-  return await callGatewayMethod(
+  return (await callGatewayMethod(
     target,
     "channels.status",
     {},
     timeoutMs,
     "Timed out fetching channel status",
-  ) as ChannelStatusResult;
+  )) as ChannelStatusResult;
 }
 
 export async function webLoginStart(
   target: GatewayTarget,
-  params: { accountId?: string; force?: boolean; timeoutMs?: number; verbose?: boolean } = {},
+  params: {
+    accountId?: string;
+    force?: boolean;
+    timeoutMs?: number;
+    verbose?: boolean;
+  } = {},
   timeoutMs = 20000,
 ): Promise<WebLoginStartResult> {
-  return await callGatewayMethod(
+  return (await callGatewayMethod(
     target,
     "web.login.start",
     params,
     timeoutMs,
     "Timed out starting web login",
-  ) as WebLoginStartResult;
+  )) as WebLoginStartResult;
 }
 
 export async function webLoginWait(
@@ -451,26 +484,26 @@ export async function webLoginWait(
   params: { accountId?: string; timeoutMs?: number } = {},
   timeoutMs = 120000,
 ): Promise<WebLoginWaitResult> {
-  return await callGatewayMethod(
+  return (await callGatewayMethod(
     target,
     "web.login.wait",
     params,
     timeoutMs,
     "Timed out waiting for web login",
-  ) as WebLoginWaitResult;
+  )) as WebLoginWaitResult;
 }
 
 export async function listGatewayModels(
   target: GatewayTarget,
   timeoutMs = 10000,
 ): Promise<GatewayModelChoice[]> {
-  const payload = await callGatewayMethod(
+  const payload = (await callGatewayMethod(
     target,
-    'models.list',
+    "models.list",
     {},
     timeoutMs,
-    'Timed out listing models',
-  ) as Record<string, unknown>;
+    "Timed out listing models",
+  )) as Record<string, unknown>;
   const models = payload?.models as unknown;
   return Array.isArray(models) ? (models as GatewayModelChoice[]) : [];
 }
@@ -561,13 +594,13 @@ export async function resolveCredential(
   signedEnvelope?: Record<string, unknown>,
   timeoutMs = 10000,
 ): Promise<{ ok: boolean }> {
-  return await callGatewayMethod(
+  return (await callGatewayMethod(
     target,
     "credential.resolve",
     { requestId, decision, credential, leaseMs, signedEnvelope },
     timeoutMs,
     "Timed out resolving credential request",
-  ) as { ok: boolean };
+  )) as { ok: boolean };
 }
 
 export async function resolveToolInvokeApproval(
@@ -577,26 +610,26 @@ export async function resolveToolInvokeApproval(
   signedEnvelope?: Record<string, unknown>,
   timeoutMs = 10000,
 ): Promise<{ ok: boolean }> {
-  return await callGatewayMethod(
+  return (await callGatewayMethod(
     target,
     "tool.invoke.approval.resolve",
     { id, decision, signedEnvelope },
     timeoutMs,
     "Timed out resolving tool invoke approval",
-  ) as { ok: boolean };
+  )) as { ok: boolean };
 }
 
 export async function fetchExecApprovals(
   target: GatewayTarget,
   timeoutMs = 10000,
 ): Promise<ExecApprovalsSnapshot> {
-  return await callGatewayMethod(
+  return (await callGatewayMethod(
     target,
     "exec.approvals.get",
     {},
     timeoutMs,
     "Timed out fetching exec approvals",
-  ) as ExecApprovalsSnapshot;
+  )) as ExecApprovalsSnapshot;
 }
 
 export async function setExecApprovals(
@@ -605,13 +638,13 @@ export async function setExecApprovals(
   baseHash?: string,
   timeoutMs = 10000,
 ): Promise<ExecApprovalsSnapshot> {
-  return await callGatewayMethod(
+  return (await callGatewayMethod(
     target,
     "exec.approvals.set",
     { file, baseHash },
     timeoutMs,
     "Timed out saving exec approvals",
-  ) as ExecApprovalsSnapshot;
+  )) as ExecApprovalsSnapshot;
 }
 
 export async function fetchNodeExecApprovals(
@@ -619,13 +652,13 @@ export async function fetchNodeExecApprovals(
   nodeId: string,
   timeoutMs = 15000,
 ): Promise<ExecApprovalsSnapshot> {
-  return await callGatewayMethod(
+  return (await callGatewayMethod(
     target,
     "exec.approvals.node.get",
     { nodeId },
     timeoutMs,
     "Timed out fetching node exec approvals",
-  ) as ExecApprovalsSnapshot;
+  )) as ExecApprovalsSnapshot;
 }
 
 export async function setNodeExecApprovals(
@@ -635,13 +668,13 @@ export async function setNodeExecApprovals(
   baseHash?: string,
   timeoutMs = 15000,
 ): Promise<ExecApprovalsSnapshot> {
-  return await callGatewayMethod(
+  return (await callGatewayMethod(
     target,
     "exec.approvals.node.set",
     { nodeId, file, baseHash },
     timeoutMs,
     "Timed out saving node exec approvals",
-  ) as ExecApprovalsSnapshot;
+  )) as ExecApprovalsSnapshot;
 }
 
 export async function resolveExecApproval(
@@ -650,13 +683,13 @@ export async function resolveExecApproval(
   decision: "allow-once" | "allow-always" | "deny",
   timeoutMs = 10000,
 ): Promise<{ ok: boolean }> {
-  return await callGatewayMethod(
+  return (await callGatewayMethod(
     target,
     "exec.approval.resolve",
     { id, decision },
     timeoutMs,
     "Timed out resolving exec approval",
-  ) as { ok: boolean };
+  )) as { ok: boolean };
 }
 
 /**
@@ -671,8 +704,14 @@ export function extractChannels(config: GatewayConfig): ChannelInfo[] {
   }
 
   const channelTypes = [
-    "matrix", "telegram", "discord", "slack", "whatsapp", "signal",
-    "googlechat", "imessage",
+    "matrix",
+    "telegram",
+    "discord",
+    "slack",
+    "whatsapp",
+    "signal",
+    "googlechat",
+    "imessage",
   ];
 
   for (const type of channelTypes) {
@@ -681,13 +720,14 @@ export function extractChannels(config: GatewayConfig): ChannelInfo[] {
       const cfg = channelConfig as Record<string, unknown>;
       // Check if it's actually configured (has essential fields)
       const isConfigured = !!(
-        cfg.enabled !== false && (
-          cfg.homeserver || // matrix
-          cfg.botToken ||  // telegram, discord, slack
-          cfg.token ||     // generic
-          cfg.phoneNumber || // whatsapp, signal
-          cfg.accountId    // imessage
-        )
+        (
+          cfg.enabled !== false &&
+          (cfg.homeserver || // matrix
+            cfg.botToken || // telegram, discord, slack
+            cfg.token || // generic
+            cfg.phoneNumber || // whatsapp, signal
+            cfg.accountId)
+        ) // imessage
       );
 
       if (isConfigured) {
@@ -810,13 +850,18 @@ export async function patchGatewayConfig(
             } else {
               clearTimeout(timeout);
               closeWebSocketQuietly(socket);
-              reject(new Error(frame.error?.message ?? "Failed to get config for patching"));
+              reject(
+                new Error(
+                  frame.error?.message ?? "Failed to get config for patching",
+                ),
+              );
             }
           } else if (phase === "patch" && frame.id === patchId) {
             clearTimeout(timeout);
             closeWebSocketQuietly(socket);
             if (frame.ok) resolve();
-            else reject(new Error(frame.error?.message ?? "Config patch failed"));
+            else
+              reject(new Error(frame.error?.message ?? "Config patch failed"));
           }
         } catch {
           // Ignore parse errors
@@ -843,7 +888,11 @@ export async function patchGatewayConfig(
         if (event.code !== 1000) {
           if (phase === "handshake" && retry()) return;
           clearTimeout(timeout);
-          reject(new Error(`Connection closed: ${event.reason || `code ${event.code}`}`));
+          reject(
+            new Error(
+              `Connection closed: ${event.reason || `code ${event.code}`}`,
+            ),
+          );
         }
       });
     };
@@ -861,7 +910,8 @@ export function buildGatewayTarget(config: {
   gatewayPort?: number;
   gatewayToken?: string;
 }): GatewayTarget {
-  const url = config.gatewayUrl ?? `http://localhost:${config.gatewayPort ?? 18789}`;
+  const url =
+    config.gatewayUrl ?? `http://localhost:${config.gatewayPort ?? 18789}`;
   return {
     url,
     token: config.gatewayToken || undefined,

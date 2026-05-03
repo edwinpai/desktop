@@ -260,7 +260,9 @@ export interface UseChannelsReturn {
   /** Toggle channel enabled status */
   toggleChannel: (channel: string, enabled: boolean) => Promise<ChannelConfig>;
   /** Validate credentials without saving */
-  validateCredentials: (request: ValidateChannelRequest) => Promise<ValidationResult>;
+  validateCredentials: (
+    request: ValidateChannelRequest,
+  ) => Promise<ValidationResult>;
   /** Refresh channel list */
   refresh: () => Promise<void>;
   /** Select a channel */
@@ -316,14 +318,19 @@ export interface ChannelStoreState {
   /** Toggle channel enabled status */
   toggleChannel: (channel: string, enabled: boolean) => Promise<ChannelConfig>;
   /** Validate credentials without saving */
-  validateCredentials: (request: ValidateChannelRequest) => Promise<ValidationResult>;
+  validateCredentials: (
+    request: ValidateChannelRequest,
+  ) => Promise<ValidationResult>;
   /** Select a channel */
   setSelectedChannel: (channel: ChannelName | null) => void;
 
   // --- Wizard Actions ---
 
   /** Open wizard for a channel */
-  openWizard: (channel: ChannelName, existingConfig?: DecryptedChannelConfig) => void;
+  openWizard: (
+    channel: ChannelName,
+    existingConfig?: DecryptedChannelConfig,
+  ) => void;
   /** Close wizard and reset state */
   closeWizard: () => void;
   /** Navigate to a specific step */

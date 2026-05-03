@@ -11,7 +11,8 @@ import { describe, it, expect } from "vitest";
 import { IdentityBadge } from "@/components/shared/IdentityBadge";
 
 describe("Identicon Rendering", () => {
-  const testPublicKey = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+  const testPublicKey =
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
   const testPetname = "Test User";
 
   describe("SVG Generation", () => {
@@ -35,7 +36,11 @@ describe("Identicon Rendering", () => {
 
     it("should have width and height attributes matching size", () => {
       render(
-        <IdentityBadge publicKey={testPublicKey} petname={testPetname} size="lg" />
+        <IdentityBadge
+          publicKey={testPublicKey}
+          petname={testPetname}
+          size="lg"
+        />,
       );
 
       const svg = document.querySelector("svg");
@@ -76,7 +81,7 @@ describe("Identicon Rendering", () => {
   describe("Deterministic Color Generation", () => {
     it("should generate same color for same public key", () => {
       const { unmount } = render(
-        <IdentityBadge publicKey={testPublicKey} petname={testPetname} />
+        <IdentityBadge publicKey={testPublicKey} petname={testPetname} />,
       );
 
       const svg1 = document.querySelector("svg") as SVGElement;
@@ -92,11 +97,13 @@ describe("Identicon Rendering", () => {
     });
 
     it("should generate different colors for different public keys", () => {
-      const key1 = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
-      const key2 = "03c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5";
+      const key1 =
+        "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+      const key2 =
+        "03c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5";
 
       const { unmount } = render(
-        <IdentityBadge publicKey={key1} petname="User One" />
+        <IdentityBadge publicKey={key1} petname="User One" />,
       );
 
       const svg1 = document.querySelector("svg") as SVGElement;
@@ -178,11 +185,13 @@ describe("Identicon Rendering", () => {
     });
 
     it("should vary pattern based on public key bytes", () => {
-      const key1 = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
-      const key2 = "03c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5";
+      const key1 =
+        "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+      const key2 =
+        "03c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5";
 
       const { unmount } = render(
-        <IdentityBadge publicKey={key1} petname="User One" />
+        <IdentityBadge publicKey={key1} petname="User One" />,
       );
 
       const svg1 = document.querySelector("svg");
@@ -204,7 +213,11 @@ describe("Identicon Rendering", () => {
   describe("Size Variants", () => {
     it("should render small size (32x32)", () => {
       render(
-        <IdentityBadge publicKey={testPublicKey} petname={testPetname} size="sm" />
+        <IdentityBadge
+          publicKey={testPublicKey}
+          petname={testPetname}
+          size="sm"
+        />,
       );
 
       const svg = document.querySelector("svg");
@@ -215,7 +228,11 @@ describe("Identicon Rendering", () => {
 
     it("should render medium size (48x48)", () => {
       render(
-        <IdentityBadge publicKey={testPublicKey} petname={testPetname} size="md" />
+        <IdentityBadge
+          publicKey={testPublicKey}
+          petname={testPetname}
+          size="md"
+        />,
       );
 
       const svg = document.querySelector("svg");
@@ -226,7 +243,11 @@ describe("Identicon Rendering", () => {
 
     it("should render large size (64x64)", () => {
       render(
-        <IdentityBadge publicKey={testPublicKey} petname={testPetname} size="lg" />
+        <IdentityBadge
+          publicKey={testPublicKey}
+          petname={testPetname}
+          size="lg"
+        />,
       );
 
       const svg = document.querySelector("svg");
@@ -237,7 +258,11 @@ describe("Identicon Rendering", () => {
 
     it("should maintain pattern consistency across sizes", () => {
       const { unmount } = render(
-        <IdentityBadge publicKey={testPublicKey} petname={testPetname} size="sm" />
+        <IdentityBadge
+          publicKey={testPublicKey}
+          petname={testPetname}
+          size="sm"
+        />,
       );
 
       const svg1 = document.querySelector("svg");
@@ -245,7 +270,11 @@ describe("Identicon Rendering", () => {
       unmount();
 
       render(
-        <IdentityBadge publicKey={testPublicKey} petname={testPetname} size="lg" />
+        <IdentityBadge
+          publicKey={testPublicKey}
+          petname={testPetname}
+          size="lg"
+        />,
       );
 
       const svg2 = document.querySelector("svg");
@@ -259,7 +288,11 @@ describe("Identicon Rendering", () => {
   describe("Grid Cell Calculations", () => {
     it("should calculate cell size correctly for medium (48px / 5 = 9.6px)", () => {
       render(
-        <IdentityBadge publicKey={testPublicKey} petname={testPetname} size="md" />
+        <IdentityBadge
+          publicKey={testPublicKey}
+          petname={testPetname}
+          size="md"
+        />,
       );
 
       const svg = document.querySelector("svg");
@@ -278,7 +311,11 @@ describe("Identicon Rendering", () => {
 
     it("should calculate cell size correctly for large (64px / 5 = 12.8px)", () => {
       render(
-        <IdentityBadge publicKey={testPublicKey} petname={testPetname} size="lg" />
+        <IdentityBadge
+          publicKey={testPublicKey}
+          petname={testPetname}
+          size="lg"
+        />,
       );
 
       const svg = document.querySelector("svg");
@@ -370,7 +407,8 @@ describe("Identicon Rendering", () => {
     });
 
     it("should handle public key with 02 prefix", () => {
-      const key02 = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+      const key02 =
+        "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
 
       render(<IdentityBadge publicKey={key02} petname="Key 02" />);
 
@@ -379,7 +417,8 @@ describe("Identicon Rendering", () => {
     });
 
     it("should handle public key with 03 prefix", () => {
-      const key03 = "03c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5";
+      const key03 =
+        "03c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5";
 
       render(<IdentityBadge publicKey={key03} petname="Key 03" />);
 
@@ -391,7 +430,7 @@ describe("Identicon Rendering", () => {
   describe("Determinism", () => {
     it("should produce identical SVG for same public key on multiple renders", () => {
       const { unmount } = render(
-        <IdentityBadge publicKey={testPublicKey} petname={testPetname} />
+        <IdentityBadge publicKey={testPublicKey} petname={testPetname} />,
       );
 
       const svg1 = document.querySelector("svg");
@@ -418,7 +457,7 @@ describe("Identicon Rendering", () => {
 
     it("should produce same pattern after component remount", () => {
       const { unmount } = render(
-        <IdentityBadge publicKey={testPublicKey} petname={testPetname} />
+        <IdentityBadge publicKey={testPublicKey} petname={testPetname} />,
       );
 
       const svg1 = document.querySelector("svg");

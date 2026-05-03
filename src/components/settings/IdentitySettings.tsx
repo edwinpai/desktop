@@ -8,13 +8,13 @@
  * - Uses Phase 1 crypto domain via wrapper
  */
 
-import { useState, useEffect } from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { CheckCircle2 } from "lucide-react";
 
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { getIdentity } from '@/lib/crypto-domain';
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { getIdentity } from "@/lib/crypto-domain";
 
 interface IdentityData {
   publicKey: string;
@@ -47,7 +47,7 @@ export function IdentitySettings() {
         setError(
           err instanceof Error
             ? err.message
-            : 'Failed to load identity. Make sure you have a BSV keypair configured.'
+            : "Failed to load identity. Make sure you have a BSV keypair configured.",
         );
       } finally {
         setLoading(false);
@@ -69,10 +69,10 @@ export function IdentitySettings() {
       };
 
       const json = JSON.stringify(exportData, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
+      const blob = new Blob([json], { type: "application/json" });
       const url = URL.createObjectURL(blob);
 
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `edwinpai-identity-${identity.shortId}.json`;
       document.body.appendChild(a);
@@ -83,7 +83,9 @@ export function IdentitySettings() {
       setExportSuccess(true);
       setTimeout(() => setExportSuccess(false), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to export identity');
+      setError(
+        err instanceof Error ? err.message : "Failed to export identity",
+      );
     }
   };
 
@@ -93,7 +95,7 @@ export function IdentitySettings() {
       await navigator.clipboard.writeText(identity.publicKey);
       // Visual feedback could be added here
     } catch {
-      setError('Failed to copy public key to clipboard');
+      setError("Failed to copy public key to clipboard");
     }
   };
 
@@ -131,7 +133,7 @@ export function IdentitySettings() {
             </svg>
             <div className="flex-1">
               <p className="text-sm font-medium text-red-900">
-                {error || 'Failed to load identity'}
+                {error || "Failed to load identity"}
               </p>
             </div>
           </div>
@@ -254,9 +256,15 @@ export function IdentitySettings() {
         <h4 className="font-medium mb-2">About Your Identity:</h4>
         <ul className="space-y-1 text-sm text-muted-foreground">
           <li>• Your identity is based on BRC-42 and BRC-103 standards</li>
-          <li>• Your petname and avatar are deterministically derived from your public key</li>
+          <li>
+            • Your petname and avatar are deterministically derived from your
+            public key
+          </li>
           <li>• Your private key never leaves the secure crypto domain</li>
-          <li>• This identity can be used for cryptographic authentication and signing</li>
+          <li>
+            • This identity can be used for cryptographic authentication and
+            signing
+          </li>
         </ul>
       </Card>
     </div>

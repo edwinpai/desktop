@@ -14,9 +14,21 @@ const BUILT_IN_COMMANDS: SlashCommand[] = [
   { name: "/session", description: "Switch session", args: "[key]" },
   { name: "/new", description: "Create new session" },
   { name: "/reset", description: "Reset current session" },
-  { name: "/think", description: "Set thinking level", args: "[off|low|medium|high]" },
-  { name: "/verbose", description: "Toggle verbose output", args: "[off|on|full]" },
-  { name: "/reasoning", description: "Toggle reasoning display", args: "[off|on]" },
+  {
+    name: "/think",
+    description: "Set thinking level",
+    args: "[off|low|medium|high]",
+  },
+  {
+    name: "/verbose",
+    description: "Toggle verbose output",
+    args: "[off|on|full]",
+  },
+  {
+    name: "/reasoning",
+    description: "Toggle reasoning display",
+    args: "[off|on]",
+  },
   { name: "/status", description: "Show gateway status" },
   { name: "/abort", description: "Abort active run" },
   { name: "/help", description: "Show available commands" },
@@ -43,7 +55,7 @@ export function SlashCommandMenu({
   const allCommands = [...BUILT_IN_COMMANDS, ...extraCommands];
   const filtered = query
     ? allCommands.filter((cmd) =>
-        cmd.name.toLowerCase().includes(query.toLowerCase())
+        cmd.name.toLowerCase().includes(query.toLowerCase()),
       )
     : allCommands;
 
@@ -97,7 +109,7 @@ export function SlashCommandMenu({
           key={cmd.name}
           className={cn(
             "flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-accent",
-            i === selectedIndex && "bg-accent"
+            i === selectedIndex && "bg-accent",
           )}
           onClick={() => onSelect(cmd)}
           onMouseEnter={() => setSelectedIndex(i)}

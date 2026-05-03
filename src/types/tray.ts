@@ -18,28 +18,28 @@
  * Menu item types
  */
 export type TrayMenuItemType =
-  | 'normal'     // Standard clickable item
-  | 'separator'  // Visual separator
-  | 'submenu'    // Contains child items
-  | 'checkbox';  // Toggle item with checked state
+  | "normal" // Standard clickable item
+  | "separator" // Visual separator
+  | "submenu" // Contains child items
+  | "checkbox"; // Toggle item with checked state
 
 /**
  * Menu item identifier (for action routing)
  */
 export type TrayMenuItemId =
-  | 'show_window'
-  | 'hide_window'
-  | 'new_conversation'
-  | 'gateway_status'
-  | 'start_gateway'
-  | 'stop_gateway'
-  | 'restart_gateway'
-  | 'subscription_status'
-  | 'check_subscription'
-  | 'settings'
-  | 'about'
-  | 'check_for_updates'
-  | 'quit';
+  | "show_window"
+  | "hide_window"
+  | "new_conversation"
+  | "gateway_status"
+  | "start_gateway"
+  | "stop_gateway"
+  | "restart_gateway"
+  | "subscription_status"
+  | "check_subscription"
+  | "settings"
+  | "about"
+  | "check_for_updates"
+  | "quit";
 
 /**
  * Tray menu item definition
@@ -136,7 +136,7 @@ export interface SetTrayTooltipResponse {
  * Set tray icon request
  */
 export interface SetTrayIconRequest {
-  icon: 'default' | 'active' | 'warning' | 'error';
+  icon: "default" | "active" | "warning" | "error";
 }
 
 /**
@@ -154,10 +154,10 @@ export interface SetTrayIconResponse {
  * Tray event types (for IPC event listeners)
  */
 export type TrayEvent =
-  | 'tray:menu_item_clicked'
-  | 'tray:icon_clicked'
-  | 'tray:icon_double_clicked'
-  | 'tray:icon_right_clicked';
+  | "tray:menu_item_clicked"
+  | "tray:icon_clicked"
+  | "tray:icon_double_clicked"
+  | "tray:icon_right_clicked";
 
 /**
  * Menu item clicked event payload
@@ -171,7 +171,7 @@ export interface MenuItemClickedEventPayload {
  * Tray icon clicked event payload
  */
 export interface TrayIconClickedEventPayload {
-  button: 'left' | 'right' | 'middle';
+  button: "left" | "right" | "middle";
   timestamp: string; // ISO 8601
 }
 
@@ -188,54 +188,54 @@ export function buildTrayMenu(state: TrayMenuState): TrayMenu {
     items: [
       // Window visibility toggle
       {
-        id: state.windowVisible ? 'hide_window' : 'show_window',
-        type: 'normal',
-        label: state.windowVisible ? 'Hide EdwinPAI' : 'Show EdwinPAI',
+        id: state.windowVisible ? "hide_window" : "show_window",
+        type: "normal",
+        label: state.windowVisible ? "Hide EdwinPAI" : "Show EdwinPAI",
         enabled: true,
-        accelerator: 'Ctrl+H',
+        accelerator: "Ctrl+H",
       },
 
       // New conversation
       {
-        id: 'new_conversation',
-        type: 'normal',
-        label: 'New Conversation',
+        id: "new_conversation",
+        type: "normal",
+        label: "New Conversation",
         enabled: state.gatewayRunning && state.subscriptionActive,
-        accelerator: 'Ctrl+N',
-        icon: 'new',
+        accelerator: "Ctrl+N",
+        icon: "new",
       },
 
       // Separator
       {
-        id: 'separator' as TrayMenuItemId,
-        type: 'separator',
-        label: '',
+        id: "separator" as TrayMenuItemId,
+        type: "separator",
+        label: "",
         enabled: true,
       },
 
       // Gateway submenu
       {
-        id: 'gateway_status',
-        type: 'submenu',
-        label: `Gateway: ${state.gatewayRunning ? (state.gatewayHealthy ? 'Running' : 'Unhealthy') : 'Stopped'}`,
+        id: "gateway_status",
+        type: "submenu",
+        label: `Gateway: ${state.gatewayRunning ? (state.gatewayHealthy ? "Running" : "Unhealthy") : "Stopped"}`,
         enabled: true,
         children: [
           {
-            id: 'start_gateway',
-            type: 'normal',
-            label: 'Start Gateway',
+            id: "start_gateway",
+            type: "normal",
+            label: "Start Gateway",
             enabled: !state.gatewayRunning,
           },
           {
-            id: 'stop_gateway',
-            type: 'normal',
-            label: 'Stop Gateway',
+            id: "stop_gateway",
+            type: "normal",
+            label: "Stop Gateway",
             enabled: state.gatewayRunning,
           },
           {
-            id: 'restart_gateway',
-            type: 'normal',
-            label: 'Restart Gateway',
+            id: "restart_gateway",
+            type: "normal",
+            label: "Restart Gateway",
             enabled: state.gatewayRunning,
           },
         ],
@@ -243,15 +243,15 @@ export function buildTrayMenu(state: TrayMenuState): TrayMenu {
 
       // Subscription submenu
       {
-        id: 'subscription_status',
-        type: 'submenu',
-        label: `Subscription: ${state.subscriptionActive ? 'Active' : 'Inactive'}`,
+        id: "subscription_status",
+        type: "submenu",
+        label: `Subscription: ${state.subscriptionActive ? "Active" : "Inactive"}`,
         enabled: true,
         children: [
           {
-            id: 'check_subscription',
-            type: 'normal',
-            label: 'Check Now',
+            id: "check_subscription",
+            type: "normal",
+            label: "Check Now",
             enabled: state.gatewayRunning,
           },
         ],
@@ -259,52 +259,54 @@ export function buildTrayMenu(state: TrayMenuState): TrayMenu {
 
       // Separator
       {
-        id: 'separator' as TrayMenuItemId,
-        type: 'separator',
-        label: '',
+        id: "separator" as TrayMenuItemId,
+        type: "separator",
+        label: "",
         enabled: true,
       },
 
       // Settings
       {
-        id: 'settings',
-        type: 'normal',
-        label: 'Settings',
+        id: "settings",
+        type: "normal",
+        label: "Settings",
         enabled: true,
-        accelerator: 'Ctrl+,',
+        accelerator: "Ctrl+,",
       },
 
       // About
       {
-        id: 'about',
-        type: 'normal',
-        label: 'About EdwinPAI',
+        id: "about",
+        type: "normal",
+        label: "About EdwinPAI",
         enabled: true,
       },
 
       // Check for updates
       {
-        id: 'check_for_updates',
-        type: 'normal',
-        label: state.updateAvailable ? 'Update Available!' : 'Check for Updates',
+        id: "check_for_updates",
+        type: "normal",
+        label: state.updateAvailable
+          ? "Update Available!"
+          : "Check for Updates",
         enabled: true,
       },
 
       // Separator
       {
-        id: 'separator' as TrayMenuItemId,
-        type: 'separator',
-        label: '',
+        id: "separator" as TrayMenuItemId,
+        type: "separator",
+        label: "",
         enabled: true,
       },
 
       // Quit
       {
-        id: 'quit',
-        type: 'normal',
-        label: 'Quit EdwinPAI',
+        id: "quit",
+        type: "normal",
+        label: "Quit EdwinPAI",
         enabled: true,
-        accelerator: 'Ctrl+Q',
+        accelerator: "Ctrl+Q",
       },
     ],
   };

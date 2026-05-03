@@ -5,8 +5,8 @@
  * handles auth token, and saves the selected gateway to desktop config.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { useState, useEffect, useCallback } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import {
   Search,
   Wifi,
@@ -17,14 +17,14 @@ import {
   AlertCircle,
   Globe,
   Lock,
-} from 'lucide-react';
+} from "lucide-react";
 
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { readConfig, updateConfig } from '@/lib/config';
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { readConfig, updateConfig } from "@/lib/config";
 
 interface DiscoveredGateway {
   url: string;
@@ -34,7 +34,7 @@ interface DiscoveredGateway {
 }
 
 interface ConnectionTest {
-  status: 'idle' | 'testing' | 'connected' | 'failed';
+  status: "idle" | "testing" | "connected" | "failed";
   message?: string;
   version?: string;
 }
@@ -47,20 +47,22 @@ interface GatewayConnectProps {
 export function GatewayConnect({ onConnected }: GatewayConnectProps = {}) {
   const [scanning, setScanning] = useState(false);
   const [gateways, setGateways] = useState<DiscoveredGateway[]>([]);
-  const [selectedUrl, setSelectedUrl] = useState('');
-  const [manualUrl, setManualUrl] = useState('');
-  const [authToken, setAuthToken] = useState('');
+  const [selectedUrl, setSelectedUrl] = useState("");
+  const [manualUrl, setManualUrl] = useState("");
+  const [authToken, setAuthToken] = useState("");
   // Manual entry always visible (no toggle needed)
-  const [connectionTest, setConnectionTest] = useState<ConnectionTest>({ status: 'idle' });
+  const [connectionTest, setConnectionTest] = useState<ConnectionTest>({
+    status: "idle",
+  });
   const [saved, setSaved] = useState(false);
 
   const scanNetwork = useCallback(async () => {
     setScanning(true);
     try {
-      const results = await invoke<DiscoveredGateway[]>('scan_gateways');
+      const results = await invoke<DiscoveredGateway[]>("scan_gateways");
       setGateways(results);
     } catch (err) {
-      console.error('Scan failed:', err);
+      console.error("Scan failed:", err);
     } finally {
       setScanning(false);
     }
@@ -82,7 +84,7 @@ export function GatewayConnect({ onConnected }: GatewayConnectProps = {}) {
 
   const handleSelectGateway = (gw: DiscoveredGateway) => {
     setSelectedUrl(gw.url);
-    setConnectionTest({ status: 'idle' });
+    setConnectionTest({ status: "idle" });
     setSaved(false);
   };
 
@@ -90,36 +92,38 @@ export function GatewayConnect({ onConnected }: GatewayConnectProps = {}) {
     const url = manualUrl.trim();
     if (!url) return;
     // Normalize URL
-    const normalized = url.startsWith('http') ? url : `http://${url}`;
+    const normalized = url.startsWith("http") ? url : `http://${url}`;
     setSelectedUrl(normalized);
-    setConnectionTest({ status: 'idle' });
+    setConnectionTest({ status: "idle" });
     setSaved(false);
   };
 
   const handleTestConnection = async () => {
     if (!selectedUrl) return;
-    setConnectionTest({ status: 'testing' });
+    setConnectionTest({ status: "testing" });
 
     try {
-      const result = await invoke<{ found: boolean; url?: string; error?: string }>(
-        'probe_gateway',
-        { url: selectedUrl }
-      );
+      const result = await invoke<{
+        found: boolean;
+        url?: string;
+        error?: string;
+      }>("probe_gateway", { url: selectedUrl });
 
       if (result.found) {
         setConnectionTest({
-          status: 'connected',
+          status: "connected",
           message: `Gateway reachable at ${result.url || selectedUrl}`,
         });
       } else {
         setConnectionTest({
-          status: 'failed',
-          message: 'Gateway not reachable. Check URL and ensure the gateway is running.',
+          status: "failed",
+          message:
+            "Gateway not reachable. Check URL and ensure the gateway is running.",
         });
       }
     } catch (err) {
       setConnectionTest({
-        status: 'failed',
+        status: "failed",
         message: `Connection failed: ${err instanceof Error ? err.message : String(err)}`,
       });
     }
@@ -137,7 +141,7 @@ export function GatewayConnect({ onConnected }: GatewayConnectProps = {}) {
         setTimeout(() => onConnected(), 500);
       }
     } catch (err) {
-      console.error('Failed to save gateway config:', err);
+      console.error("Failed to save gateway config:", err);
     }
   };
 
@@ -150,9 +154,16 @@ export function GatewayConnect({ onConnected }: GatewayConnectProps = {}) {
             <Search className="h-5 w-5" />
             <h3 className="text-lg font-semibold">Discover Gateways</h3>
           </div>
-          <Button variant="outline" size="sm" onClick={scanNetwork} disabled={scanning}>
-            <RefreshCw className={`h-4 w-4 mr-1.5 ${scanning ? 'animate-spin' : ''}`} />
-            {scanning ? 'Scanning...' : 'Rescan'}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={scanNetwork}
+            disabled={scanning}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-1.5 ${scanning ? "animate-spin" : ""}`}
+            />
+            {scanning ? "Scanning..." : "Rescan"}
           </Button>
         </div>
 
@@ -166,8 +177,12 @@ export function GatewayConnect({ onConnected }: GatewayConnectProps = {}) {
         {!scanning && gateways.length === 0 && (
           <div className="text-center py-6">
             <WifiOff className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground mb-1">No gateways found on the local network.</p>
-            <p className="text-xs text-muted-foreground">Enter a gateway URL manually below.</p>
+            <p className="text-sm text-muted-foreground mb-1">
+              No gateways found on the local network.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Enter a gateway URL manually below.
+            </p>
           </div>
         )}
 
@@ -179,16 +194,20 @@ export function GatewayConnect({ onConnected }: GatewayConnectProps = {}) {
                 onClick={() => handleSelectGateway(gw)}
                 className={`w-full flex items-center justify-between p-3 rounded-md border text-left transition-colors ${
                   selectedUrl === gw.url
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:bg-accent'
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:bg-accent"
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <Server className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <span className="text-sm font-medium font-mono">{gw.url}</span>
+                    <span className="text-sm font-medium font-mono">
+                      {gw.url}
+                    </span>
                     {gw.version && (
-                      <span className="text-xs text-muted-foreground ml-2">v{gw.version}</span>
+                      <span className="text-xs text-muted-foreground ml-2">
+                        v{gw.version}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -224,7 +243,7 @@ export function GatewayConnect({ onConnected }: GatewayConnectProps = {}) {
                 }}
                 placeholder="http://192.168.1.100:18789"
                 className="flex-1 font-mono text-sm"
-                onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
+                onKeyDown={(e) => e.key === "Enter" && handleManualSubmit()}
               />
               {manualUrl && (
                 <Button variant="outline" onClick={handleManualSubmit}>
@@ -235,7 +254,12 @@ export function GatewayConnect({ onConnected }: GatewayConnectProps = {}) {
           </div>
 
           <div>
-            <Label>Auth Token <span className="text-muted-foreground font-normal">(if required)</span></Label>
+            <Label>
+              Auth Token{" "}
+              <span className="text-muted-foreground font-normal">
+                (if required)
+              </span>
+            </Label>
             <Input
               type="password"
               value={authToken}
@@ -264,14 +288,14 @@ export function GatewayConnect({ onConnected }: GatewayConnectProps = {}) {
               <span className="font-mono text-sm">{selectedUrl}</span>
             </div>
 
-            {connectionTest.status === 'connected' && (
+            {connectionTest.status === "connected" && (
               <div className="flex items-center gap-2 p-3 rounded-md bg-green-500/10 text-green-600 text-sm">
                 <CheckCircle className="h-4 w-4" />
                 {connectionTest.message}
               </div>
             )}
 
-            {connectionTest.status === 'failed' && (
+            {connectionTest.status === "failed" && (
               <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
                 <AlertCircle className="h-4 w-4" />
                 {connectionTest.message}
@@ -282,24 +306,25 @@ export function GatewayConnect({ onConnected }: GatewayConnectProps = {}) {
               <Button
                 variant="outline"
                 onClick={handleTestConnection}
-                disabled={connectionTest.status === 'testing'}
+                disabled={connectionTest.status === "testing"}
                 className="flex-1"
               >
-                {connectionTest.status === 'testing' ? (
-                  <><RefreshCw className="h-4 w-4 mr-1.5 animate-spin" /> Testing...</>
+                {connectionTest.status === "testing" ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-1.5 animate-spin" />{" "}
+                    Testing...
+                  </>
                 ) : (
-                  'Test Connection'
+                  "Test Connection"
                 )}
               </Button>
-              <Button
-                onClick={handleSave}
-                disabled={saved}
-                className="flex-1"
-              >
+              <Button onClick={handleSave} disabled={saved} className="flex-1">
                 {saved ? (
-                  <><CheckCircle className="h-4 w-4 mr-1.5" /> Saved</>
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-1.5" /> Saved
+                  </>
                 ) : (
-                  'Save & Connect'
+                  "Save & Connect"
                 )}
               </Button>
             </div>

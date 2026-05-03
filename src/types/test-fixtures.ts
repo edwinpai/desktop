@@ -106,7 +106,7 @@ export interface VerificationTestCase {
  */
 export type MockTauriInvoke = <T = unknown>(
   cmd: string,
-  args?: Record<string, unknown>
+  args?: Record<string, unknown>,
 ) => Promise<T>;
 
 /**
@@ -150,7 +150,7 @@ export interface CryptoDomainMockResponses {
   };
   checkSubscription?: {
     success: boolean;
-    status?: 'active' | 'expired' | 'not_found';
+    status?: "active" | "expired" | "not_found";
     error?: string;
   };
 }
@@ -248,7 +248,7 @@ export interface KeychainTestScenario {
   description: string;
   /** Operations to perform */
   operations: Array<{
-    action: 'set' | 'get' | 'delete' | 'clear';
+    action: "set" | "get" | "delete" | "clear";
     key?: string;
     value?: string;
     expectedResult?: string | null;
@@ -265,7 +265,7 @@ export interface KeychainTestScenario {
  */
 export interface AuditLogTestEntry {
   timestamp: string; // ISO 8601
-  level: 'info' | 'warn' | 'error';
+  level: "info" | "warn" | "error";
   event: string;
   actor?: string;
   metadata?: Record<string, unknown>;
@@ -282,7 +282,7 @@ export interface AuditLogValidator {
   /** Find entries matching criteria */
   findEntries(
     entries: AuditLogTestEntry[],
-    criteria: Partial<AuditLogTestEntry>
+    criteria: Partial<AuditLogTestEntry>,
   ): AuditLogTestEntry[];
   /** Validate timestamp ordering */
   validateOrdering(entries: AuditLogTestEntry[]): boolean;
@@ -432,11 +432,15 @@ export interface TestEnvironment {
  */
 export interface TestEnvironmentBuilder {
   /** Configure Tauri mocks */
-  withTauriMocks(config?: Partial<CryptoDomainMockResponses>): TestEnvironmentBuilder;
+  withTauriMocks(
+    config?: Partial<CryptoDomainMockResponses>,
+  ): TestEnvironmentBuilder;
   /** Configure keychain mocks */
   withKeychainMocks(storage?: MockKeychainStorage): TestEnvironmentBuilder;
   /** Load test fixtures */
-  withFixtures(types: Array<'brc42' | 'identity' | 'signing'>): TestEnvironmentBuilder;
+  withFixtures(
+    types: Array<"brc42" | "identity" | "signing">,
+  ): TestEnvironmentBuilder;
   /** Build test environment */
   build(): TestEnvironment;
 }

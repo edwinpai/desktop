@@ -5,14 +5,14 @@
  * and auto-scroll behavior. Uses useGatewayChat for state management.
  */
 
-import { useEffect, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
-import { useGatewayChat } from '@/hooks/useGatewayChat';
-import { ToolUseCard } from './ToolUseCard';
+import { useGatewayChat } from "@/hooks/useGatewayChat";
+import { ToolUseCard } from "./ToolUseCard";
 
-import type { StreamingChatMessage } from '@/types/streaming';
+import type { StreamingChatMessage } from "@/types/streaming";
 
 // ============================================================================
 // Component Props
@@ -38,7 +38,7 @@ interface ChatViewProps {
  * <ChatView authToken="session-abc123" />
  * ```
  */
-export function ChatView({ authToken, className = '' }: ChatViewProps) {
+export function ChatView({ authToken, className = "" }: ChatViewProps) {
   const {
     messages,
     isStreaming,
@@ -55,7 +55,7 @@ export function ChatView({ authToken, className = '' }: ChatViewProps) {
   // Auto-scroll to bottom when new messages arrive or streaming updates
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, currentResponse]);
 
@@ -108,9 +108,18 @@ export function ChatView({ authToken, className = '' }: ChatViewProps) {
 
                       {/* Typing indicator */}
                       <div className="flex gap-1 mt-2">
-                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <span
+                          className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                          style={{ animationDelay: "0ms" }}
+                        />
+                        <span
+                          className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                          style={{ animationDelay: "150ms" }}
+                        />
+                        <span
+                          className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                          style={{ animationDelay: "300ms" }}
+                        />
                       </div>
                     </div>
                   </div>
@@ -149,7 +158,9 @@ export function ChatView({ authToken, className = '' }: ChatViewProps) {
         <ChatInput
           onSubmit={sendMessage}
           disabled={isStreaming}
-          placeholder={isStreaming ? 'Waiting for response...' : 'Type a message...'}
+          placeholder={
+            isStreaming ? "Waiting for response..." : "Type a message..."
+          }
         />
       </div>
     </div>
@@ -165,22 +176,21 @@ interface MessageBubbleProps {
 }
 
 function MessageBubble({ message }: MessageBubbleProps) {
-  const isUser = message.role === 'user';
+  const isUser = message.role === "user";
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
         className={`max-w-[80%] px-4 py-2 rounded-lg ${
           isUser
-            ? 'bg-blue-600 text-white'
-            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
+            ? "bg-blue-600 text-white"
+            : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
         }`}
       >
         {/* Message content */}
-        <div className={`prose prose-sm max-w-none ${
-            isUser
-              ? 'prose-invert'
-              : 'dark:prose-invert'
+        <div
+          className={`prose prose-sm max-w-none ${
+            isUser ? "prose-invert" : "dark:prose-invert"
           }`}
         >
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -218,14 +228,18 @@ interface ChatInputProps {
   placeholder?: string;
 }
 
-function ChatInput({ onSubmit, disabled = false, placeholder = 'Type a message...' }: ChatInputProps) {
-  const [value, setValue] = useState('');
+function ChatInput({
+  onSubmit,
+  disabled = false,
+  placeholder = "Type a message...",
+}: ChatInputProps) {
+  const [value, setValue] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (value.trim() && !disabled) {
       onSubmit(value.trim());
-      setValue('');
+      setValue("");
     }
   };
 

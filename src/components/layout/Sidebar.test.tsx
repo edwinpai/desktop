@@ -13,7 +13,9 @@ import { APP_VERSION } from "@/lib/app-version";
 vi.mock("@/components/shared/GatewayStatusIndicator", () => ({
   GatewayStatusIndicator: () => (
     <div data-testid="gateway-status">
-      <span className="status-dot" data-status="running">●</span>
+      <span className="status-dot" data-status="running">
+        ●
+      </span>
       <span>Gateway Running</span>
     </div>
   ),

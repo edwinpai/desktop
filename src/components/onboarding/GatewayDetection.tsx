@@ -12,7 +12,14 @@ import { Check, Loader2, Wifi, WifiOff } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 interface GatewayDetectionProps {
   onGatewayFound: (info: GatewayInfo) => void;
@@ -30,7 +37,10 @@ interface ProbeResult {
   error: string | null;
 }
 
-export function GatewayDetection({ onGatewayFound, onSkip }: GatewayDetectionProps) {
+export function GatewayDetection({
+  onGatewayFound,
+  onSkip,
+}: GatewayDetectionProps) {
   const [checking, setChecking] = useState(true);
   const [found, setFound] = useState<GatewayInfo | null>(null);
 
@@ -63,7 +73,9 @@ export function GatewayDetection({ onGatewayFound, onSkip }: GatewayDetectionPro
       <Card className="w-full max-w-2xl mx-auto">
         <CardContent className="flex flex-col items-center justify-center py-12">
           <Loader2 className="size-8 animate-spin text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">Looking for a running EdwinPAI gateway...</p>
+          <p className="text-muted-foreground">
+            Looking for a running EdwinPAI gateway...
+          </p>
         </CardContent>
       </Card>
     );
@@ -84,7 +96,12 @@ export function GatewayDetection({ onGatewayFound, onSkip }: GatewayDetectionPro
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
             <Check className="size-4 text-green-600" />
-            <span className="text-sm">Gateway running at <code className="px-1 py-0.5 bg-muted rounded text-xs">{found.url}</code></span>
+            <span className="text-sm">
+              Gateway running at{" "}
+              <code className="px-1 py-0.5 bg-muted rounded text-xs">
+                {found.url}
+              </code>
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Check className="size-4 text-green-600" />
@@ -97,7 +114,8 @@ export function GatewayDetection({ onGatewayFound, onSkip }: GatewayDetectionPro
 
           <Alert className="mt-4">
             <AlertDescription>
-              Your EdwinPAI gateway is already set up. You can skip the setup wizard and start using EdwinPAI Desktop right away.
+              Your EdwinPAI gateway is already set up. You can skip the setup
+              wizard and start using EdwinPAI Desktop right away.
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -127,7 +145,8 @@ export function GatewayDetection({ onGatewayFound, onSkip }: GatewayDetectionPro
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground">
-          EdwinPAI needs a gateway to connect to AI providers. We'll walk you through setting one up.
+          EdwinPAI needs a gateway to connect to AI providers. We'll walk you
+          through setting one up.
         </p>
       </CardContent>
       <CardFooter>

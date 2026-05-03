@@ -8,9 +8,9 @@
  * - Responsive layout
  */
 
-import { ReactNode } from 'react';
-import { Navigation } from './Navigation';
-import { TopBar } from './TopBar';
+import { ReactNode } from "react";
+import { Navigation } from "./Navigation";
+import { TopBar } from "./TopBar";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -28,9 +28,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <Navigation />
 
         {/* Main content area */}
-        <main className="flex-1 overflow-hidden">
-          {children}
-        </main>
+        <main className="flex-1 overflow-hidden">{children}</main>
       </div>
     </div>
   );

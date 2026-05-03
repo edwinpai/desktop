@@ -18,7 +18,7 @@
 /**
  * Theme preference
  */
-export type ThemePreference = 'light' | 'dark' | 'system';
+export type ThemePreference = "light" | "dark" | "system";
 
 /**
  * Chat configuration
@@ -122,7 +122,7 @@ export interface DesktopConfig {
  * Partial desktop configuration (for updates)
  */
 export type PartialDesktopConfig = Partial<
-  Omit<DesktopConfig, 'chat' | 'gateway'>
+  Omit<DesktopConfig, "chat" | "gateway">
 > & {
   chat?: Partial<ChatConfig>;
   gateway?: Partial<GatewayConfigSubset>;
@@ -133,11 +133,11 @@ export type PartialDesktopConfig = Partial<
 // ============================================================================
 
 export const DEFAULT_GATEWAY_PROFILE: GatewayProfile = {
-  id: 'default',
-  name: 'Default Gateway',
-  gatewayUrl: 'http://localhost:18789',
+  id: "default",
+  name: "Default Gateway",
+  gatewayUrl: "http://localhost:18789",
   gatewayPort: 18789,
-  gatewayToken: '',
+  gatewayToken: "",
 };
 
 /**
@@ -168,8 +168,8 @@ export const DEFAULT_DESKTOP_CONFIG: DesktopConfig = {
   gatewayProfiles: [DEFAULT_GATEWAY_PROFILE],
   activeGatewayProfileId: DEFAULT_GATEWAY_PROFILE.id,
   autoStartGateway: true,
-  theme: 'system',
-  defaultModel: 'claude-sonnet-4-5',
+  theme: "system",
+  defaultModel: "claude-sonnet-4-5",
   chat: DEFAULT_CHAT_CONFIG,
   gateway: DEFAULT_GATEWAY_CONFIG_SUBSET,
 };
@@ -182,22 +182,22 @@ export const DEFAULT_DESKTOP_CONFIG: DesktopConfig = {
  * Validate theme preference
  */
 export function isValidTheme(value: unknown): value is ThemePreference {
-  return value === 'light' || value === 'dark' || value === 'system';
+  return value === "light" || value === "dark" || value === "system";
 }
 
 /**
  * Validate chat config
  */
 export function isValidChatConfig(value: unknown): value is ChatConfig {
-  if (!value || typeof value !== 'object') return false;
+  if (!value || typeof value !== "object") return false;
 
   const c = value as Record<string, unknown>;
   return (
-    typeof c.enableStreaming === 'boolean' &&
-    typeof c.temperature === 'number' &&
+    typeof c.enableStreaming === "boolean" &&
+    typeof c.temperature === "number" &&
     c.temperature >= 0 &&
     c.temperature <= 1 &&
-    typeof c.maxTokens === 'number' &&
+    typeof c.maxTokens === "number" &&
     c.maxTokens > 0
   );
 }
@@ -206,16 +206,16 @@ export function isValidChatConfig(value: unknown): value is ChatConfig {
  * Validate gateway config subset
  */
 export function isValidGatewayConfigSubset(
-  value: unknown
+  value: unknown,
 ): value is GatewayConfigSubset {
-  if (!value || typeof value !== 'object') return false;
+  if (!value || typeof value !== "object") return false;
 
   const c = value as Record<string, unknown>;
   return (
-    typeof c.autoRestart === 'boolean' &&
-    typeof c.maxRestarts === 'number' &&
+    typeof c.autoRestart === "boolean" &&
+    typeof c.maxRestarts === "number" &&
     c.maxRestarts >= 0 &&
-    typeof c.healthCheckInterval === 'number' &&
+    typeof c.healthCheckInterval === "number" &&
     c.healthCheckInterval > 0
   );
 }
@@ -224,20 +224,20 @@ export function isValidGatewayConfigSubset(
  * Validate gateway profile
  */
 export function isValidGatewayProfile(value: unknown): value is GatewayProfile {
-  if (!value || typeof value !== 'object') return false;
+  if (!value || typeof value !== "object") return false;
 
   const c = value as Record<string, unknown>;
   return (
-    typeof c.id === 'string' &&
+    typeof c.id === "string" &&
     c.id.length > 0 &&
-    typeof c.name === 'string' &&
+    typeof c.name === "string" &&
     c.name.length > 0 &&
-    typeof c.gatewayUrl === 'string' &&
+    typeof c.gatewayUrl === "string" &&
     c.gatewayUrl.length > 0 &&
-    typeof c.gatewayPort === 'number' &&
+    typeof c.gatewayPort === "number" &&
     c.gatewayPort > 0 &&
     c.gatewayPort < 65536 &&
-    typeof c.gatewayToken === 'string'
+    typeof c.gatewayToken === "string"
   );
 }
 
@@ -245,47 +245,53 @@ export function isValidGatewayProfile(value: unknown): value is GatewayProfile {
  * Validate desktop config
  */
 export function isValidDesktopConfig(value: unknown): value is DesktopConfig {
-  if (!value || typeof value !== 'object') return false;
+  if (!value || typeof value !== "object") return false;
 
   const c = value as Record<string, unknown>;
   return (
-    typeof c.gatewayPort === 'number' &&
+    typeof c.gatewayPort === "number" &&
     c.gatewayPort > 0 &&
     c.gatewayPort < 65536 &&
-    typeof c.gatewayToken === 'string' &&
-    typeof c.autoStartGateway === 'boolean' &&
+    typeof c.gatewayToken === "string" &&
+    typeof c.autoStartGateway === "boolean" &&
     isValidTheme(c.theme) &&
-    typeof c.defaultModel === 'string' &&
+    typeof c.defaultModel === "string" &&
     c.defaultModel.length > 0 &&
     isValidChatConfig(c.chat) &&
     isValidGatewayConfigSubset(c.gateway) &&
     (c.gatewayProfiles === undefined ||
-      (Array.isArray(c.gatewayProfiles) && c.gatewayProfiles.every(isValidGatewayProfile))) &&
-    (c.activeGatewayProfileId === undefined || typeof c.activeGatewayProfileId === 'string')
+      (Array.isArray(c.gatewayProfiles) &&
+        c.gatewayProfiles.every(isValidGatewayProfile))) &&
+    (c.activeGatewayProfileId === undefined ||
+      typeof c.activeGatewayProfileId === "string")
   );
 }
 
 function sanitizeGatewayProfile(profile: GatewayProfile): GatewayProfile {
   return {
     ...profile,
-    name: profile.name.trim() || 'Unnamed Gateway',
+    name: profile.name.trim() || "Unnamed Gateway",
     gatewayPort: Math.max(1, Math.min(65535, profile.gatewayPort)),
-    gatewayToken: profile.gatewayToken ?? '',
+    gatewayToken: profile.gatewayToken ?? "",
   };
 }
 
-function createLegacyGatewayProfile(config: Pick<DesktopConfig, 'gatewayUrl' | 'gatewayPort' | 'gatewayToken'>): GatewayProfile {
+function createLegacyGatewayProfile(
+  config: Pick<DesktopConfig, "gatewayUrl" | "gatewayPort" | "gatewayToken">,
+): GatewayProfile {
   return sanitizeGatewayProfile({
     id: DEFAULT_GATEWAY_PROFILE.id,
     name: DEFAULT_GATEWAY_PROFILE.name,
     gatewayUrl: config.gatewayUrl || DEFAULT_GATEWAY_PROFILE.gatewayUrl,
     gatewayPort: config.gatewayPort || DEFAULT_GATEWAY_PROFILE.gatewayPort,
-    gatewayToken: config.gatewayToken || '',
+    gatewayToken: config.gatewayToken || "",
   });
 }
 
 export function getActiveGatewayProfile(config: DesktopConfig): GatewayProfile {
-  const match = config.gatewayProfiles.find((profile) => profile.id === config.activeGatewayProfileId);
+  const match = config.gatewayProfiles.find(
+    (profile) => profile.id === config.activeGatewayProfileId,
+  );
   return match ?? config.gatewayProfiles[0] ?? DEFAULT_GATEWAY_PROFILE;
 }
 
@@ -297,7 +303,7 @@ export function getActiveGatewayProfile(config: DesktopConfig): GatewayProfile {
  * Merge partial config with defaults
  */
 export function mergeWithDefaults(
-  partial: PartialDesktopConfig
+  partial: PartialDesktopConfig,
 ): DesktopConfig {
   const merged: DesktopConfig = {
     ...DEFAULT_DESKTOP_CONFIG,
@@ -313,13 +319,17 @@ export function mergeWithDefaults(
   };
 
   const rawProfiles =
-    partial.gatewayProfiles?.filter(isValidGatewayProfile).map(sanitizeGatewayProfile) ?? [];
+    partial.gatewayProfiles
+      ?.filter(isValidGatewayProfile)
+      .map(sanitizeGatewayProfile) ?? [];
 
   const gatewayProfiles =
     rawProfiles.length > 0 ? rawProfiles : [createLegacyGatewayProfile(merged)];
 
   const activeGatewayProfile =
-    gatewayProfiles.find((profile) => profile.id === partial.activeGatewayProfileId) ??
+    gatewayProfiles.find(
+      (profile) => profile.id === partial.activeGatewayProfileId,
+    ) ??
     gatewayProfiles[0] ??
     DEFAULT_GATEWAY_PROFILE;
 
@@ -337,11 +347,15 @@ export function mergeWithDefaults(
  * Sanitize config (ensure all values are within valid ranges)
  */
 export function sanitizeConfig(config: DesktopConfig): DesktopConfig {
-  const sanitizedProfiles = (config.gatewayProfiles.length > 0
-    ? config.gatewayProfiles
-    : [createLegacyGatewayProfile(config)]).map(sanitizeGatewayProfile);
+  const sanitizedProfiles = (
+    config.gatewayProfiles.length > 0
+      ? config.gatewayProfiles
+      : [createLegacyGatewayProfile(config)]
+  ).map(sanitizeGatewayProfile);
   const activeGatewayProfile =
-    sanitizedProfiles.find((profile) => profile.id === config.activeGatewayProfileId) ??
+    sanitizedProfiles.find(
+      (profile) => profile.id === config.activeGatewayProfileId,
+    ) ??
     sanitizedProfiles[0] ??
     DEFAULT_GATEWAY_PROFILE;
 

@@ -44,7 +44,7 @@ function Identicon({ publicKey, size }: { publicKey: string; size: number }) {
             width={cellSize}
             height={cellSize}
             fill={keyColor(publicKey)}
-          />
+          />,
         );
         if (x !== Math.floor(grid / 2)) {
           cells.push(
@@ -55,7 +55,7 @@ function Identicon({ publicKey, size }: { publicKey: string; size: number }) {
               width={cellSize}
               height={cellSize}
               fill={keyColor(publicKey)}
-            />
+            />,
           );
         }
       }
@@ -68,7 +68,11 @@ function Identicon({ publicKey, size }: { publicKey: string; size: number }) {
       height={size}
       viewBox={`0 0 ${size} ${size}`}
       className="rounded-lg"
-      style={{ backgroundColor: keyColor(publicKey).replace(')', ', 0.13)').replace('hsl(', 'hsla(') }}
+      style={{
+        backgroundColor: keyColor(publicKey)
+          .replace(")", ", 0.13)")
+          .replace("hsl(", "hsla("),
+      }}
     >
       {cells}
     </svg>

@@ -8,11 +8,11 @@
  * - Grace period countdown for Cached state
  */
 
-import { useCallback, useEffect, useRef } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { useCallback, useEffect, useRef } from "react";
+import { invoke } from "@tauri-apps/api/core";
 
-import { useSubscriptionStore } from '@/stores/subscriptionStore';
-import type { CheckSubscriptionResponse, SubscriptionState } from '@/types';
+import { useSubscriptionStore } from "@/stores/subscriptionStore";
+import type { CheckSubscriptionResponse, SubscriptionState } from "@/types";
 
 export interface UseSubscriptionOptions {
   /** Auto-check on mount (default: true) */
@@ -54,7 +54,7 @@ export interface UseSubscriptionReturn {
  * Hook for managing subscription state
  */
 export function useSubscription(
-  options: UseSubscriptionOptions = {}
+  options: UseSubscriptionOptions = {},
 ): UseSubscriptionReturn {
   const {
     autoCheck = true,
@@ -84,8 +84,8 @@ export function useSubscription(
 
         // Call Tauri IPC command
         const response = await invoke<CheckSubscriptionResponse>(
-          'check_subscription',
-          { forceRefresh }
+          "check_subscription",
+          { forceRefresh },
         );
 
         // Update store with response
@@ -97,7 +97,7 @@ export function useSubscription(
           pollingTimerRef.current = null;
         }
 
-        if (response.state === 'Cached') {
+        if (response.state === "Cached") {
           pollingTimerRef.current = setInterval(() => {
             check(false).catch(console.error);
           }, pollingInterval);
@@ -113,7 +113,7 @@ export function useSubscription(
           // Schedule retry
           const retryDelay = Math.min(
             30000 * Math.pow(2, store.retryCount),
-            1800000 // max 30 min
+            1800000, // max 30 min
           );
 
           if (retryTimerRef.current !== null) {
@@ -131,12 +131,7 @@ export function useSubscription(
         store.setLoading(false);
       }
     },
-    [
-      store,
-      pollingInterval,
-      autoRetry,
-      maxRetries,
-    ]
+    [store, pollingInterval, autoRetry, maxRetries],
   );
 
   /**
@@ -190,15 +185,15 @@ export function useSubscription(
    * Monitor grace period and transition to GraceExceeded
    */
   useEffect(() => {
-    if (store.state !== 'Cached' || !store.graceExpiresAt) return;
+    if (store.state !== "Cached" || !store.graceExpiresAt) return;
 
     const checkGracePeriod = () => {
       const remaining = store.getGracePeriodRemaining();
       if (remaining !== null && remaining <= 0) {
         // Grace period expired, force transition to GraceExceeded
         store.setSubscription({
-          type: 'CheckSubscriptionResponse',
-          state: 'GraceExceeded',
+          type: "CheckSubscriptionResponse",
+          state: "GraceExceeded",
           cachedProof: true,
           txid: store.txid ?? undefined,
           vout: store.vout ?? undefined,
@@ -254,50 +249,50 @@ export function useSubscriptionStatus() {
     const { state, gracePeriodRemaining } = subscription;
 
     switch (state) {
-      case 'Active':
+      case "Active":
         return {
-          label: 'Active',
-          variant: 'success' as const,
-          description: 'Subscription verified and operational',
+          label: "Active",
+          variant: "success" as const,
+          description: "Subscription verified and operational",
         };
 
-      case 'Cached': {
+      case "Cached": {
         const hoursRemaining = gracePeriodRemaining
           ? Math.ceil(gracePeriodRemaining / (1000 * 60 * 60))
           : 0;
         return {
-          label: 'Cached',
-          variant: 'warning' as const,
+          label: "Cached",
+          variant: "warning" as const,
           description: `Operating from cache (${hoursRemaining}h grace remaining)`,
         };
       }
 
-      case 'Expired':
+      case "Expired":
         return {
-          label: 'Expired',
-          variant: 'destructive' as const,
-          description: 'Subscription has ended. Renew to continue.',
+          label: "Expired",
+          variant: "destructive" as const,
+          description: "Subscription has ended. Renew to continue.",
         };
 
-      case 'GraceExceeded':
+      case "GraceExceeded":
         return {
-          label: 'Limited',
-          variant: 'secondary' as const,
-          description: 'Local-only mode. Connect to internet to verify.',
+          label: "Limited",
+          variant: "secondary" as const,
+          description: "Local-only mode. Connect to internet to verify.",
         };
 
-      case 'NotFound':
+      case "NotFound":
         return {
-          label: 'No Subscription',
-          variant: 'outline' as const,
-          description: 'Subscribe to unlock full features',
+          label: "No Subscription",
+          variant: "outline" as const,
+          description: "Subscribe to unlock full features",
         };
 
       default:
         return {
-          label: 'Unknown',
-          variant: 'outline' as const,
-          description: 'Unknown subscription state',
+          label: "Unknown",
+          variant: "outline" as const,
+          description: "Unknown subscription state",
         };
     }
   }, [subscription]);

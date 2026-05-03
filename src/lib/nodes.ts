@@ -1,4 +1,8 @@
-import { callGatewayMethod, signGatewayParams, type GatewayTarget } from "@/lib/gateway-context";
+import {
+  callGatewayMethod,
+  signGatewayParams,
+  type GatewayTarget,
+} from "@/lib/gateway-context";
 
 export { buildGatewayTarget } from "@/lib/gateway-context";
 
@@ -76,9 +80,15 @@ function resolveWsCall(
     case "pending":
       return { method: "node.pair.list", params: {} };
     case "approve":
-      return { method: "node.pair.approve", params: { requestId: params.requestId as string } };
+      return {
+        method: "node.pair.approve",
+        params: { requestId: params.requestId as string },
+      };
     case "reject":
-      return { method: "node.pair.reject", params: { requestId: params.requestId as string } };
+      return {
+        method: "node.pair.reject",
+        params: { requestId: params.requestId as string },
+      };
     case "notify":
       return {
         method: "node.invoke",
@@ -147,8 +157,13 @@ export async function invokeNodesTool(
   timeoutMs = 15000,
 ): Promise<unknown> {
   const { method, params: wsParams } = resolveWsCall(action, params);
-  const signedParams = method === "node.invoke"
-    ? await signGatewayParams(wsParams)
-    : wsParams;
-  return callGatewayMethod(target, method, signedParams, timeoutMs, `Timed out invoking ${method}`);
+  const signedParams =
+    method === "node.invoke" ? await signGatewayParams(wsParams) : wsParams;
+  return callGatewayMethod(
+    target,
+    method,
+    signedParams,
+    timeoutMs,
+    `Timed out invoking ${method}`,
+  );
 }

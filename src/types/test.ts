@@ -61,7 +61,7 @@ export type {
   TestEnvironment,
   TestEnvironmentBuilder,
   TestUtilities,
-} from './test-fixtures';
+} from "./test-fixtures";
 
 // ============================================================================
 // Re-export Test Data
@@ -95,7 +95,7 @@ export {
 
   // Type Exports
   type TestData,
-} from './test-data';
+} from "./test-data";
 
 // ============================================================================
 // Utility Type Guards
@@ -104,46 +104,52 @@ export {
 /**
  * Type guard for BRC-42 test vectors
  */
-export function isBRC42TestVector(obj: unknown): obj is import('./test-fixtures').BRC42TestVector {
-  if (typeof obj !== 'object' || obj === null) return false;
+export function isBRC42TestVector(
+  obj: unknown,
+): obj is import("./test-fixtures").BRC42TestVector {
+  if (typeof obj !== "object" || obj === null) return false;
   const vec = obj as Record<string, unknown>;
   return (
-    typeof vec.id === 'string' &&
-    typeof vec.description === 'string' &&
-    typeof vec.senderPrivateKey === 'string' &&
-    typeof vec.recipientPrivateKey === 'string' &&
-    typeof vec.invoiceNumber === 'string' &&
-    typeof vec.expectedPublicKey === 'string' &&
-    typeof vec.expectedPrivateKey === 'string'
+    typeof vec.id === "string" &&
+    typeof vec.description === "string" &&
+    typeof vec.senderPrivateKey === "string" &&
+    typeof vec.recipientPrivateKey === "string" &&
+    typeof vec.invoiceNumber === "string" &&
+    typeof vec.expectedPublicKey === "string" &&
+    typeof vec.expectedPrivateKey === "string"
   );
 }
 
 /**
  * Type guard for signing test vectors
  */
-export function isSigningTestVector(obj: unknown): obj is import('./test-fixtures').SigningTestVector {
-  if (typeof obj !== 'object' || obj === null) return false;
+export function isSigningTestVector(
+  obj: unknown,
+): obj is import("./test-fixtures").SigningTestVector {
+  if (typeof obj !== "object" || obj === null) return false;
   const vec = obj as Record<string, unknown>;
   return (
-    typeof vec.id === 'string' &&
-    typeof vec.description === 'string' &&
-    typeof vec.privateKey === 'string' &&
-    typeof vec.message === 'string' &&
-    typeof vec.shouldVerify === 'boolean'
+    typeof vec.id === "string" &&
+    typeof vec.description === "string" &&
+    typeof vec.privateKey === "string" &&
+    typeof vec.message === "string" &&
+    typeof vec.shouldVerify === "boolean"
   );
 }
 
 /**
  * Type guard for audit log entries
  */
-export function isAuditLogEntry(obj: unknown): obj is import('./test-fixtures').AuditLogTestEntry {
-  if (typeof obj !== 'object' || obj === null) return false;
+export function isAuditLogEntry(
+  obj: unknown,
+): obj is import("./test-fixtures").AuditLogTestEntry {
+  if (typeof obj !== "object" || obj === null) return false;
   const entry = obj as Record<string, unknown>;
   return (
-    typeof entry.timestamp === 'string' &&
-    typeof entry.level === 'string' &&
-    ['info', 'warn', 'error'].includes(entry.level as string) &&
-    typeof entry.event === 'string'
+    typeof entry.timestamp === "string" &&
+    typeof entry.level === "string" &&
+    ["info", "warn", "error"].includes(entry.level as string) &&
+    typeof entry.event === "string"
   );
 }
 
@@ -156,13 +162,14 @@ export function isAuditLogEntry(obj: unknown): obj is import('./test-fixtures').
  */
 export const TEST_PUBLIC_KEYS = {
   /** All zeros (compressed) */
-  zero: '02' + '00'.repeat(32),
+  zero: "02" + "00".repeat(32),
   /** All ones (compressed) */
-  one: '02' + '01'.repeat(32),
+  one: "02" + "01".repeat(32),
   /** All max values (compressed) */
-  max: '02' + 'ff'.repeat(32),
+  max: "02" + "ff".repeat(32),
   /** Generator point (secp256k1) */
-  generator: '0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
+  generator:
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
 } as const;
 
 /**
@@ -170,21 +177,21 @@ export const TEST_PUBLIC_KEYS = {
  */
 export const TEST_PRIVATE_KEYS = {
   /** Minimal valid private key */
-  one: '0000000000000000000000000000000000000000000000000000000000000001',
+  one: "0000000000000000000000000000000000000000000000000000000000000001",
   /** Another minimal private key */
-  two: '0000000000000000000000000000000000000000000000000000000000000002',
+  two: "0000000000000000000000000000000000000000000000000000000000000002",
   /** Mid-range value */
-  mid: '8000000000000000000000000000000000000000000000000000000000000000',
+  mid: "8000000000000000000000000000000000000000000000000000000000000000",
 } as const;
 
 /**
  * Common test invoice numbers
  */
 export const TEST_INVOICE_NUMBERS = {
-  basic: 'test-invoice-001',
-  withUnicode: 'invoice-测试-🔑',
-  long: 'x'.repeat(100),
-  alphanumeric: 'ABC123XYZ789',
+  basic: "test-invoice-001",
+  withUnicode: "invoice-测试-🔑",
+  long: "x".repeat(100),
+  alphanumeric: "ABC123XYZ789",
 } as const;
 
 /**
@@ -228,7 +235,7 @@ export interface TestSuiteConfig {
   /** Whether to fail fast on first error */
   failFast: boolean;
   /** Verbosity level */
-  verbose: 'quiet' | 'normal' | 'verbose';
+  verbose: "quiet" | "normal" | "verbose";
 }
 
 /**
@@ -268,7 +275,7 @@ export interface TestResultSummary {
   /** Individual results */
   results: Array<{
     id: string;
-    status: 'pass' | 'fail' | 'skip';
+    status: "pass" | "fail" | "skip";
     duration: number;
     error?: string;
   }>;
@@ -282,12 +289,12 @@ export interface TestResultSummary {
  * Default test suite configuration
  */
 export const DEFAULT_TEST_CONFIG: TestSuiteConfig = {
-  name: 'Phase 1 Test Suite',
+  name: "Phase 1 Test Suite",
   runIntegration: true,
   runUnit: true,
   timeout: 30000,
   failFast: false,
-  verbose: 'normal',
+  verbose: "normal",
 } as const;
 
 /**

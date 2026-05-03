@@ -10,17 +10,17 @@
  *   await play(audioPath, outputFormat);
  */
 
-import { useState, useCallback, useRef } from 'react';
-import { readFile } from '@tauri-apps/plugin-fs';
+import { useState, useCallback, useRef } from "react";
+import { readFile } from "@tauri-apps/plugin-fs";
 
 export interface UseAudioPlaybackOpts {
   gatewayUrl?: string;
-  gatewayKind?: 'local' | 'docker' | 'remote';
+  gatewayKind?: "local" | "docker" | "remote";
   onError?: (err: Error) => void;
 }
 
 export function useAudioPlayback({
-  gatewayKind = 'local',
+  gatewayKind = "local",
   onError,
 }: UseAudioPlaybackOpts = {}) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -30,7 +30,7 @@ export function useAudioPlayback({
   const cleanup = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
-      audioRef.current.removeAttribute('src');
+      audioRef.current.removeAttribute("src");
       audioRef.current = null;
     }
     if (objectUrlRef.current) {
@@ -47,7 +47,7 @@ export function useAudioPlayback({
       try {
         let objectUrl: string;
 
-        if (gatewayKind === 'local') {
+        if (gatewayKind === "local") {
           // Read file directly via Tauri fs plugin
           const bytes = await readFile(audioPath);
           const mimeType = resolveMimeType(outputFormat, audioPath);
@@ -69,7 +69,7 @@ export function useAudioPlayback({
         audio.onplay = () => setIsPlaying(true);
         audio.onended = () => cleanup();
         audio.onerror = () => {
-          const err = new Error('Audio playback failed');
+          const err = new Error("Audio playback failed");
           onError?.(err);
           cleanup();
         };
@@ -94,21 +94,21 @@ export function useAudioPlayback({
 function resolveMimeType(outputFormat?: string, path?: string): string {
   if (outputFormat) {
     const map: Record<string, string> = {
-      mp3: 'audio/mpeg',
-      opus: 'audio/opus',
-      aac: 'audio/aac',
-      flac: 'audio/flac',
-      wav: 'audio/wav',
-      ogg: 'audio/ogg',
-      pcm: 'audio/pcm',
+      mp3: "audio/mpeg",
+      opus: "audio/opus",
+      aac: "audio/aac",
+      flac: "audio/flac",
+      wav: "audio/wav",
+      ogg: "audio/ogg",
+      pcm: "audio/pcm",
     };
     if (map[outputFormat]) return map[outputFormat];
   }
   if (path) {
-    const ext = path.split('.').pop()?.toLowerCase();
-    if (ext === 'mp3') return 'audio/mpeg';
-    if (ext === 'wav') return 'audio/wav';
-    if (ext === 'opus' || ext === 'ogg') return 'audio/ogg';
+    const ext = path.split(".").pop()?.toLowerCase();
+    if (ext === "mp3") return "audio/mpeg";
+    if (ext === "wav") return "audio/wav";
+    if (ext === "opus" || ext === "ogg") return "audio/ogg";
   }
-  return 'audio/mpeg';
+  return "audio/mpeg";
 }

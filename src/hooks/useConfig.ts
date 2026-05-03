@@ -5,11 +5,15 @@
  * Wraps lib/config.ts with React state management.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
-import type { DesktopConfig, PartialDesktopConfig, GatewayProfile } from '@/types';
-import { DEFAULT_DESKTOP_CONFIG, getActiveGatewayProfile } from '@/types';
-import { readConfig, updateConfig, resetConfig } from '@/lib/config';
+import type {
+  DesktopConfig,
+  PartialDesktopConfig,
+  GatewayProfile,
+} from "@/types";
+import { DEFAULT_DESKTOP_CONFIG, getActiveGatewayProfile } from "@/types";
+import { readConfig, updateConfig, resetConfig } from "@/lib/config";
 // import { useDebouncedCallback } from '@/lib/debounce';
 
 // ============================================================================
@@ -43,7 +47,7 @@ interface UseConfigReturn {
 
   /** Create or update a gateway profile */
   saveGatewayProfile: (
-    profile: Omit<GatewayProfile, 'id'> & { id?: string }
+    profile: Omit<GatewayProfile, "id"> & { id?: string },
   ) => Promise<GatewayProfile>;
 
   /** Delete a non-default gateway profile */
@@ -98,9 +102,10 @@ export function useConfig(): UseConfigReturn {
         }
       } catch (err) {
         if (mounted) {
-          const message = err instanceof Error ? err.message : 'Failed to load configuration';
+          const message =
+            err instanceof Error ? err.message : "Failed to load configuration";
           setError(message);
-          console.error('Failed to load config:', err);
+          console.error("Failed to load config:", err);
         }
       } finally {
         if (mounted) {
@@ -123,9 +128,10 @@ export function useConfig(): UseConfigReturn {
       const updated = await updateConfig(updates);
       setConfig(updated);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update configuration';
+      const message =
+        err instanceof Error ? err.message : "Failed to update configuration";
       setError(message);
-      console.error('Failed to update config:', err);
+      console.error("Failed to update config:", err);
       throw err;
     }
   }, []);
@@ -137,9 +143,10 @@ export function useConfig(): UseConfigReturn {
       const defaultConfig = await resetConfig();
       setConfig(defaultConfig);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to reset configuration';
+      const message =
+        err instanceof Error ? err.message : "Failed to reset configuration";
       setError(message);
-      console.error('Failed to reset config:', err);
+      console.error("Failed to reset config:", err);
       throw err;
     }
   }, []);
@@ -152,62 +159,73 @@ export function useConfig(): UseConfigReturn {
       const loaded = await readConfig();
       setConfig(loaded);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to reload configuration';
+      const message =
+        err instanceof Error ? err.message : "Failed to reload configuration";
       setError(message);
-      console.error('Failed to reload config:', err);
+      console.error("Failed to reload config:", err);
       throw err;
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const saveGatewayProfile = useCallback(async (
-    profile: Omit<GatewayProfile, 'id'> & { id?: string }
-  ) => {
-    const slug =
-      profile.name
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '') || `gateway-${Date.now().toString(36)}`;
-    const nextId =
-      profile.id ?? slug;
+  const saveGatewayProfile = useCallback(
+    async (profile: Omit<GatewayProfile, "id"> & { id?: string }) => {
+      const slug =
+        profile.name
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "") || `gateway-${Date.now().toString(36)}`;
+      const nextId = profile.id ?? slug;
 
-    const nextProfile: GatewayProfile = {
-      id: nextId,
-      name: profile.name.trim() || 'Unnamed Gateway',
-      gatewayUrl: profile.gatewayUrl,
-      gatewayPort: profile.gatewayPort,
-      gatewayToken: profile.gatewayToken,
-    };
+      const nextProfile: GatewayProfile = {
+        id: nextId,
+        name: profile.name.trim() || "Unnamed Gateway",
+        gatewayUrl: profile.gatewayUrl,
+        gatewayPort: profile.gatewayPort,
+        gatewayToken: profile.gatewayToken,
+      };
 
-    const nextProfiles = [
-      ...config.gatewayProfiles.filter((existing) => existing.id !== nextId),
-      nextProfile,
-    ];
+      const nextProfiles = [
+        ...config.gatewayProfiles.filter((existing) => existing.id !== nextId),
+        nextProfile,
+      ];
 
-    const updated = await updateConfig({
-      activeGatewayProfileId: nextProfile.id,
-      gatewayProfiles: nextProfiles,
-    });
-    setConfig(updated);
-    return getActiveGatewayProfile(updated);
-  }, [config.gatewayProfiles]);
+      const updated = await updateConfig({
+        activeGatewayProfileId: nextProfile.id,
+        gatewayProfiles: nextProfiles,
+      });
+      setConfig(updated);
+      return getActiveGatewayProfile(updated);
+    },
+    [config.gatewayProfiles],
+  );
 
-  const deleteGatewayProfile = useCallback(async (profileId: string) => {
-    const remainingProfiles = config.gatewayProfiles.filter((profile) => profile.id !== profileId);
-    const fallbackProfileId =
-      remainingProfiles.find((profile) => profile.id === DEFAULT_DESKTOP_CONFIG.activeGatewayProfileId)?.id ??
-      remainingProfiles[0]?.id ??
-      DEFAULT_DESKTOP_CONFIG.activeGatewayProfileId;
+  const deleteGatewayProfile = useCallback(
+    async (profileId: string) => {
+      const remainingProfiles = config.gatewayProfiles.filter(
+        (profile) => profile.id !== profileId,
+      );
+      const fallbackProfileId =
+        remainingProfiles.find(
+          (profile) =>
+            profile.id === DEFAULT_DESKTOP_CONFIG.activeGatewayProfileId,
+        )?.id ??
+        remainingProfiles[0]?.id ??
+        DEFAULT_DESKTOP_CONFIG.activeGatewayProfileId;
 
-    const updated = await updateConfig({
-      activeGatewayProfileId:
-        config.activeGatewayProfileId === profileId ? fallbackProfileId : config.activeGatewayProfileId,
-      gatewayProfiles: remainingProfiles,
-    });
-    setConfig(updated);
-  }, [config.activeGatewayProfileId, config.gatewayProfiles]);
+      const updated = await updateConfig({
+        activeGatewayProfileId:
+          config.activeGatewayProfileId === profileId
+            ? fallbackProfileId
+            : config.activeGatewayProfileId,
+        gatewayProfiles: remainingProfiles,
+      });
+      setConfig(updated);
+    },
+    [config.activeGatewayProfileId, config.gatewayProfiles],
+  );
 
   const setActiveGatewayProfile = useCallback(async (profileId: string) => {
     const updated = await updateConfig({ activeGatewayProfileId: profileId });
@@ -240,10 +258,10 @@ export function useTheme() {
   const { config, update } = useConfig();
 
   const setTheme = useCallback(
-    async (theme: DesktopConfig['theme']) => {
+    async (theme: DesktopConfig["theme"]) => {
       await update({ theme });
     },
-    [update]
+    [update],
   );
 
   return {
@@ -259,10 +277,10 @@ export function useChatConfig() {
   const { config, update } = useConfig();
 
   const updateChatConfig = useCallback(
-    async (chatUpdates: Partial<DesktopConfig['chat']>) => {
+    async (chatUpdates: Partial<DesktopConfig["chat"]>) => {
       await update({ chat: chatUpdates });
     },
-    [update]
+    [update],
   );
 
   return {
@@ -278,10 +296,10 @@ export function useGatewayConfig() {
   const { config, update } = useConfig();
 
   const updateGatewayConfig = useCallback(
-    async (gatewayUpdates: Partial<DesktopConfig['gateway']>) => {
+    async (gatewayUpdates: Partial<DesktopConfig["gateway"]>) => {
       await update({ gateway: gatewayUpdates });
     },
-    [update]
+    [update],
   );
 
   return {

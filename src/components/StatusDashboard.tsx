@@ -4,7 +4,7 @@
  * Calls gateway health, status, channels.status, and usage.status methods.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import {
   Activity,
   Radio,
@@ -13,16 +13,16 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   callGatewayMethod,
   resolveToken,
   inferGatewayKind,
   type GatewayTarget,
-} from '@/lib/gateway-context';
-import { readConfig } from '@/lib/config';
+} from "@/lib/gateway-context";
+import { readConfig } from "@/lib/config";
 
 interface DashboardData {
   health: Record<string, unknown> | null;
@@ -31,7 +31,6 @@ interface DashboardData {
   usage: Record<string, unknown> | null;
 }
 
-
 export function StatusDashboard() {
   const [data, setData] = useState<DashboardData>({
     health: null,
@@ -39,7 +38,9 @@ export function StatusDashboard() {
     channels: null,
     usage: null,
   });
-  const [sectionErrors, setSectionErrors] = useState<Record<keyof DashboardData, string | null>>({
+  const [sectionErrors, setSectionErrors] = useState<
+    Record<keyof DashboardData, string | null>
+  >({
     health: null,
     status: null,
     channels: null,
@@ -51,7 +52,7 @@ export function StatusDashboard() {
 
   const buildTarget = useCallback(async (): Promise<GatewayTarget> => {
     const cfg = await readConfig();
-    const url = cfg.gatewayUrl || 'http://localhost:18789';
+    const url = cfg.gatewayUrl || "http://localhost:18789";
     const token = cfg.gatewayToken || (await resolveToken());
     return { url, token: token || undefined, kind: inferGatewayKind(url) };
   }, []);
@@ -62,31 +63,70 @@ export function StatusDashboard() {
     try {
       const target = await buildTarget();
       const call = (method: string, params: Record<string, unknown> = {}) =>
-        callGatewayMethod(target, method, params, 15_000, `${method} timed out`) as Promise<Record<string, unknown>>;
+        callGatewayMethod(
+          target,
+          method,
+          params,
+          15_000,
+          `${method} timed out`,
+        ) as Promise<Record<string, unknown>>;
 
       const [health, status, channels, usage] = await Promise.allSettled([
-        call('health', { probe: true }),
-        call('status'),
-        call('channels.status'),
-        call('usage.status'),
+        call("health", { probe: true }),
+        call("status"),
+        call("channels.status"),
+        call("usage.status"),
       ]);
 
       setData({
-        health: health.status === 'fulfilled' ? health.value : null,
-        status: status.status === 'fulfilled' ? status.value : null,
-        channels: channels.status === 'fulfilled' ? channels.value : null,
-        usage: usage.status === 'fulfilled' ? usage.value : null,
+        health: health.status === "fulfilled" ? health.value : null,
+        status: status.status === "fulfilled" ? status.value : null,
+        channels: channels.status === "fulfilled" ? channels.value : null,
+        usage: usage.status === "fulfilled" ? usage.value : null,
       });
       setSectionErrors({
-        health: health.status === 'rejected' ? String(health.reason instanceof Error ? health.reason.message : health.reason) : null,
-        status: status.status === 'rejected' ? String(status.reason instanceof Error ? status.reason.message : status.reason) : null,
-        channels: channels.status === 'rejected' ? String(channels.reason instanceof Error ? channels.reason.message : channels.reason) : null,
-        usage: usage.status === 'rejected' ? String(usage.reason instanceof Error ? usage.reason.message : usage.reason) : null,
+        health:
+          health.status === "rejected"
+            ? String(
+                health.reason instanceof Error
+                  ? health.reason.message
+                  : health.reason,
+              )
+            : null,
+        status:
+          status.status === "rejected"
+            ? String(
+                status.reason instanceof Error
+                  ? status.reason.message
+                  : status.reason,
+              )
+            : null,
+        channels:
+          channels.status === "rejected"
+            ? String(
+                channels.reason instanceof Error
+                  ? channels.reason.message
+                  : channels.reason,
+              )
+            : null,
+        usage:
+          usage.status === "rejected"
+            ? String(
+                usage.reason instanceof Error
+                  ? usage.reason.message
+                  : usage.reason,
+              )
+            : null,
       });
       setLastRefresh(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
-      setSectionErrors({ health: null, status: null, channels: null, usage: null });
+      setSectionErrors({
+        health: null,
+        status: null,
+        channels: null,
+        usage: null,
+      });
     } finally {
       setLoading(false);
     }
@@ -111,8 +151,15 @@ export function StatusDashboard() {
               Updated {lastRefresh.toLocaleTimeString()}
             </span>
           )}
-          <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refresh}
+            disabled={loading}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
         </div>
@@ -136,12 +183,16 @@ export function StatusDashboard() {
           <CardContent>
             {data.health ? (
               <div className="space-y-2 text-sm">
-                {Object.entries(data.health).slice(0, 8).map(([key, value]) => (
-                  <div key={key} className="flex justify-between">
-                    <span className="text-muted-foreground">{key}</span>
-                    <span className="font-mono text-xs">{formatValue(value)}</span>
-                  </div>
-                ))}
+                {Object.entries(data.health)
+                  .slice(0, 8)
+                  .map(([key, value]) => (
+                    <div key={key} className="flex justify-between">
+                      <span className="text-muted-foreground">{key}</span>
+                      <span className="font-mono text-xs">
+                        {formatValue(value)}
+                      </span>
+                    </div>
+                  ))}
               </div>
             ) : (
               <SectionFallback label="Health" error={sectionErrors.health} />
@@ -159,11 +210,12 @@ export function StatusDashboard() {
           </CardHeader>
           <CardContent>
             {data.channels ? (
-              <div className="space-y-2">
-                {renderChannels(data.channels)}
-              </div>
+              <div className="space-y-2">{renderChannels(data.channels)}</div>
             ) : (
-              <SectionFallback label="Channels" error={sectionErrors.channels} />
+              <SectionFallback
+                label="Channels"
+                error={sectionErrors.channels}
+              />
             )}
           </CardContent>
         </Card>
@@ -179,12 +231,16 @@ export function StatusDashboard() {
           <CardContent>
             {data.usage ? (
               <div className="space-y-2 text-sm">
-                {Object.entries(data.usage).slice(0, 8).map(([key, value]) => (
-                  <div key={key} className="flex justify-between">
-                    <span className="text-muted-foreground">{key}</span>
-                    <span className="font-mono text-xs">{formatValue(value)}</span>
-                  </div>
-                ))}
+                {Object.entries(data.usage)
+                  .slice(0, 8)
+                  .map(([key, value]) => (
+                    <div key={key} className="flex justify-between">
+                      <span className="text-muted-foreground">{key}</span>
+                      <span className="font-mono text-xs">
+                        {formatValue(value)}
+                      </span>
+                    </div>
+                  ))}
               </div>
             ) : (
               <SectionFallback label="Usage" error={sectionErrors.usage} />
@@ -211,28 +267,33 @@ export function StatusDashboard() {
 }
 
 function formatValue(value: unknown): string {
-  if (value === null || value === undefined) return '-';
-  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-  if (typeof value === 'number') return value.toLocaleString();
-  if (typeof value === 'string') return value;
+  if (value === null || value === undefined) return "-";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "number") return value.toLocaleString();
+  if (typeof value === "string") return value;
   return JSON.stringify(value);
 }
 
 function renderChannels(channels: Record<string, unknown>) {
   const channelOrder = channels.channelOrder as string[] | undefined;
-  const channelLabels = channels.channelLabels as Record<string, string> | undefined;
+  const channelLabels = channels.channelLabels as
+    | Record<string, string>
+    | undefined;
   const channelData = channels.channels as Record<string, unknown> | undefined;
 
   if (!channelOrder || channelOrder.length === 0) {
-    return <p className="text-sm text-muted-foreground">No channels configured</p>;
+    return (
+      <p className="text-sm text-muted-foreground">No channels configured</p>
+    );
   }
 
   return channelOrder.map((ch) => {
     const label = channelLabels?.[ch] ?? ch;
     const info = (channelData?.[ch] ?? {}) as Record<string, unknown>;
     const status = info.status as string | undefined;
-    const isOk = status === 'ok' || status === 'connected' || status === 'running';
-    const isWarn = status === 'degraded' || status === 'reconnecting';
+    const isOk =
+      status === "ok" || status === "connected" || status === "running";
+    const isWarn = status === "degraded" || status === "reconnecting";
 
     return (
       <div key={ch} className="flex items-center justify-between text-sm">
@@ -246,14 +307,21 @@ function renderChannels(channels: Record<string, unknown>) {
           )}
           {label}
         </span>
-        <span className="text-xs text-muted-foreground">{status ?? 'unknown'}</span>
+        <span className="text-xs text-muted-foreground">
+          {status ?? "unknown"}
+        </span>
       </div>
     );
   });
 }
 
-
-function SectionFallback({ label, error }: { label: string; error: string | null }) {
+function SectionFallback({
+  label,
+  error,
+}: {
+  label: string;
+  error: string | null;
+}) {
   if (error) {
     return (
       <div className="space-y-1">
@@ -262,5 +330,7 @@ function SectionFallback({ label, error }: { label: string; error: string | null
       </div>
     );
   }
-  return <p className="text-sm text-muted-foreground">No data available yet.</p>;
+  return (
+    <p className="text-sm text-muted-foreground">No data available yet.</p>
+  );
 }

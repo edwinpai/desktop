@@ -8,7 +8,10 @@ import { Card } from "@/components/ui/card";
 import { RefreshCw, Save, CheckCircle, AlertCircle } from "lucide-react";
 
 interface ConfigEditorProps {
-  request?: (method: string, params: Record<string, unknown>) => Promise<unknown>;
+  request?: (
+    method: string,
+    params: Record<string, unknown>,
+  ) => Promise<unknown>;
 }
 
 interface ConfigData {
@@ -106,14 +109,20 @@ export function ConfigEditor({ request }: ConfigEditorProps) {
   const [jsonText, setJsonText] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [status, setStatus] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const loadConfig = useCallback(async () => {
     setLoading(true);
     setStatus(null);
     try {
       if (request) {
-        const result = (await request("getConfig", {})) as Record<string, unknown>;
+        const result = (await request("getConfig", {})) as Record<
+          string,
+          unknown
+        >;
         const merged = { ...DEFAULT_CONFIG, ...result } as ConfigData;
         setConfig(merged);
         setJsonText(JSON.stringify(merged, null, 2));
@@ -159,9 +168,10 @@ export function ConfigEditor({ request }: ConfigEditorProps) {
     } catch (err) {
       setStatus({
         type: "error",
-        message: err instanceof SyntaxError
-          ? `Invalid JSON: ${err.message}`
-          : `Failed to save: ${err instanceof Error ? err.message : String(err)}`,
+        message:
+          err instanceof SyntaxError
+            ? `Invalid JSON: ${err.message}`
+            : `Failed to save: ${err instanceof Error ? err.message : String(err)}`,
       });
     } finally {
       setSaving(false);
@@ -198,7 +208,9 @@ export function ConfigEditor({ request }: ConfigEditorProps) {
           </p>
         </div>
         <Button variant="outline" onClick={loadConfig} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-1.5 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`h-4 w-4 mr-1.5 ${loading ? "animate-spin" : ""}`}
+          />
           Reload
         </Button>
       </div>
@@ -253,12 +265,18 @@ export function ConfigEditor({ request }: ConfigEditorProps) {
                       }}
                     />
                     {field.help && (
-                      <p className="text-xs text-muted-foreground">{field.help}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {field.help}
+                      </p>
                     )}
                   </div>
                 ))}
 
-                <Button onClick={handleFormSave} disabled={saving} className="w-full mt-2">
+                <Button
+                  onClick={handleFormSave}
+                  disabled={saving}
+                  className="w-full mt-2"
+                >
                   <Save className="h-4 w-4 mr-2" />
                   {saving ? "Saving..." : "Save Changes"}
                 </Button>
@@ -275,7 +293,11 @@ export function ConfigEditor({ request }: ConfigEditorProps) {
                 className="font-mono text-sm min-h-[320px]"
                 spellCheck={false}
               />
-              <Button onClick={handleJsonSave} disabled={saving} className="w-full">
+              <Button
+                onClick={handleJsonSave}
+                disabled={saving}
+                className="w-full"
+              >
                 <Save className="h-4 w-4 mr-2" />
                 {saving ? "Saving..." : "Save JSON"}
               </Button>

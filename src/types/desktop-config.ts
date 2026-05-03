@@ -9,7 +9,7 @@
  * - Added `lastClientSession` field (reconnection state)
  */
 
-import { APP_VERSION } from '@/lib/app-version';
+import { APP_VERSION } from "@/lib/app-version";
 
 // ============================================================================
 // Core Configuration Types
@@ -18,7 +18,7 @@ import { APP_VERSION } from '@/lib/app-version';
 /**
  * Operating mode (gateway or client)
  */
-export type OperatingMode = 'gateway' | 'client';
+export type OperatingMode = "gateway" | "client";
 
 /**
  * Client session configuration for reconnection
@@ -37,7 +37,7 @@ export interface ClientSessionConfig {
   connectedAt: string;
 
   /** Permission level for this session */
-  permission: 'owner' | 'member' | 'guest';
+  permission: "owner" | "member" | "guest";
 }
 
 /**
@@ -156,13 +156,13 @@ export interface DesktopConfig {
  * Default gateway configuration
  */
 export const DEFAULT_GATEWAY_CONFIG: GatewayConfig = {
-  url: 'http://localhost:18789',
+  url: "http://localhost:18789",
   port: 18789,
   autoStart: true,
   autoRestart: true,
   maxRestarts: 5,
   healthCheckIntervalMs: 30000,
-  logLevel: 'info',
+  logLevel: "info",
 };
 
 /**
@@ -178,7 +178,7 @@ export const DEFAULT_MDNS_CONFIG: MdnsConfig = {
  * Default UI configuration
  */
 export const DEFAULT_UI_CONFIG: UiConfig = {
-  theme: 'system',
+  theme: "system",
   minimizeToTray: true,
   startMinimized: false,
   windowWidth: 1200,
@@ -201,7 +201,7 @@ export const DEFAULT_SUBSCRIPTION_CONFIG: SubscriptionConfig = {
  */
 export const DEFAULT_DESKTOP_CONFIG: DesktopConfig = {
   version: APP_VERSION,
-  mode: 'gateway',
+  mode: "gateway",
   gateway: DEFAULT_GATEWAY_CONFIG,
   mdns: DEFAULT_MDNS_CONFIG,
   ui: DEFAULT_UI_CONFIG,
@@ -217,26 +217,28 @@ export const DEFAULT_DESKTOP_CONFIG: DesktopConfig = {
  * Check if operating mode is valid
  */
 export function isValidOperatingMode(value: unknown): value is OperatingMode {
-  return value === 'gateway' || value === 'client';
+  return value === "gateway" || value === "client";
 }
 
 /**
  * Check if config is in gateway mode
  */
 export function isGatewayMode(config: DesktopConfig): boolean {
-  return config.mode === 'gateway';
+  return config.mode === "gateway";
 }
 
 /**
  * Check if config is in client mode
  */
 export function isClientMode(config: DesktopConfig): boolean {
-  return config.mode === 'client';
+  return config.mode === "client";
 }
 
 /**
  * Check if client session exists
  */
 export function hasClientSession(config: DesktopConfig): boolean {
-  return config.lastClientSession !== null && config.lastClientSession !== undefined;
+  return (
+    config.lastClientSession !== null && config.lastClientSession !== undefined
+  );
 }

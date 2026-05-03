@@ -18,25 +18,25 @@
  * Application routes (without parameters)
  */
 export type AppRoute =
-  | '/welcome'              // Initial setup wizard
-  | '/identity/new'         // Create new identity
-  | '/identity/import'      // Import existing identity
-  | '/subscription/setup'   // Subscription setup
-  | '/subscription/status'  // Subscription details
-  | '/chat'                 // Main chat interface
-  | '/chat/new'            // New conversation
-  | '/settings'            // Settings page
-  | '/settings/identity'   // Identity settings
-  | '/settings/gateway'    // Gateway configuration
-  | '/settings/appearance' // UI preferences
-  | '/settings/advanced'   // Advanced settings
-  | '/about';              // About/version info
+  | "/welcome" // Initial setup wizard
+  | "/identity/new" // Create new identity
+  | "/identity/import" // Import existing identity
+  | "/subscription/setup" // Subscription setup
+  | "/subscription/status" // Subscription details
+  | "/chat" // Main chat interface
+  | "/chat/new" // New conversation
+  | "/settings" // Settings page
+  | "/settings/identity" // Identity settings
+  | "/settings/gateway" // Gateway configuration
+  | "/settings/appearance" // UI preferences
+  | "/settings/advanced" // Advanced settings
+  | "/about"; // About/version info
 
 /**
  * Parameterized routes (with dynamic segments)
  */
 export type ParameterizedRoute =
-  | `/chat/${string}`      // Specific conversation: /chat/:conversationId
+  | `/chat/${string}` // Specific conversation: /chat/:conversationId
   | `/subscription/invoice/${string}`; // Invoice detail: /subscription/invoice/:invoiceId
 
 /**
@@ -74,12 +74,12 @@ export interface NavigationState {
  * Format: edwinpai://[action]/[parameters]
  */
 export type DeepLinkScheme =
-  | 'edwinpai://chat'                    // Open chat
-  | 'edwinpai://chat/new'                // New conversation
-  | 'edwinpai://chat/:conversationId'    // Open specific conversation
-  | 'edwinpai://subscription/setup'      // Start subscription setup
-  | 'edwinpai://settings'                // Open settings
-  | 'edwinpai://settings/:section';      // Open specific settings section
+  | "edwinpai://chat" // Open chat
+  | "edwinpai://chat/new" // New conversation
+  | "edwinpai://chat/:conversationId" // Open specific conversation
+  | "edwinpai://subscription/setup" // Start subscription setup
+  | "edwinpai://settings" // Open settings
+  | "edwinpai://settings/:section"; // Open specific settings section
 
 /**
  * Parse deep link URL into route
@@ -213,9 +213,9 @@ export interface HandleDeepLinkResponse {
  * Navigation event types (for IPC event listeners)
  */
 export type NavigationEvent =
-  | 'navigation:route_changed'
-  | 'navigation:deep_link_received'
-  | 'navigation:guard_blocked';
+  | "navigation:route_changed"
+  | "navigation:deep_link_received"
+  | "navigation:guard_blocked";
 
 /**
  * Route changed event payload
@@ -265,95 +265,95 @@ export interface RouteMetadata {
  * Route metadata map
  */
 export const ROUTE_METADATA: Record<AppRoute, RouteMetadata> = {
-  '/welcome': {
-    title: 'Welcome',
+  "/welcome": {
+    title: "Welcome",
     requiresIdentity: false,
     requiresSubscription: false,
     requiresGateway: false,
     showInBreadcrumbs: false,
   },
-  '/identity/new': {
-    title: 'Create Identity',
+  "/identity/new": {
+    title: "Create Identity",
     requiresIdentity: false,
     requiresSubscription: false,
     requiresGateway: false,
     showInBreadcrumbs: true,
   },
-  '/identity/import': {
-    title: 'Import Identity',
+  "/identity/import": {
+    title: "Import Identity",
     requiresIdentity: false,
     requiresSubscription: false,
     requiresGateway: false,
     showInBreadcrumbs: true,
   },
-  '/subscription/setup': {
-    title: 'Subscription Setup',
+  "/subscription/setup": {
+    title: "Subscription Setup",
     requiresIdentity: true,
     requiresSubscription: false,
     requiresGateway: true,
     showInBreadcrumbs: true,
   },
-  '/subscription/status': {
-    title: 'Subscription Status',
+  "/subscription/status": {
+    title: "Subscription Status",
     requiresIdentity: true,
     requiresSubscription: true,
     requiresGateway: true,
     showInBreadcrumbs: true,
   },
-  '/chat': {
-    title: 'Chat',
+  "/chat": {
+    title: "Chat",
     requiresIdentity: true,
     requiresSubscription: true,
     requiresGateway: true,
     showInBreadcrumbs: true,
-    icon: 'chat',
+    icon: "chat",
   },
-  '/chat/new': {
-    title: 'New Conversation',
+  "/chat/new": {
+    title: "New Conversation",
     requiresIdentity: true,
     requiresSubscription: true,
     requiresGateway: true,
     showInBreadcrumbs: true,
-    icon: 'new',
+    icon: "new",
   },
-  '/settings': {
-    title: 'Settings',
+  "/settings": {
+    title: "Settings",
     requiresIdentity: false,
     requiresSubscription: false,
     requiresGateway: false,
     showInBreadcrumbs: true,
-    icon: 'settings',
+    icon: "settings",
   },
-  '/settings/identity': {
-    title: 'Identity Settings',
+  "/settings/identity": {
+    title: "Identity Settings",
     requiresIdentity: true,
     requiresSubscription: false,
     requiresGateway: false,
     showInBreadcrumbs: true,
   },
-  '/settings/gateway': {
-    title: 'Gateway Settings',
+  "/settings/gateway": {
+    title: "Gateway Settings",
     requiresIdentity: false,
     requiresSubscription: false,
     requiresGateway: false,
     showInBreadcrumbs: true,
   },
-  '/settings/appearance': {
-    title: 'Appearance',
+  "/settings/appearance": {
+    title: "Appearance",
     requiresIdentity: false,
     requiresSubscription: false,
     requiresGateway: false,
     showInBreadcrumbs: true,
   },
-  '/settings/advanced': {
-    title: 'Advanced Settings',
+  "/settings/advanced": {
+    title: "Advanced Settings",
     requiresIdentity: false,
     requiresSubscription: false,
     requiresGateway: false,
     showInBreadcrumbs: true,
   },
-  '/about': {
-    title: 'About EdwinPAI',
+  "/about": {
+    title: "About EdwinPAI",
     requiresIdentity: false,
     requiresSubscription: false,
     requiresGateway: false,

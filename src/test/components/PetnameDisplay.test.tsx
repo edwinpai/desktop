@@ -11,7 +11,8 @@ import { describe, it, expect } from "vitest";
 import { IdentityBadge } from "@/components/shared/IdentityBadge";
 
 describe("Petname Display", () => {
-  const mockPublicKey = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+  const mockPublicKey =
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
   const mockPetname = "Swift Falcon";
 
   describe("IdentityBadge Component", () => {
@@ -38,7 +39,11 @@ describe("Petname Display", () => {
 
     it("should support small size variant", () => {
       render(
-        <IdentityBadge publicKey={mockPublicKey} petname={mockPetname} size="sm" />
+        <IdentityBadge
+          publicKey={mockPublicKey}
+          petname={mockPetname}
+          size="sm"
+        />,
       );
 
       const petname = screen.getByText(mockPetname);
@@ -51,7 +56,11 @@ describe("Petname Display", () => {
 
     it("should support medium size variant (default)", () => {
       render(
-        <IdentityBadge publicKey={mockPublicKey} petname={mockPetname} size="md" />
+        <IdentityBadge
+          publicKey={mockPublicKey}
+          petname={mockPetname}
+          size="md"
+        />,
       );
 
       const petname = screen.getByText(mockPetname);
@@ -64,7 +73,11 @@ describe("Petname Display", () => {
 
     it("should support large size variant", () => {
       render(
-        <IdentityBadge publicKey={mockPublicKey} petname={mockPetname} size="lg" />
+        <IdentityBadge
+          publicKey={mockPublicKey}
+          petname={mockPetname}
+          size="lg"
+        />,
       );
 
       const petname = screen.getByText(mockPetname);
@@ -85,7 +98,9 @@ describe("Petname Display", () => {
 
   describe("Petname Formatting", () => {
     it("should display petname with proper capitalization", () => {
-      render(<IdentityBadge publicKey={mockPublicKey} petname="Swift Falcon" />);
+      render(
+        <IdentityBadge publicKey={mockPublicKey} petname="Swift Falcon" />,
+      );
 
       const petname = screen.getByText("Swift Falcon");
       expect(petname.textContent).toBe("Swift Falcon");
@@ -99,7 +114,10 @@ describe("Petname Display", () => {
 
     it("should handle multi-word petnames", () => {
       render(
-        <IdentityBadge publicKey={mockPublicKey} petname="Bold Swift Phoenix" />
+        <IdentityBadge
+          publicKey={mockPublicKey}
+          petname="Bold Swift Phoenix"
+        />,
       );
 
       expect(screen.getByText("Bold Swift Phoenix")).toBeInTheDocument();
@@ -116,7 +134,7 @@ describe("Petname Display", () => {
   describe("Deterministic Generation", () => {
     it("should generate same short ID for same public key", () => {
       const { unmount } = render(
-        <IdentityBadge publicKey={mockPublicKey} petname={mockPetname} />
+        <IdentityBadge publicKey={mockPublicKey} petname={mockPetname} />,
       );
 
       const firstShortId = screen.getByText(/^edw:/).textContent;
@@ -129,11 +147,13 @@ describe("Petname Display", () => {
     });
 
     it("should generate different short IDs for different public keys", () => {
-      const key1 = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
-      const key2 = "03c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5";
+      const key1 =
+        "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+      const key2 =
+        "03c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5";
 
       const { unmount } = render(
-        <IdentityBadge publicKey={key1} petname="User One" />
+        <IdentityBadge publicKey={key1} petname="User One" />,
       );
       const shortId1 = screen.getByText(/^edw:/).textContent;
       unmount();
@@ -148,7 +168,7 @@ describe("Petname Display", () => {
   describe("Visual Layout", () => {
     it("should render identicon and petname in horizontal layout", () => {
       const { container } = render(
-        <IdentityBadge publicKey={mockPublicKey} petname={mockPetname} />
+        <IdentityBadge publicKey={mockPublicKey} petname={mockPetname} />,
       );
 
       const wrapper = container.firstChild as HTMLElement;
@@ -157,7 +177,7 @@ describe("Petname Display", () => {
 
     it("should have gap between identicon and text", () => {
       const { container } = render(
-        <IdentityBadge publicKey={mockPublicKey} petname={mockPetname} />
+        <IdentityBadge publicKey={mockPublicKey} petname={mockPetname} />,
       );
 
       const wrapper = container.firstChild as HTMLElement;
@@ -219,7 +239,8 @@ describe("Petname Display", () => {
     });
 
     it("should handle very long petnames", () => {
-      const longPetname = "Very Long Extremely Detailed Verbose Petname Example";
+      const longPetname =
+        "Very Long Extremely Detailed Verbose Petname Example";
 
       render(<IdentityBadge publicKey={mockPublicKey} petname={longPetname} />);
 
@@ -227,11 +248,13 @@ describe("Petname Display", () => {
     });
 
     it("should handle public keys with different prefixes", () => {
-      const key02 = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
-      const key03 = "03c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5";
+      const key02 =
+        "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+      const key03 =
+        "03c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5";
 
       const { unmount } = render(
-        <IdentityBadge publicKey={key02} petname="User 02" />
+        <IdentityBadge publicKey={key02} petname="User 02" />,
       );
       expect(screen.getByText(/^edw:/)).toBeInTheDocument();
       unmount();

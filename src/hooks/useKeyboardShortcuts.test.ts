@@ -4,7 +4,10 @@
 
 import { renderHook } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { useKeyboardShortcuts, KeyboardShortcutPresets } from "./useKeyboardShortcuts";
+import {
+  useKeyboardShortcuts,
+  KeyboardShortcutPresets,
+} from "./useKeyboardShortcuts";
 
 describe("useKeyboardShortcuts", () => {
   beforeEach(() => {
@@ -26,7 +29,7 @@ describe("useKeyboardShortcuts", () => {
           ctrl: true,
           handler,
         },
-      ])
+      ]),
     );
 
     const event = new KeyboardEvent("keydown", {
@@ -49,7 +52,7 @@ describe("useKeyboardShortcuts", () => {
           ctrl: true,
           handler,
         },
-      ])
+      ]),
     );
 
     const event = new KeyboardEvent("keydown", {
@@ -70,10 +73,12 @@ describe("useKeyboardShortcuts", () => {
       useKeyboardShortcuts([
         { key: "Enter", ctrl: true, handler: handler1 },
         { key: "Escape", handler: handler2 },
-      ])
+      ]),
     );
 
-    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true }));
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true }),
+    );
     expect(handler1).toHaveBeenCalled();
     expect(handler2).not.toHaveBeenCalled();
 
@@ -86,11 +91,8 @@ describe("useKeyboardShortcuts", () => {
 
     const { rerender } = renderHook(
       ({ enabled }) =>
-        useKeyboardShortcuts(
-          [{ key: "Enter", handler }],
-          { enabled }
-        ),
-      { initialProps: { enabled: false } }
+        useKeyboardShortcuts([{ key: "Enter", handler }], { enabled }),
+      { initialProps: { enabled: false } },
     );
 
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
@@ -105,10 +107,9 @@ describe("useKeyboardShortcuts", () => {
     const handler = vi.fn();
 
     renderHook(() =>
-      useKeyboardShortcuts(
-        [{ key: "s", ctrl: true, handler }],
-        { preventDefault: true }
-      )
+      useKeyboardShortcuts([{ key: "s", ctrl: true, handler }], {
+        preventDefault: true,
+      }),
     );
 
     const event = new KeyboardEvent("keydown", { key: "s", ctrlKey: true });
@@ -123,10 +124,9 @@ describe("useKeyboardShortcuts", () => {
     const handler = vi.fn();
 
     renderHook(() =>
-      useKeyboardShortcuts(
-        [{ key: "s", ctrl: true, handler }],
-        { preventDefault: false }
-      )
+      useKeyboardShortcuts([{ key: "s", ctrl: true, handler }], {
+        preventDefault: false,
+      }),
     );
 
     const event = new KeyboardEvent("keydown", { key: "s", ctrlKey: true });
@@ -140,11 +140,11 @@ describe("useKeyboardShortcuts", () => {
   it("matches keys case-insensitively", () => {
     const handler = vi.fn();
 
-    renderHook(() =>
-      useKeyboardShortcuts([{ key: "k", ctrl: true, handler }])
-    );
+    renderHook(() => useKeyboardShortcuts([{ key: "k", ctrl: true, handler }]));
 
-    window.dispatchEvent(new KeyboardEvent("keydown", { key: "K", ctrlKey: true }));
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "K", ctrlKey: true }),
+    );
     expect(handler).toHaveBeenCalled();
   });
 
@@ -152,38 +152,34 @@ describe("useKeyboardShortcuts", () => {
     const handler = vi.fn();
 
     renderHook(() =>
-      useKeyboardShortcuts([
-        { key: "Tab", shift: true, handler },
-      ])
+      useKeyboardShortcuts([{ key: "Tab", shift: true, handler }]),
     );
 
-    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", shiftKey: true }));
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Tab", shiftKey: true }),
+    );
     expect(handler).toHaveBeenCalled();
   });
 
   it("supports alt modifier", () => {
     const handler = vi.fn();
 
-    renderHook(() =>
-      useKeyboardShortcuts([
-        { key: "F", alt: true, handler },
-      ])
-    );
+    renderHook(() => useKeyboardShortcuts([{ key: "F", alt: true, handler }]));
 
-    window.dispatchEvent(new KeyboardEvent("keydown", { key: "F", altKey: true }));
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "F", altKey: true }),
+    );
     expect(handler).toHaveBeenCalled();
   });
 
   it("supports meta modifier", () => {
     const handler = vi.fn();
 
-    renderHook(() =>
-      useKeyboardShortcuts([
-        { key: "k", meta: true, handler },
-      ])
-    );
+    renderHook(() => useKeyboardShortcuts([{ key: "k", meta: true, handler }]));
 
-    window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }));
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "k", metaKey: true }),
+    );
     expect(handler).toHaveBeenCalled();
   });
 
@@ -197,7 +193,9 @@ describe("useKeyboardShortcuts", () => {
 
       renderHook(() => useKeyboardShortcuts([shortcut]));
 
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true }));
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true }),
+      );
       expect(handler).toHaveBeenCalled();
     });
 
@@ -222,7 +220,9 @@ describe("useKeyboardShortcuts", () => {
 
       renderHook(() => useKeyboardShortcuts([shortcut]));
 
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "s", ctrlKey: true }));
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "s", ctrlKey: true }),
+      );
       expect(handler).toHaveBeenCalled();
     });
 
@@ -237,11 +237,15 @@ describe("useKeyboardShortcuts", () => {
       renderHook(() => useKeyboardShortcuts(shortcuts));
 
       // Test Ctrl+K
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }));
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "k", ctrlKey: true }),
+      );
       expect(handler).toHaveBeenCalledTimes(1);
 
       // Test Cmd+K
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }));
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "k", metaKey: true }),
+      );
       expect(handler).toHaveBeenCalledTimes(2);
     });
   });
@@ -250,7 +254,7 @@ describe("useKeyboardShortcuts", () => {
     const handler = vi.fn();
 
     const { unmount } = renderHook(() =>
-      useKeyboardShortcuts([{ key: "Enter", handler }])
+      useKeyboardShortcuts([{ key: "Enter", handler }]),
     );
 
     unmount();

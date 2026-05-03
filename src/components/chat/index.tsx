@@ -8,10 +8,10 @@
  * - Real-time token display
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
-import type { UnlistenFn } from '@tauri-apps/api/event';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import type { UnlistenFn } from "@tauri-apps/api/event";
 import type {
   ChatMessage,
   StreamChunkEventPayload,
@@ -21,9 +21,9 @@ import type {
   SendChatMessageResponse,
   GetConversationHistoryRequest,
   GetConversationHistoryResponse,
-} from '@/types/chat';
-import { ChatMessage as ChatMessageComponent } from './ChatMessage';
-import { ChatInput } from './ChatInput';
+} from "@/types/chat";
+import { ChatMessage as ChatMessageComponent } from "./ChatMessage";
+import { ChatInput } from "./ChatInput";
 
 interface ChatProps {
   conversationId: string;
@@ -31,8 +31,10 @@ interface ChatProps {
 
 export function Chat({ conversationId }: ChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
-  const [streamingText, setStreamingText] = useState('');
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
+    null,
+  );
+  const [streamingText, setStreamingText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
@@ -42,7 +44,7 @@ export function Chat({ conversationId }: ChatProps) {
 
   // Auto-scroll to bottom
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
   // Load conversation history
@@ -58,14 +60,16 @@ export function Chat({ conversationId }: ChatProps) {
         };
 
         const response = await invoke<GetConversationHistoryResponse>(
-          'get_conversation_history',
-          { request }
+          "get_conversation_history",
+          { request },
         );
 
         setMessages(response.messages);
       } catch (err) {
-        console.error('Failed to load conversation history:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load messages');
+        console.error("Failed to load conversation history:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to load messages",
+        );
       } finally {
         setIsLoading(false);
       }
@@ -80,7 +84,7 @@ export function Chat({ conversationId }: ChatProps) {
       try {
         // Listen for stream chunks
         const unlistenChunk = await listen<StreamChunkEventPayload>(
-          'chat:stream_chunk',
+          "chat:stream_chunk",
           (event) => {
             const { messageId, accumulated } = event.payload;
 
@@ -88,12 +92,12 @@ export function Chat({ conversationId }: ChatProps) {
               setStreamingText(accumulated);
               scrollToBottom();
             }
-          }
+          },
         );
 
         // Listen for stream end
         const unlistenEnd = await listen<StreamEndEventPayload>(
-          'chat:stream_end',
+          "chat:stream_end",
           (event) => {
             const { messageId, fullText, finishReason } = event.payload;
 
@@ -101,7 +105,7 @@ export function Chat({ conversationId }: ChatProps) {
               // Add completed message to history
               const completedMessage: ChatMessage = {
                 id: messageId,
-                role: 'assistant',
+                role: "assistant",
                 content: fullText,
                 timestamp: new Date().toISOString(),
                 finishReason,
@@ -109,31 +113,31 @@ export function Chat({ conversationId }: ChatProps) {
 
               setMessages((prev) => [...prev, completedMessage]);
               setStreamingMessageId(null);
-              setStreamingText('');
+              setStreamingText("");
               setIsSending(false);
             }
-          }
+          },
         );
 
         // Listen for stream errors
         const unlistenError = await listen<StreamErrorEventPayload>(
-          'chat:stream_error',
+          "chat:stream_error",
           (event) => {
             const { messageId, error: errorMsg } = event.payload;
 
             if (messageId === streamingMessageId) {
               setError(errorMsg);
               setStreamingMessageId(null);
-              setStreamingText('');
+              setStreamingText("");
               setIsSending(false);
             }
-          }
+          },
         );
 
         unlistenersRef.current = [unlistenChunk, unlistenEnd, unlistenError];
       } catch (err) {
-        console.error('Failed to setup SSE listeners:', err);
-        setError('Failed to setup real-time connection');
+        console.error("Failed to setup SSE listeners:", err);
+        setError("Failed to setup real-time connection");
       }
     };
 
@@ -152,49 +156,52 @@ export function Chat({ conversationId }: ChatProps) {
   }, [messages, streamingText, scrollToBottom]);
 
   // Send message handler
-  const handleSendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || isSending) return;
+  const handleSendMessage = useCallback(
+    async (content: string) => {
+      if (!content.trim() || isSending) return;
 
-    try {
-      setIsSending(true);
-      setError(null);
+      try {
+        setIsSending(true);
+        setError(null);
 
-      // Create user message
-      const userMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'user',
-        content: content.trim(),
-        timestamp: new Date().toISOString(),
-      };
+        // Create user message
+        const userMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: "user",
+          content: content.trim(),
+          timestamp: new Date().toISOString(),
+        };
 
-      // Add user message to UI immediately
-      setMessages((prev) => [...prev, userMessage]);
+        // Add user message to UI immediately
+        setMessages((prev) => [...prev, userMessage]);
 
-      // Send to backend
-      const request: SendChatMessageRequest = {
-        conversationId,
-        message: userMessage,
-        stream: true,
-      };
+        // Send to backend
+        const request: SendChatMessageRequest = {
+          conversationId,
+          message: userMessage,
+          stream: true,
+        };
 
-      const response = await invoke<SendChatMessageResponse>(
-        'send_chat_message',
-        { request }
-      );
+        const response = await invoke<SendChatMessageResponse>(
+          "send_chat_message",
+          { request },
+        );
 
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to send message');
+        if (!response.success) {
+          throw new Error(response.error || "Failed to send message");
+        }
+
+        // Track streaming message
+        setStreamingMessageId(response.messageId);
+        setStreamingText("");
+      } catch (err) {
+        console.error("Failed to send message:", err);
+        setError(err instanceof Error ? err.message : "Failed to send message");
+        setIsSending(false);
       }
-
-      // Track streaming message
-      setStreamingMessageId(response.messageId);
-      setStreamingText('');
-    } catch (err) {
-      console.error('Failed to send message:', err);
-      setError(err instanceof Error ? err.message : 'Failed to send message');
-      setIsSending(false);
-    }
-  }, [conversationId, isSending]);
+    },
+    [conversationId, isSending],
+  );
 
   if (isLoading) {
     return (
@@ -221,7 +228,7 @@ export function Chat({ conversationId }: ChatProps) {
           <ChatMessageComponent
             message={{
               id: streamingMessageId,
-              role: 'assistant',
+              role: "assistant",
               content: streamingText,
               timestamp: new Date().toISOString(),
             }}
@@ -244,7 +251,7 @@ export function Chat({ conversationId }: ChatProps) {
         <ChatInput
           onSend={handleSendMessage}
           disabled={isSending}
-          placeholder={isSending ? 'Sending...' : 'Type a message...'}
+          placeholder={isSending ? "Sending..." : "Type a message..."}
         />
       </div>
     </div>

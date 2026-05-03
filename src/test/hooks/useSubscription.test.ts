@@ -4,19 +4,22 @@
  * Tests for subscription hook IPC integration and lifecycle
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
-import { useSubscription, useSubscriptionStatus } from '@/hooks/useSubscription';
-import { useSubscriptionStore } from '@/stores/subscriptionStore';
-import type { CheckSubscriptionResponse } from '@/types';
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { renderHook, waitFor, act } from "@testing-library/react";
+import {
+  useSubscription,
+  useSubscriptionStatus,
+} from "@/hooks/useSubscription";
+import { useSubscriptionStore } from "@/stores/subscriptionStore";
+import type { CheckSubscriptionResponse } from "@/types";
 
 // Mock Tauri invoke
 const mockInvoke = vi.fn();
-vi.mock('@tauri-apps/api/core', () => ({
+vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => mockInvoke(...args),
 }));
 
-describe('useSubscription', () => {
+describe("useSubscription", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
@@ -31,11 +34,11 @@ describe('useSubscription', () => {
     vi.useRealTimers();
   });
 
-  describe('Initialization', () => {
-    it('should auto-check on mount by default', async () => {
+  describe("Initialization", () => {
+    it("should auto-check on mount by default", async () => {
       const response: CheckSubscriptionResponse = {
-        type: 'CheckSubscriptionResponse',
-        state: 'Active',
+        type: "CheckSubscriptionResponse",
+        state: "Active",
         cachedProof: false,
       };
 
@@ -44,22 +47,22 @@ describe('useSubscription', () => {
       renderHook(() => useSubscription());
 
       await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledWith('check_subscription', {
+        expect(mockInvoke).toHaveBeenCalledWith("check_subscription", {
           forceRefresh: false,
         });
       });
     });
 
-    it('should not auto-check when autoCheck is false', () => {
+    it("should not auto-check when autoCheck is false", () => {
       renderHook(() => useSubscription({ autoCheck: false }));
 
       expect(mockInvoke).not.toHaveBeenCalled();
     });
 
-    it('should cleanup timers on unmount', async () => {
+    it("should cleanup timers on unmount", async () => {
       const response: CheckSubscriptionResponse = {
-        type: 'CheckSubscriptionResponse',
-        state: 'Cached',
+        type: "CheckSubscriptionResponse",
+        state: "Cached",
         cachedProof: true,
         verifiedAt: new Date().toISOString(),
       };
@@ -82,94 +85,104 @@ describe('useSubscription', () => {
     });
   });
 
-  describe('check()', () => {
-    it('should call IPC with forceRefresh=false by default', async () => {
+  describe("check()", () => {
+    it("should call IPC with forceRefresh=false by default", async () => {
       const response: CheckSubscriptionResponse = {
-        type: 'CheckSubscriptionResponse',
-        state: 'Active',
+        type: "CheckSubscriptionResponse",
+        state: "Active",
         cachedProof: false,
       };
 
       mockInvoke.mockResolvedValue(response);
 
-      const { result } = renderHook(() => useSubscription({ autoCheck: false }));
+      const { result } = renderHook(() =>
+        useSubscription({ autoCheck: false }),
+      );
 
       await act(async () => {
         await result.current.check();
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith('check_subscription', {
+      expect(mockInvoke).toHaveBeenCalledWith("check_subscription", {
         forceRefresh: false,
       });
     });
 
-    it('should call IPC with forceRefresh=true when specified', async () => {
+    it("should call IPC with forceRefresh=true when specified", async () => {
       const response: CheckSubscriptionResponse = {
-        type: 'CheckSubscriptionResponse',
-        state: 'Active',
+        type: "CheckSubscriptionResponse",
+        state: "Active",
         cachedProof: false,
       };
 
       mockInvoke.mockResolvedValue(response);
 
-      const { result } = renderHook(() => useSubscription({ autoCheck: false }));
+      const { result } = renderHook(() =>
+        useSubscription({ autoCheck: false }),
+      );
 
       await act(async () => {
         await result.current.check(true);
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith('check_subscription', {
+      expect(mockInvoke).toHaveBeenCalledWith("check_subscription", {
         forceRefresh: true,
       });
     });
 
-    it('should update store with IPC response', async () => {
+    it("should update store with IPC response", async () => {
       const response: CheckSubscriptionResponse = {
-        type: 'CheckSubscriptionResponse',
-        state: 'Active',
-        txid: 'test-txid',
+        type: "CheckSubscriptionResponse",
+        state: "Active",
+        txid: "test-txid",
         vout: 0,
         cachedProof: false,
-        verifiedAt: '2026-02-10T12:00:00Z',
+        verifiedAt: "2026-02-10T12:00:00Z",
         blockHeight: 850000,
       };
 
       mockInvoke.mockResolvedValue(response);
 
-      const { result } = renderHook(() => useSubscription({ autoCheck: false }));
+      const { result } = renderHook(() =>
+        useSubscription({ autoCheck: false }),
+      );
 
       await act(async () => {
         await result.current.check();
       });
 
       await waitFor(() => {
-        expect(result.current.state).toBe('Active');
-        expect(result.current.txid).toBe('test-txid');
+        expect(result.current.state).toBe("Active");
+        expect(result.current.txid).toBe("test-txid");
         expect(result.current.vout).toBe(0);
       });
     });
 
-    it('should handle IPC errors', async () => {
-      mockInvoke.mockRejectedValue(new Error('Network error'));
+    it("should handle IPC errors", async () => {
+      mockInvoke.mockRejectedValue(new Error("Network error"));
 
-      const { result } = renderHook(() => useSubscription({ autoCheck: false }));
+      const { result } = renderHook(() =>
+        useSubscription({ autoCheck: false }),
+      );
 
       await act(async () => {
         await result.current.check();
       });
 
       await waitFor(() => {
-        expect(result.current.error).toBe('Network error');
+        expect(result.current.error).toBe("Network error");
       });
     });
 
-    it('should not start new check if already loading', async () => {
+    it("should not start new check if already loading", async () => {
       // Make first call slow
       mockInvoke.mockImplementation(
         () => new Promise((resolve) => setTimeout(resolve, 1000)),
       );
 
-      const { result } = renderHook(() => useSubscription({ autoCheck: false }));
+      const { result } = renderHook(() =>
+        useSubscription({ autoCheck: false }),
+      );
 
       // Start first check
       act(() => {
@@ -186,28 +199,30 @@ describe('useSubscription', () => {
     });
   });
 
-  describe('refresh()', () => {
-    it('should call check with forceRefresh=true', async () => {
+  describe("refresh()", () => {
+    it("should call check with forceRefresh=true", async () => {
       const response: CheckSubscriptionResponse = {
-        type: 'CheckSubscriptionResponse',
-        state: 'Active',
+        type: "CheckSubscriptionResponse",
+        state: "Active",
         cachedProof: false,
       };
 
       mockInvoke.mockResolvedValue(response);
 
-      const { result } = renderHook(() => useSubscription({ autoCheck: false }));
+      const { result } = renderHook(() =>
+        useSubscription({ autoCheck: false }),
+      );
 
       await act(async () => {
         await result.current.refresh();
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith('check_subscription', {
+      expect(mockInvoke).toHaveBeenCalledWith("check_subscription", {
         forceRefresh: true,
       });
     });
 
-    it('should set isRefreshing during refresh', async () => {
+    it("should set isRefreshing during refresh", async () => {
       let resolveInvoke: (value: CheckSubscriptionResponse) => void;
       const invokePromise = new Promise<CheckSubscriptionResponse>(
         (resolve) => {
@@ -216,7 +231,9 @@ describe('useSubscription', () => {
       );
       mockInvoke.mockReturnValue(invokePromise);
 
-      const { result } = renderHook(() => useSubscription({ autoCheck: false }));
+      const { result } = renderHook(() =>
+        useSubscription({ autoCheck: false }),
+      );
 
       act(() => {
         result.current.refresh();
@@ -230,8 +247,8 @@ describe('useSubscription', () => {
       // Complete the refresh
       await act(async () => {
         resolveInvoke!({
-          type: 'CheckSubscriptionResponse',
-          state: 'Active',
+          type: "CheckSubscriptionResponse",
+          state: "Active",
           cachedProof: false,
         });
       });
@@ -242,19 +259,21 @@ describe('useSubscription', () => {
     });
   });
 
-  describe('clear()', () => {
-    it('should clear subscription state', async () => {
+  describe("clear()", () => {
+    it("should clear subscription state", async () => {
       const response: CheckSubscriptionResponse = {
-        type: 'CheckSubscriptionResponse',
-        state: 'Active',
-        txid: 'test',
+        type: "CheckSubscriptionResponse",
+        state: "Active",
+        txid: "test",
         vout: 0,
         cachedProof: false,
       };
 
       mockInvoke.mockResolvedValue(response);
 
-      const { result } = renderHook(() => useSubscription({ autoCheck: false }));
+      const { result } = renderHook(() =>
+        useSubscription({ autoCheck: false }),
+      );
 
       // Set up subscription
       await act(async () => {
@@ -262,7 +281,7 @@ describe('useSubscription', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.state).toBe('Active');
+        expect(result.current.state).toBe("Active");
       });
 
       // Clear
@@ -270,21 +289,23 @@ describe('useSubscription', () => {
         result.current.clear();
       });
 
-      expect(result.current.state).toBe('NotFound');
+      expect(result.current.state).toBe("NotFound");
       expect(result.current.txid).toBeUndefined();
     });
 
-    it('should clear timers', async () => {
+    it("should clear timers", async () => {
       const response: CheckSubscriptionResponse = {
-        type: 'CheckSubscriptionResponse',
-        state: 'Cached',
+        type: "CheckSubscriptionResponse",
+        state: "Cached",
         cachedProof: true,
         verifiedAt: new Date().toISOString(),
       };
 
       mockInvoke.mockResolvedValue(response);
 
-      const { result } = renderHook(() => useSubscription({ autoCheck: false }));
+      const { result } = renderHook(() =>
+        useSubscription({ autoCheck: false }),
+      );
 
       await act(async () => {
         await result.current.check();
@@ -302,11 +323,11 @@ describe('useSubscription', () => {
     });
   });
 
-  describe('Polling (Cached state)', () => {
-    it('should poll when state is Cached', async () => {
+  describe("Polling (Cached state)", () => {
+    it("should poll when state is Cached", async () => {
       const response: CheckSubscriptionResponse = {
-        type: 'CheckSubscriptionResponse',
-        state: 'Cached',
+        type: "CheckSubscriptionResponse",
+        state: "Cached",
         cachedProof: true,
         verifiedAt: new Date().toISOString(),
       };
@@ -337,10 +358,10 @@ describe('useSubscription', () => {
       });
     });
 
-    it('should not poll when state is Active', async () => {
+    it("should not poll when state is Active", async () => {
       const response: CheckSubscriptionResponse = {
-        type: 'CheckSubscriptionResponse',
-        state: 'Active',
+        type: "CheckSubscriptionResponse",
+        state: "Active",
         cachedProof: false,
       };
 
@@ -365,13 +386,13 @@ describe('useSubscription', () => {
     });
   });
 
-  describe('Auto-retry', () => {
-    it('should retry on error when autoRetry is true', async () => {
+  describe("Auto-retry", () => {
+    it("should retry on error when autoRetry is true", async () => {
       mockInvoke
-        .mockRejectedValueOnce(new Error('Network error'))
+        .mockRejectedValueOnce(new Error("Network error"))
         .mockResolvedValueOnce({
-          type: 'CheckSubscriptionResponse',
-          state: 'Active',
+          type: "CheckSubscriptionResponse",
+          state: "Active",
           cachedProof: false,
         });
 
@@ -385,7 +406,7 @@ describe('useSubscription', () => {
 
       // First call fails
       await act(async () => {
-        await useSubscriptionStore.getState().setError('Network error');
+        await useSubscriptionStore.getState().setError("Network error");
         useSubscriptionStore.getState().incrementRetry();
       });
 
@@ -405,8 +426,8 @@ describe('useSubscription', () => {
       );
     });
 
-    it('should not retry when autoRetry is false', async () => {
-      mockInvoke.mockRejectedValue(new Error('Network error'));
+    it("should not retry when autoRetry is false", async () => {
+      mockInvoke.mockRejectedValue(new Error("Network error"));
 
       const { result } = renderHook(() =>
         useSubscription({
@@ -426,8 +447,8 @@ describe('useSubscription', () => {
       expect(mockInvoke).toHaveBeenCalledTimes(callCount);
     });
 
-    it('should stop retrying after maxRetries', async () => {
-      mockInvoke.mockRejectedValue(new Error('Network error'));
+    it("should stop retrying after maxRetries", async () => {
+      mockInvoke.mockRejectedValue(new Error("Network error"));
 
       const { result } = renderHook(() =>
         useSubscription({
@@ -460,23 +481,25 @@ describe('useSubscription', () => {
     });
   });
 
-  describe('Grace Period Monitoring', () => {
-    it('should transition to GraceExceeded when grace period expires', async () => {
+  describe("Grace Period Monitoring", () => {
+    it("should transition to GraceExceeded when grace period expires", async () => {
       // Set verified time to 72 hours ago
       const oldVerifiedAt = new Date(
         Date.now() - 72 * 60 * 60 * 1000,
       ).toISOString();
 
       const response: CheckSubscriptionResponse = {
-        type: 'CheckSubscriptionResponse',
-        state: 'Cached',
-        txid: 'test',
+        type: "CheckSubscriptionResponse",
+        state: "Cached",
+        txid: "test",
         vout: 0,
         cachedProof: true,
         verifiedAt: oldVerifiedAt,
       };
 
-      const { result } = renderHook(() => useSubscription({ autoCheck: false }));
+      const { result } = renderHook(() =>
+        useSubscription({ autoCheck: false }),
+      );
 
       await act(async () => {
         result.current.check();
@@ -493,20 +516,22 @@ describe('useSubscription', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.state).toBe('GraceExceeded');
+        expect(result.current.state).toBe("GraceExceeded");
       });
     });
   });
 
-  describe('Computed Values', () => {
-    it('should return isOperational=true for Active', async () => {
+  describe("Computed Values", () => {
+    it("should return isOperational=true for Active", async () => {
       mockInvoke.mockResolvedValue({
-        type: 'CheckSubscriptionResponse',
-        state: 'Active',
+        type: "CheckSubscriptionResponse",
+        state: "Active",
         cachedProof: false,
       });
 
-      const { result } = renderHook(() => useSubscription({ autoCheck: false }));
+      const { result } = renderHook(() =>
+        useSubscription({ autoCheck: false }),
+      );
 
       await act(async () => {
         await result.current.check();
@@ -517,14 +542,16 @@ describe('useSubscription', () => {
       });
     });
 
-    it('should return needsRenewal=true for Expired', async () => {
+    it("should return needsRenewal=true for Expired", async () => {
       mockInvoke.mockResolvedValue({
-        type: 'CheckSubscriptionResponse',
-        state: 'Expired',
+        type: "CheckSubscriptionResponse",
+        state: "Expired",
         cachedProof: false,
       });
 
-      const { result } = renderHook(() => useSubscription({ autoCheck: false }));
+      const { result } = renderHook(() =>
+        useSubscription({ autoCheck: false }),
+      );
 
       await act(async () => {
         await result.current.check();
@@ -535,17 +562,19 @@ describe('useSubscription', () => {
       });
     });
 
-    it('should calculate gracePeriodRemaining for Cached', async () => {
+    it("should calculate gracePeriodRemaining for Cached", async () => {
       const response: CheckSubscriptionResponse = {
-        type: 'CheckSubscriptionResponse',
-        state: 'Cached',
+        type: "CheckSubscriptionResponse",
+        state: "Cached",
         cachedProof: true,
         verifiedAt: new Date().toISOString(),
       };
 
       mockInvoke.mockResolvedValue(response);
 
-      const { result } = renderHook(() => useSubscription({ autoCheck: false }));
+      const { result } = renderHook(() =>
+        useSubscription({ autoCheck: false }),
+      );
 
       await act(async () => {
         await result.current.check();
@@ -562,78 +591,78 @@ describe('useSubscription', () => {
   });
 });
 
-describe('useSubscriptionStatus', () => {
+describe("useSubscriptionStatus", () => {
   beforeEach(() => {
     const { clearSubscription } = useSubscriptionStore.getState();
     clearSubscription();
   });
 
-  it('should return correct badge for Active state', () => {
+  it("should return correct badge for Active state", () => {
     const { result } = renderHook(() => useSubscriptionStatus());
 
     act(() => {
       useSubscriptionStore.getState().setSubscription({
-        type: 'CheckSubscriptionResponse',
-        state: 'Active',
+        type: "CheckSubscriptionResponse",
+        state: "Active",
         cachedProof: false,
       });
     });
 
-    expect(result.current.badge.label).toBe('Active');
-    expect(result.current.badge.variant).toBe('success');
+    expect(result.current.badge.label).toBe("Active");
+    expect(result.current.badge.variant).toBe("success");
   });
 
-  it('should return correct badge for Cached state with time remaining', () => {
+  it("should return correct badge for Cached state with time remaining", () => {
     const { result } = renderHook(() => useSubscriptionStatus());
 
     act(() => {
       useSubscriptionStore.getState().setSubscription({
-        type: 'CheckSubscriptionResponse',
-        state: 'Cached',
+        type: "CheckSubscriptionResponse",
+        state: "Cached",
         cachedProof: true,
         verifiedAt: new Date().toISOString(),
       });
     });
 
-    expect(result.current.badge.label).toBe('Cached');
-    expect(result.current.badge.variant).toBe('warning');
-    expect(result.current.badge.description).toContain('72h grace remaining');
+    expect(result.current.badge.label).toBe("Cached");
+    expect(result.current.badge.variant).toBe("warning");
+    expect(result.current.badge.description).toContain("72h grace remaining");
   });
 
-  it('should return correct badge for Expired state', () => {
+  it("should return correct badge for Expired state", () => {
     const { result } = renderHook(() => useSubscriptionStatus());
 
     act(() => {
       useSubscriptionStore.getState().setSubscription({
-        type: 'CheckSubscriptionResponse',
-        state: 'Expired',
+        type: "CheckSubscriptionResponse",
+        state: "Expired",
         cachedProof: false,
       });
     });
 
-    expect(result.current.badge.label).toBe('Expired');
-    expect(result.current.badge.variant).toBe('destructive');
+    expect(result.current.badge.label).toBe("Expired");
+    expect(result.current.badge.variant).toBe("destructive");
   });
 
-  it('should return correct badge for GraceExceeded state', () => {
+  it("should return correct badge for GraceExceeded state", () => {
     const { result } = renderHook(() => useSubscriptionStatus());
 
     act(() => {
       useSubscriptionStore.getState().setSubscription({
-        type: 'CheckSubscriptionResponse',
-        state: 'GraceExceeded',
+        type: "CheckSubscriptionResponse",
+        state: "GraceExceeded",
         cachedProof: true,
       });
     });
 
-    expect(result.current.badge.label).toBe('Limited');
-    expect(result.current.badge.variant).toBe('secondary');
+    expect(result.current.badge.label).toBe("Limited");
+    expect(result.current.badge.variant).toBe("secondary");
   });
 
-  it('should return correct badge for NotFound state', () => {
+  it("should return correct badge for NotFound state", () => {
     const { result } = renderHook(() => useSubscriptionStatus());
 
-    expect(result.current.badge.label).toBe('No Subscription');
-    expect(result.current.badge.variant).toBe('outline');
+    expect(result.current.badge.label).toBe("No Subscription");
+    expect(result.current.badge.variant).toBe("outline");
   });
 });

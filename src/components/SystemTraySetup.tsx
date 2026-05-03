@@ -10,17 +10,16 @@ export function SystemTraySetup({
   onShowWindow,
 }: SystemTraySetupProps) {
   useEffect(() => {
-    let trayIcon: Awaited<ReturnType<typeof import("@tauri-apps/api/tray").TrayIcon.new>> | null = null;
+    let trayIcon: Awaited<
+      ReturnType<typeof import("@tauri-apps/api/tray").TrayIcon.new>
+    > | null = null;
 
     async function setupTray() {
       try {
         const { TrayIcon } = await import("@tauri-apps/api/tray");
-        const { Menu, MenuItem, PredefinedMenuItem } = await import(
-          "@tauri-apps/api/menu"
-        );
-        const { getCurrentWindow } = await import(
-          "@tauri-apps/api/window"
-        );
+        const { Menu, MenuItem, PredefinedMenuItem } =
+          await import("@tauri-apps/api/menu");
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
         const { exit } = await import("@tauri-apps/plugin-process");
 
         const showItem = await MenuItem.new({
@@ -62,7 +61,10 @@ export function SystemTraySetup({
           menuOnLeftClick: true,
         });
       } catch (err) {
-        console.warn("System tray setup failed (may not be available on this platform):", err);
+        console.warn(
+          "System tray setup failed (may not be available on this platform):",
+          err,
+        );
       }
     }
 

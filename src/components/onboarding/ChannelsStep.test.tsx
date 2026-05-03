@@ -25,7 +25,9 @@ vi.mock("./GatewayDetection", () => ({
 
 global.fetch = vi.fn();
 
-const OnboardingWizard = await import("./OnboardingWizard").then((m) => m.OnboardingWizard);
+const OnboardingWizard = await import("./OnboardingWizard").then(
+  (m) => m.OnboardingWizard,
+);
 
 describe("ChannelsStep", () => {
   beforeEach(() => {
@@ -38,10 +40,11 @@ describe("ChannelsStep", () => {
 
     // Mock SSE for TestChat
     const mockReader = {
-      read: vi.fn()
+      read: vi
+        .fn()
         .mockResolvedValueOnce({
           done: false,
-          value: new TextEncoder().encode('data: [DONE]\n'),
+          value: new TextEncoder().encode("data: [DONE]\n"),
         })
         .mockResolvedValueOnce({ done: true }),
     };
@@ -55,7 +58,8 @@ describe("ChannelsStep", () => {
     vi.mocked(invoke)
       .mockResolvedValueOnce({ config: { gateway: { aiProvider: {} } } }) // get_edwinpai_config
       .mockResolvedValueOnce({ success: true }) // update_edwinpai_config_cmd
-      .mockResolvedValueOnce({ // get_identity
+      .mockResolvedValueOnce({
+        // get_identity
         publicKey: "02test",
         petname: "Test",
         avatarSvg: "<svg></svg>",
@@ -72,38 +76,55 @@ describe("ChannelsStep", () => {
 
     await waitFor(() => screen.getByPlaceholderText(/sk-ant-/i));
     await user.type(screen.getByPlaceholderText(/sk-ant-/i), "sk-ant-test");
-    await user.click(screen.getByRole("button", { name: /validate & continue/i }));
-    
+    await user.click(
+      screen.getByRole("button", { name: /validate & continue/i }),
+    );
+
     await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
     await user.click(screen.getByRole("button", { name: /^continue$/i }));
-    
+
     await waitFor(() => screen.getByRole("button", { name: /start gateway/i }));
     await user.click(screen.getByRole("button", { name: /start gateway/i }));
-    
-    await waitFor(() => screen.getByRole("button", { name: /send test message/i }));
-    await user.click(screen.getByRole("button", { name: /send test message/i }));
-    
-    await waitFor(() => screen.getAllByRole("button", { name: /^continue$/i }).length > 0);
-    const continueButtons = screen.getAllByRole("button", { name: /^continue$/i });
+
+    await waitFor(() =>
+      screen.getByRole("button", { name: /send test message/i }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: /send test message/i }),
+    );
+
+    await waitFor(
+      () => screen.getAllByRole("button", { name: /^continue$/i }).length > 0,
+    );
+    const continueButtons = screen.getAllByRole("button", {
+      name: /^continue$/i,
+    });
     const continueButton = continueButtons[0];
     if (!continueButton) throw new Error("Expected a continue button");
     await user.click(continueButton);
 
-    await waitFor(() => {
-      expect(screen.getByText(/connect channels/i)).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/connect channels/i)).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   };
 
   it.skip("shows skip button", async () => {
     await navigateToChannelsStep();
 
-    expect(screen.getByRole("button", { name: /skip for now/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /skip for now/i }),
+    ).toBeInTheDocument();
   });
 
   it.skip("shows continue button", async () => {
     await navigateToChannelsStep();
 
-    expect(screen.getByRole("button", { name: /^continue$/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^continue$/i }),
+    ).toBeInTheDocument();
   });
 
   it.skip("allows skipping channel configuration", async () => {
@@ -113,14 +134,19 @@ describe("ChannelsStep", () => {
     const skipButton = screen.getByRole("button", { name: /skip for now/i });
     await user.click(skipButton);
 
-    await waitFor(() => {
-      expect(screen.getByText(/you're all set/i)).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/you're all set/i)).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 
   it.skip("shows informational text about channels", async () => {
     await navigateToChannelsStep();
 
-    expect(screen.getByText(/you can always add channels later/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/you can always add channels later/i),
+    ).toBeInTheDocument();
   });
 });

@@ -2,10 +2,22 @@ import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { CheckCircle2, XCircle, Loader2, Home, Plug } from "lucide-react";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +29,11 @@ import { AgentConfigCard } from "@/components/AgentConfigCard";
 import { RuntimeStatus } from "@/components/RuntimeStatus";
 import { AppLockSettings } from "@/components/AppLockSettings";
 import { TtsSettingsCard } from "@/components/TtsSettingsCard";
-import { fetchGatewayConfig, patchGatewayConfig, type GatewayTarget } from "@/lib/gateway-context";
+import {
+  fetchGatewayConfig,
+  patchGatewayConfig,
+  type GatewayTarget,
+} from "@/lib/gateway-context";
 import { DEFAULT_DESKTOP_CONFIG, type GatewayProfile } from "@/types";
 import { APP_VERSION } from "@/lib/app-version";
 
@@ -32,18 +48,38 @@ export function GeneralSettings({
   onModeChange,
   currentMode = "gateway",
 }: GeneralSettingsProps) {
-  const { config, update, loading: configLoading, activeGatewayProfile } = useConfig();
+  const {
+    config,
+    update,
+    loading: configLoading,
+    activeGatewayProfile,
+  } = useConfig();
   const resolvedActiveGatewayProfile =
-    activeGatewayProfile ?? config.gatewayProfiles?.[0] ?? DEFAULT_DESKTOP_CONFIG.gatewayProfiles[0];
+    activeGatewayProfile ??
+    config.gatewayProfiles?.[0] ??
+    DEFAULT_DESKTOP_CONFIG.gatewayProfiles[0];
 
-  const [gatewayProfiles, setGatewayProfiles] = useState<GatewayProfile[]>(config.gatewayProfiles);
-  const [activeProfileId, setActiveProfileId] = useState(config.activeGatewayProfileId);
-  const [profileName, setProfileName] = useState(resolvedActiveGatewayProfile.name);
-  const [gatewayUrl, setGatewayUrl] = useState(resolvedActiveGatewayProfile.gatewayUrl);
-  const [gatewayToken, setGatewayToken] = useState(resolvedActiveGatewayProfile.gatewayToken);
+  const [gatewayProfiles, setGatewayProfiles] = useState<GatewayProfile[]>(
+    config.gatewayProfiles,
+  );
+  const [activeProfileId, setActiveProfileId] = useState(
+    config.activeGatewayProfileId,
+  );
+  const [profileName, setProfileName] = useState(
+    resolvedActiveGatewayProfile.name,
+  );
+  const [gatewayUrl, setGatewayUrl] = useState(
+    resolvedActiveGatewayProfile.gatewayUrl,
+  );
+  const [gatewayToken, setGatewayToken] = useState(
+    resolvedActiveGatewayProfile.gatewayToken,
+  );
   const currentGatewayProfile =
-    gatewayProfiles.find((profile) => profile.id === activeProfileId) ?? resolvedActiveGatewayProfile;
-  const [theme, setTheme] = useState<"light" | "dark" | "system">(config.theme ?? "system");
+    gatewayProfiles.find((profile) => profile.id === activeProfileId) ??
+    resolvedActiveGatewayProfile;
+  const [theme, setTheme] = useState<"light" | "dark" | "system">(
+    config.theme ?? "system",
+  );
   const [notifications, setNotifications] = useState(true);
   const [autoScroll, setAutoScroll] = useState(true);
   const [hasChanges, setHasChanges] = useState(false);
@@ -53,10 +89,10 @@ export function GeneralSettings({
   }>({ status: "idle" });
 
   // Gateway security config (remote gateway)
-  const [requireSignedRequests, setRequireSignedRequests] = useState<boolean>(true);
-  const [requireSignedRequestsSource, setRequireSignedRequestsSource] = useState<
-    "default" | "explicit"
-  >("default");
+  const [requireSignedRequests, setRequireSignedRequests] =
+    useState<boolean>(true);
+  const [requireSignedRequestsSource, setRequireSignedRequestsSource] =
+    useState<"default" | "explicit">("default");
   const [securityLoading, setSecurityLoading] = useState(false);
   const [securityError, setSecurityError] = useState<string | null>(null);
 
@@ -66,9 +102,13 @@ export function GeneralSettings({
 
     try {
       // Use Rust-side HTTP probe (JS fetch blocked by Tauri CSP for cross-origin)
-      const probeResult = await invoke<{ found: boolean; url: string | null; error: string | null }>(
+      const probeResult = await invoke<{
+        found: boolean;
+        url: string | null;
+        error: string | null;
+      }>(
         "probe_gateway",
-        { url: testUrl }  // probe_gateway accepts optional URL override
+        { url: testUrl }, // probe_gateway accepts optional URL override
       );
 
       if (probeResult.found) {
@@ -84,23 +124,25 @@ export function GeneralSettings({
           }, 5000);
 
           ws.addEventListener("open", () => {
-            ws.send(JSON.stringify({
-              type: "req",
-              id: "test-1",
-              method: "connect",
-              params: {
-                minProtocol: 3,
-                maxProtocol: 3,
-                client: {
-                  id: "edwinpai-macos",
-                  displayName: "EdwinPAI Desktop (test)",
-                  version: APP_VERSION,
-                  platform: navigator.platform || "desktop",
-                  mode: "ui",
+            ws.send(
+              JSON.stringify({
+                type: "req",
+                id: "test-1",
+                method: "connect",
+                params: {
+                  minProtocol: 3,
+                  maxProtocol: 3,
+                  client: {
+                    id: "edwinpai-macos",
+                    displayName: "EdwinPAI Desktop (test)",
+                    version: APP_VERSION,
+                    platform: navigator.platform || "desktop",
+                    mode: "ui",
+                  },
+                  auth: testToken ? { token: testToken } : undefined,
                 },
-                auth: testToken ? { token: testToken } : undefined,
-              },
-            }));
+              }),
+            );
           });
 
           ws.addEventListener("message", (event) => {
@@ -161,10 +203,11 @@ export function GeneralSettings({
   const syncActiveProfileDraft = (
     nextProfileId: string,
     nextProfiles: GatewayProfile[],
-    options?: { markChanged?: boolean }
+    options?: { markChanged?: boolean },
   ) => {
-    const profile =
-      nextProfiles.find((candidate) => candidate.id === nextProfileId) ??
+    const profile = nextProfiles.find(
+      (candidate) => candidate.id === nextProfileId,
+    ) ??
       nextProfiles[0] ??
       DEFAULT_DESKTOP_CONFIG.gatewayProfiles[0] ?? {
         ...resolvedActiveGatewayProfile,
@@ -186,14 +229,23 @@ export function GeneralSettings({
     id: activeProfileId,
     name: profileName.trim() || "Unnamed Gateway",
     gatewayUrl,
-    gatewayPort: portOverride ?? currentGatewayProfile.gatewayPort ?? config.gatewayPort ?? 18789,
+    gatewayPort:
+      portOverride ??
+      currentGatewayProfile.gatewayPort ??
+      config.gatewayPort ??
+      18789,
     gatewayToken,
     ssh: currentGatewayProfile.ssh,
   });
 
-  const replaceActiveProfile = (nextProfiles: GatewayProfile[], portOverride?: number) =>
+  const replaceActiveProfile = (
+    nextProfiles: GatewayProfile[],
+    portOverride?: number,
+  ) =>
     nextProfiles.map((profile) =>
-      profile.id === activeProfileId ? buildActiveProfile(portOverride) : profile
+      profile.id === activeProfileId
+        ? buildActiveProfile(portOverride)
+        : profile,
     );
 
   const getGatewayTarget = (): GatewayTarget => ({
@@ -279,7 +331,8 @@ export function GeneralSettings({
   const handleSave = async () => {
     try {
       // Parse port from URL
-      let port = currentGatewayProfile.gatewayPort ?? config.gatewayPort ?? 18789;
+      let port =
+        currentGatewayProfile.gatewayPort ?? config.gatewayPort ?? 18789;
       try {
         const url = new URL(gatewayUrl);
         if (url.port) {
@@ -309,7 +362,8 @@ export function GeneralSettings({
   };
 
   const handleReset = () => {
-    const defaultProfile = DEFAULT_DESKTOP_CONFIG.gatewayProfiles[0] ?? resolvedActiveGatewayProfile;
+    const defaultProfile =
+      DEFAULT_DESKTOP_CONFIG.gatewayProfiles[0] ?? resolvedActiveGatewayProfile;
     setGatewayProfiles(DEFAULT_DESKTOP_CONFIG.gatewayProfiles);
     setActiveProfileId(DEFAULT_DESKTOP_CONFIG.activeGatewayProfileId);
     setProfileName(defaultProfile.name);
@@ -364,7 +418,9 @@ export function GeneralSettings({
                 } else if (value === "light") {
                   root.classList.remove("dark");
                 } else {
-                  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+                  const prefersDark = window.matchMedia(
+                    "(prefers-color-scheme: dark)",
+                  ).matches;
                   root.classList.toggle("dark", prefersDark);
                 }
               }}
@@ -437,11 +493,16 @@ export function GeneralSettings({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="active-gateway-profile">Active Gateway Profile</Label>
+            <Label htmlFor="active-gateway-profile">
+              Active Gateway Profile
+            </Label>
             <Select
               value={activeProfileId}
               onValueChange={(value) => {
-                syncActiveProfileDraft(value, replaceActiveProfile(gatewayProfiles));
+                syncActiveProfileDraft(
+                  value,
+                  replaceActiveProfile(gatewayProfiles),
+                );
               }}
             >
               <SelectTrigger id="active-gateway-profile">
@@ -467,8 +528,10 @@ export function GeneralSettings({
                 setProfileName(nextName);
                 setGatewayProfiles(
                   gatewayProfiles.map((profile) =>
-                    profile.id === activeProfileId ? { ...profile, name: nextName } : profile
-                  )
+                    profile.id === activeProfileId
+                      ? { ...profile, name: nextName }
+                      : profile,
+                  ),
                 );
                 setHasChanges(true);
               }}
@@ -478,7 +541,9 @@ export function GeneralSettings({
           {/* SSH Tunnel Settings */}
           <div className="space-y-3 rounded-md border p-3">
             <div className="flex items-center justify-between">
-              <Label htmlFor="ssh-enabled" className="text-sm font-medium">SSH Tunnel</Label>
+              <Label htmlFor="ssh-enabled" className="text-sm font-medium">
+                SSH Tunnel
+              </Label>
               <Switch
                 id="ssh-enabled"
                 checked={currentGatewayProfile.ssh?.enabled ?? false}
@@ -495,8 +560,8 @@ export function GeneralSettings({
                               localPort: p.ssh?.localPort ?? 28789,
                             },
                           }
-                        : p
-                    )
+                        : p,
+                    ),
                   );
                   setHasChanges(true);
                 }}
@@ -505,7 +570,9 @@ export function GeneralSettings({
             {currentGatewayProfile.ssh?.enabled && (
               <div className="space-y-2">
                 <div className="space-y-1">
-                  <Label htmlFor="ssh-host" className="text-xs">SSH Host (from ~/.ssh/config)</Label>
+                  <Label htmlFor="ssh-host" className="text-xs">
+                    SSH Host (from ~/.ssh/config)
+                  </Label>
                   <Input
                     id="ssh-host"
                     placeholder="hostinger-personal"
@@ -515,8 +582,8 @@ export function GeneralSettings({
                         gatewayProfiles.map((p) =>
                           p.id === activeProfileId && p.ssh
                             ? { ...p, ssh: { ...p.ssh, host: e.target.value } }
-                            : p
-                        )
+                            : p,
+                        ),
                       );
                       setHasChanges(true);
                     }}
@@ -524,7 +591,9 @@ export function GeneralSettings({
                 </div>
                 <div className="flex gap-2">
                   <div className="flex-1 space-y-1">
-                    <Label htmlFor="ssh-remote-port" className="text-xs">Remote Port</Label>
+                    <Label htmlFor="ssh-remote-port" className="text-xs">
+                      Remote Port
+                    </Label>
                     <Input
                       id="ssh-remote-port"
                       type="number"
@@ -533,16 +602,25 @@ export function GeneralSettings({
                         setGatewayProfiles(
                           gatewayProfiles.map((p) =>
                             p.id === activeProfileId && p.ssh
-                              ? { ...p, ssh: { ...p.ssh, remotePort: parseInt(e.target.value) || 18789 } }
-                              : p
-                          )
+                              ? {
+                                  ...p,
+                                  ssh: {
+                                    ...p.ssh,
+                                    remotePort:
+                                      parseInt(e.target.value) || 18789,
+                                  },
+                                }
+                              : p,
+                          ),
                         );
                         setHasChanges(true);
                       }}
                     />
                   </div>
                   <div className="flex-1 space-y-1">
-                    <Label htmlFor="ssh-local-port" className="text-xs">Local Tunnel Port</Label>
+                    <Label htmlFor="ssh-local-port" className="text-xs">
+                      Local Tunnel Port
+                    </Label>
                     <Input
                       id="ssh-local-port"
                       type="number"
@@ -551,9 +629,16 @@ export function GeneralSettings({
                         setGatewayProfiles(
                           gatewayProfiles.map((p) =>
                             p.id === activeProfileId && p.ssh
-                              ? { ...p, ssh: { ...p.ssh, localPort: parseInt(e.target.value) || 28789 } }
-                              : p
-                          )
+                              ? {
+                                  ...p,
+                                  ssh: {
+                                    ...p.ssh,
+                                    localPort:
+                                      parseInt(e.target.value) || 28789,
+                                  },
+                                }
+                              : p,
+                          ),
                         );
                         setHasChanges(true);
                       }}
@@ -575,7 +660,10 @@ export function GeneralSettings({
                   gatewayPort: config.gatewayPort ?? 18789,
                   gatewayToken,
                 };
-                syncActiveProfileDraft(draftProfile.id, [...replaceActiveProfile(gatewayProfiles), draftProfile]);
+                syncActiveProfileDraft(draftProfile.id, [
+                  ...replaceActiveProfile(gatewayProfiles),
+                  draftProfile,
+                ]);
               }}
             >
               New Profile
@@ -584,12 +672,15 @@ export function GeneralSettings({
               variant="outline"
               onClick={() => {
                 if (gatewayProfiles.length <= 1) return;
-                const remainingProfiles = replaceActiveProfile(gatewayProfiles).filter(
-                  (profile) => profile.id !== activeProfileId
-                );
+                const remainingProfiles = replaceActiveProfile(
+                  gatewayProfiles,
+                ).filter((profile) => profile.id !== activeProfileId);
                 const nextActiveProfile = remainingProfiles[0];
                 if (nextActiveProfile) {
-                  syncActiveProfileDraft(nextActiveProfile.id, remainingProfiles);
+                  syncActiveProfileDraft(
+                    nextActiveProfile.id,
+                    remainingProfiles,
+                  );
                 }
               }}
               disabled={gatewayProfiles.length <= 1}
@@ -618,15 +709,18 @@ export function GeneralSettings({
                 setGatewayUrl(e.target.value);
                 setGatewayProfiles(
                   gatewayProfiles.map((profile) =>
-                    profile.id === activeProfileId ? { ...profile, gatewayUrl: e.target.value } : profile
-                  )
+                    profile.id === activeProfileId
+                      ? { ...profile, gatewayUrl: e.target.value }
+                      : profile,
+                  ),
                 );
                 setHasChanges(true);
               }}
               placeholder="http://localhost:18789"
             />
             <p className="text-xs text-muted-foreground">
-              The URL of your EdwinPAI Gateway instance (default: http://localhost:18789)
+              The URL of your EdwinPAI Gateway instance (default:
+              http://localhost:18789)
             </p>
           </div>
           <div className="space-y-2">
@@ -639,15 +733,18 @@ export function GeneralSettings({
                 setGatewayToken(e.target.value);
                 setGatewayProfiles(
                   gatewayProfiles.map((profile) =>
-                    profile.id === activeProfileId ? { ...profile, gatewayToken: e.target.value } : profile
-                  )
+                    profile.id === activeProfileId
+                      ? { ...profile, gatewayToken: e.target.value }
+                      : profile,
+                  ),
                 );
                 setHasChanges(true);
               }}
               placeholder="Leave empty to use ~/.edwinpai/edwinpai.json token"
             />
             <p className="text-xs text-muted-foreground">
-              Gateway authentication token. Leave empty to read from shared config.
+              Gateway authentication token. Leave empty to read from shared
+              config.
             </p>
           </div>
 
@@ -689,22 +786,28 @@ export function GeneralSettings({
         <CardHeader>
           <CardTitle>Security</CardTitle>
           <CardDescription>
-            Control whether the gateway requires BSV-signed requests for sensitive operations
+            Control whether the gateway requires BSV-signed requests for
+            sensitive operations
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5 flex-1">
               <div className="flex items-center gap-2">
-                <Label htmlFor="require-signed-requests">Require signed requests</Label>
+                <Label htmlFor="require-signed-requests">
+                  Require signed requests
+                </Label>
                 <Badge variant="outline">
-                  {requireSignedRequestsSource === "explicit" ? "Explicit" : "Default"}
+                  {requireSignedRequestsSource === "explicit"
+                    ? "Explicit"
+                    : "Default"}
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                When enabled, the gateway rejects config changes and other sensitive methods unless they
-                include a valid BSV signature. This makes the Desktop GUI (with the identity key) the
-                secure admin surface.
+                When enabled, the gateway rejects config changes and other
+                sensitive methods unless they include a valid BSV signature.
+                This makes the Desktop GUI (with the identity key) the secure
+                admin surface.
               </p>
             </div>
             <Switch
@@ -743,9 +846,7 @@ export function GeneralSettings({
           </div>
 
           {securityError && (
-            <p className="text-sm text-destructive">
-              {securityError}
-            </p>
+            <p className="text-sm text-destructive">{securityError}</p>
           )}
         </CardContent>
       </Card>
@@ -776,7 +877,8 @@ export function GeneralSettings({
           <CardHeader>
             <CardTitle>Application Mode</CardTitle>
             <CardDescription>
-              Switch between Gateway Mode (run your own) and Client Mode (connect to remote)
+              Switch between Gateway Mode (run your own) and Client Mode
+              (connect to remote)
             </CardDescription>
           </CardHeader>
           <CardContent>

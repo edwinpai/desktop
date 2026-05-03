@@ -2,10 +2,12 @@
  * Test Utilities - Mock IPC and common test helpers
  */
 
-import { vi } from 'vitest';
+import { vi } from "vitest";
 
 type MockIpcResult = unknown;
-type MockIpcHandler = MockIpcResult | ((args?: unknown) => MockIpcResult | Promise<MockIpcResult>);
+type MockIpcHandler =
+  | MockIpcResult
+  | ((args?: unknown) => MockIpcResult | Promise<MockIpcResult>);
 type MockEvent<T = unknown> = { payload: T };
 type MockListener<T = unknown> = (event: MockEvent<T>) => void;
 
@@ -54,7 +56,7 @@ export function createMockIPC() {
           throw new Error(`No mock handler for command: ${command}`);
         }
 
-        if (typeof handler === 'function') {
+        if (typeof handler === "function") {
           return handler(args);
         }
 
@@ -135,7 +137,10 @@ export function createMockSSEStream(
 /**
  * Wait for async state updates
  */
-export async function waitFor(callback: () => boolean | Promise<boolean>, timeout = 3000): Promise<void> {
+export async function waitFor(
+  callback: () => boolean | Promise<boolean>,
+  timeout = 3000,
+): Promise<void> {
   const start = Date.now();
 
   while (Date.now() - start < timeout) {
@@ -186,7 +191,7 @@ export function createMockZustandStore<T extends object>(initialState: T) {
   return {
     getState: () => state,
     setState: (partial: Partial<T> | ((currentState: T) => Partial<T>)) => {
-      const updates = typeof partial === 'function' ? partial(state) : partial;
+      const updates = typeof partial === "function" ? partial(state) : partial;
       state = { ...state, ...updates } as T;
       listeners.forEach((listener) => listener());
     },

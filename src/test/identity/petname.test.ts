@@ -7,18 +7,49 @@
 
 import { describe, it, expect } from "vitest";
 
-import type { Petname, PetnameConfig, PetnameWordLists } from "@/types/identity";
+import type {
+  Petname,
+  PetnameConfig,
+  PetnameWordLists,
+} from "@/types/identity";
 
 describe("Petname Generation", () => {
   // Word lists matching Rust implementation
   const testWordLists: PetnameWordLists = {
     adjectives: [
-      "Swift", "Quiet", "Bold", "Bright", "Calm", "Deep", "Fierce", "Gentle",
-      "Happy", "Keen", "Loyal", "Noble", "Quick", "Rare", "Silent", "Vivid",
+      "Swift",
+      "Quiet",
+      "Bold",
+      "Bright",
+      "Calm",
+      "Deep",
+      "Fierce",
+      "Gentle",
+      "Happy",
+      "Keen",
+      "Loyal",
+      "Noble",
+      "Quick",
+      "Rare",
+      "Silent",
+      "Vivid",
     ],
     nouns: [
-      "Falcon", "Ember", "River", "Mountain", "Storm", "Phoenix", "Shadow",
-      "Tiger", "Eagle", "Wolf", "Dragon", "Bear", "Hawk", "Lion", "Owl",
+      "Falcon",
+      "Ember",
+      "River",
+      "Mountain",
+      "Storm",
+      "Phoenix",
+      "Shadow",
+      "Tiger",
+      "Eagle",
+      "Wolf",
+      "Dragon",
+      "Bear",
+      "Hawk",
+      "Lion",
+      "Owl",
       "Panther",
     ],
   };
@@ -212,11 +243,16 @@ describe("Petname Generation", () => {
 
     it("should handle large word lists", () => {
       const largeLists: PetnameWordLists = {
-        adjectives: Array(256).fill("Adj").map((a, i) => `${a}${i}`),
-        nouns: Array(256).fill("Noun").map((n, i) => `${n}${i}`),
+        adjectives: Array(256)
+          .fill("Adj")
+          .map((a, i) => `${a}${i}`),
+        nouns: Array(256)
+          .fill("Noun")
+          .map((n, i) => `${n}${i}`),
       };
 
-      const combinations = largeLists.adjectives.length * largeLists.nouns.length;
+      const combinations =
+        largeLists.adjectives.length * largeLists.nouns.length;
       expect(combinations).toBe(65536);
     });
   });
@@ -230,14 +266,13 @@ describe("Petname Generation", () => {
  */
 function generateMockPetname(
   publicKey: string,
-  wordLists: PetnameWordLists
+  wordLists: PetnameWordLists,
 ): Petname {
   // Simple mock: use hex chars to index into word lists
   // In real app, this would call the Rust backend
   const hash = publicKey.slice(2); // Remove "02" or "03" prefix
 
-  const adjIndex =
-    parseInt(hash.slice(0, 4), 16) % wordLists.adjectives.length;
+  const adjIndex = parseInt(hash.slice(0, 4), 16) % wordLists.adjectives.length;
   const nounIndex = parseInt(hash.slice(4, 8), 16) % wordLists.nouns.length;
 
   const adjective = wordLists.adjectives[adjIndex]!;

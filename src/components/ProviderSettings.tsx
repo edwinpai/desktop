@@ -7,12 +7,24 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 // Alert removed — target label replaces old warning banner
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Info, CheckCircle, RefreshCw } from "lucide-react";
 import { readConfig } from "@/lib/config";
@@ -104,9 +116,9 @@ export function ProviderSettings() {
 
       // Merge with local auth-profiles (for providers not in gateway config)
       try {
-        const result = await invoke<{ providers: { provider: string; maskedKey: string }[] }>(
-          "list_providers",
-        );
+        const result = await invoke<{
+          providers: { provider: string; maskedKey: string }[];
+        }>("list_providers");
         for (const local of result.providers) {
           if (!entries.find((e) => e.provider === local.provider)) {
             entries.push({
@@ -213,9 +225,9 @@ export function ProviderSettings() {
       // Only remove from local auth-profiles for local gateways
       if (!isRemoteGateway) {
         try {
-          const result = await invoke<{ providers: { id: string; provider: string }[] }>(
-            "list_providers",
-          );
+          const result = await invoke<{
+            providers: { id: string; provider: string }[];
+          }>("list_providers");
           const local = result.providers.find((p) => p.provider === provider);
           if (local) {
             await invoke("remove_provider", { id: local.id });
@@ -241,8 +253,8 @@ export function ProviderSettings() {
           <div>
             <CardTitle>AI Providers</CardTitle>
             <CardDescription>
-              Configure API keys for AI model providers. At least one provider is
-              required for chat.
+              Configure API keys for AI model providers. At least one provider
+              is required for chat.
             </CardDescription>
           </div>
           <Button
@@ -263,9 +275,14 @@ export function ProviderSettings() {
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Info className="h-3.5 w-3.5" />
           <span>
-            Configuring providers on: <code className="bg-muted px-1.5 py-0.5 rounded font-mono">{gatewayLabel}</code>
+            Configuring providers on:{" "}
+            <code className="bg-muted px-1.5 py-0.5 rounded font-mono">
+              {gatewayLabel}
+            </code>
             {isRemoteGateway && (
-              <Badge variant="outline" className="ml-2 text-xs">remote</Badge>
+              <Badge variant="outline" className="ml-2 text-xs">
+                remote
+              </Badge>
             )}
           </span>
         </div>

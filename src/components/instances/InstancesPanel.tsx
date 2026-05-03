@@ -2,11 +2,20 @@ import { useState, useCallback } from "react";
 import { RefreshCw, Monitor, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 interface InstancesPanelProps {
-  request?: (method: string, params: Record<string, unknown>) => Promise<unknown>;
+  request?: (
+    method: string,
+    params: Record<string, unknown>,
+  ) => Promise<unknown>;
 }
 
 export function InstancesPanel({ request }: InstancesPanelProps) {
@@ -18,7 +27,9 @@ export function InstancesPanel({ request }: InstancesPanelProps) {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    setMessage("Instances view is not wired yet — the gateway does not currently expose instances.list.");
+    setMessage(
+      "Instances view is not wired yet — the gateway does not currently expose instances.list.",
+    );
     setLoading(false);
   }, []);
 
@@ -31,11 +42,14 @@ export function InstancesPanel({ request }: InstancesPanelProps) {
             Instances
           </h2>
           <p className="text-sm text-muted-foreground">
-            Desktop-side placeholder until the gateway exposes a real instances listing API.
+            Desktop-side placeholder until the gateway exposes a real instances
+            listing API.
           </p>
         </div>
         <Button variant="outline" onClick={refresh} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+          />
           {loading ? "Checking..." : "Check again"}
         </Button>
       </div>
@@ -49,18 +63,18 @@ export function InstancesPanel({ request }: InstancesPanelProps) {
                 Not implemented yet
               </CardTitle>
               <CardDescription>
-                This tab was previously calling a nonexistent gateway method and now fails closed instead of throwing.
+                This tab was previously calling a nonexistent gateway method and
+                now fails closed instead of throwing.
               </CardDescription>
             </div>
             <Badge variant="outline">Gated</Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            {message}
-          </p>
+          <p className="text-sm text-muted-foreground">{message}</p>
           <p className="text-xs text-muted-foreground">
-            Next step: either add an <code>instances.list</code> gateway method or hide this tab until the backend exists.
+            Next step: either add an <code>instances.list</code> gateway method
+            or hide this tab until the backend exists.
           </p>
         </CardContent>
       </Card>

@@ -1,12 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
+
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useConfig } from "@/hooks/useConfig";
-import { buildGatewayTarget, invokeSkillTool, type SkillStatusEntry, type SkillStatusReport } from "@/lib/skills";
+import {
+  buildGatewayTarget,
+  invokeSkillTool,
+  type SkillStatusEntry,
+  type SkillStatusReport,
+} from "@/lib/skills";
 
 const joinList = (items: string[]) => items.filter(Boolean).join(", ");
 
@@ -18,14 +30,17 @@ function toUserFacingError(err: unknown): string {
   ) {
     return "Desktop integration is unavailable right now. Please reopen this screen inside the desktop app.";
   }
-  if (msg.includes("unknown method") || msg.includes("not found") || msg.includes("does not exist")) {
+  if (
+    msg.includes("unknown method") ||
+    msg.includes("not found") ||
+    msg.includes("does not exist")
+  ) {
     return "This gateway does not support desktop skill management yet.";
   }
   return msg;
 }
 
-
-export function SkillsPanel() {
+export function SkillsPanel({ embedded = false }: { embedded?: boolean } = {}) {
   const { config, loading: configLoading } = useConfig();
   const target = useMemo(() => buildGatewayTarget(config), [config]);
 
@@ -39,7 +54,10 @@ export function SkillsPanel() {
     setLoading(true);
     setError(null);
     try {
-      const result = (await invokeSkillTool(target, "status")) as SkillStatusReport;
+      const result = (await invokeSkillTool(
+        target,
+        "status",
+      )) as SkillStatusReport;
       setReport(result);
     } catch (err) {
       setError(toUserFacingError(err));
@@ -87,11 +105,16 @@ export function SkillsPanel() {
     setBusyKey(skill.skillKey);
     setError(null);
     try {
-      await invokeSkillTool(target, "install", {
-        name: skill.name,
-        installId: option.id,
-        timeoutMs: 120000,
-      }, 120000);
+      await invokeSkillTool(
+        target,
+        "install",
+        {
+          name: skill.name,
+          installId: option.id,
+          timeoutMs: 120000,
+        },
+        120000,
+      );
       await loadSkills();
     } catch (err) {
       setError(toUserFacingError(err));
@@ -101,11 +124,13 @@ export function SkillsPanel() {
   };
 
   if (configLoading) {
-    return <div className="p-6 text-muted-foreground">Loading gateway config...</div>;
+    return (
+      <div className="p-6 text-muted-foreground">Loading gateway config...</div>
+    );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className={embedded ? "space-y-6" : "p-6 space-y-6"}>
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Skills</h2>
@@ -124,11 +149,21 @@ export function SkillsPanel() {
         <div className="grid gap-4">
           {report.skills.map((skill) => {
             const missing = [
-              skill.missing.bins.length ? `Bins: ${joinList(skill.missing.bins)}` : null,
-              skill.missing.anyBins.length ? `Any bins: ${joinList(skill.missing.anyBins)}` : null,
-              skill.missing.env.length ? `Env: ${joinList(skill.missing.env)}` : null,
-              skill.missing.config.length ? `Config: ${joinList(skill.missing.config)}` : null,
-              skill.missing.os.length ? `OS: ${joinList(skill.missing.os)}` : null,
+              skill.missing.bins.length
+                ? `Bins: ${joinList(skill.missing.bins)}`
+                : null,
+              skill.missing.anyBins.length
+                ? `Any bins: ${joinList(skill.missing.anyBins)}`
+                : null,
+              skill.missing.env.length
+                ? `Env: ${joinList(skill.missing.env)}`
+                : null,
+              skill.missing.config.length
+                ? `Config: ${joinList(skill.missing.config)}`
+                : null,
+              skill.missing.os.length
+                ? `OS: ${joinList(skill.missing.os)}`
+                : null,
             ].filter(Boolean);
 
             return (
@@ -137,10 +172,19 @@ export function SkillsPanel() {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <CardTitle className="flex items-center gap-2">
-                        <span>{skill.emoji ? `${skill.emoji} ` : ""}{skill.name}</span>
-                        {skill.bundled && <Badge variant="secondary">Bundled</Badge>}
-                        {skill.always && <Badge variant="outline">Always on</Badge>}
-                        {skill.blockedByAllowlist && <Badge variant="destructive">Blocked</Badge>}
+                        <span>
+                          {skill.emoji ? `${skill.emoji} ` : ""}
+                          {skill.name}
+                        </span>
+                        {skill.bundled && (
+                          <Badge variant="secondary">Bundled</Badge>
+                        )}
+                        {skill.always && (
+                          <Badge variant="outline">Always on</Badge>
+                        )}
+                        {skill.blockedByAllowlist && (
+                          <Badge variant="destructive">Blocked</Badge>
+                        )}
                       </CardTitle>
                       <CardDescription>{skill.description}</CardDescription>
                     </div>
@@ -150,8 +194,14 @@ export function SkillsPanel() {
                       </div>
                       <Switch
                         checked={!skill.disabled}
-                        onCheckedChange={(checked) => updateSkill(skill.skillKey, checked)}
-                        disabled={skill.always || skill.blockedByAllowlist || busyKey === skill.skillKey}
+                        onCheckedChange={(checked) =>
+                          updateSkill(skill.skillKey, checked)
+                        }
+                        disabled={
+                          skill.always ||
+                          skill.blockedByAllowlist ||
+                          busyKey === skill.skillKey
+                        }
                       />
                     </div>
                   </div>
@@ -163,25 +213,34 @@ export function SkillsPanel() {
                     </div>
                   )}
 
-                  {skill.install?.length > 0 && !skill.eligible && !skill.blockedByAllowlist && (
-                    <Button
-                      variant="outline"
-                      onClick={() => installSkill(skill)}
-                      disabled={busyKey === skill.skillKey}
-                    >
-                      {busyKey === skill.skillKey ? "Installing..." : skill.install[0]?.label ?? "Install"}
-                    </Button>
-                  )}
+                  {skill.install?.length > 0 &&
+                    !skill.eligible &&
+                    !skill.blockedByAllowlist && (
+                      <Button
+                        variant="outline"
+                        onClick={() => installSkill(skill)}
+                        disabled={busyKey === skill.skillKey}
+                      >
+                        {busyKey === skill.skillKey
+                          ? "Installing..."
+                          : (skill.install[0]?.label ?? "Install")}
+                      </Button>
+                    )}
 
                   {skill.primaryEnv && (
                     <div className="space-y-2">
-                      <Label htmlFor={`${skill.skillKey}-apikey`}>{skill.primaryEnv}</Label>
+                      <Label htmlFor={`${skill.skillKey}-apikey`}>
+                        {skill.primaryEnv}
+                      </Label>
                       <div className="flex gap-2">
                         <Input
                           id={`${skill.skillKey}-apikey`}
                           value={apiKeyDrafts[skill.skillKey] ?? ""}
                           onChange={(e) =>
-                            setApiKeyDrafts((prev) => ({ ...prev, [skill.skillKey]: e.target.value }))
+                            setApiKeyDrafts((prev) => ({
+                              ...prev,
+                              [skill.skillKey]: e.target.value,
+                            }))
                           }
                           placeholder="Enter API key"
                         />
@@ -215,7 +274,8 @@ export function SkillsPanel() {
           <CardHeader>
             <CardTitle>No skills found</CardTitle>
             <CardDescription>
-              Ensure the gateway has skills available or check your workspace configuration.
+              Ensure the gateway has skills available or check your workspace
+              configuration.
             </CardDescription>
           </CardHeader>
         </Card>

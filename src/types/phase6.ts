@@ -42,13 +42,13 @@ export interface TaskGroup {
  */
 export interface ErrorInventory {
   /** Error category - either TypeScript or Rust compilation/test errors */
-  category: 'typescript' | 'rust';
+  category: "typescript" | "rust";
 
   /** Total count of errors in this category */
   count: number;
 
   /** Severity level of the errors */
-  severity: 'critical' | 'high' | 'medium' | 'low';
+  severity: "critical" | "high" | "medium" | "low";
 
   /** List of files affected by these errors */
   files_affected: string[];
@@ -87,7 +87,7 @@ export interface PhaseState {
   phase_num: number;
 
   /** Current status of the phase */
-  status: 'not_started' | 'in_progress' | 'complete' | 'blocked';
+  status: "not_started" | "in_progress" | "complete" | "blocked";
 
   /** Total number of files created/modified in this phase */
   file_count: number;
@@ -137,8 +137,8 @@ export interface Phase6Requirements {
   /** Optional: risk assessment */
   risks?: {
     description: string;
-    likelihood: 'low' | 'medium' | 'high';
-    impact: 'low' | 'medium' | 'high';
+    likelihood: "low" | "medium" | "high";
+    impact: "low" | "medium" | "high";
     mitigation: string;
   }[];
 }
@@ -149,13 +149,13 @@ export interface Phase6Requirements {
 export function isTaskGroup(obj: unknown): obj is TaskGroup {
   const tg = obj as TaskGroup;
   return (
-    typeof tg === 'object' &&
+    typeof tg === "object" &&
     tg !== null &&
-    typeof tg.id === 'string' &&
-    typeof tg.name === 'string' &&
+    typeof tg.id === "string" &&
+    typeof tg.name === "string" &&
     Array.isArray(tg.blocking_deps) &&
     Array.isArray(tg.acceptance_criteria) &&
-    typeof tg.estimated_loc === 'number'
+    typeof tg.estimated_loc === "number"
   );
 }
 
@@ -165,11 +165,11 @@ export function isTaskGroup(obj: unknown): obj is TaskGroup {
 export function isErrorInventory(obj: unknown): obj is ErrorInventory {
   const ei = obj as ErrorInventory;
   return (
-    typeof ei === 'object' &&
+    typeof ei === "object" &&
     ei !== null &&
-    (ei.category === 'typescript' || ei.category === 'rust') &&
-    typeof ei.count === 'number' &&
-    ['critical', 'high', 'medium', 'low'].includes(ei.severity) &&
+    (ei.category === "typescript" || ei.category === "rust") &&
+    typeof ei.count === "number" &&
+    ["critical", "high", "medium", "low"].includes(ei.severity) &&
     Array.isArray(ei.files_affected)
   );
 }
@@ -180,12 +180,13 @@ export function isErrorInventory(obj: unknown): obj is ErrorInventory {
 export function isSuccessCriteria(obj: unknown): obj is SuccessCriteria {
   const sc = obj as SuccessCriteria;
   return (
-    typeof sc === 'object' &&
+    typeof sc === "object" &&
     sc !== null &&
-    typeof sc.metric === 'string' &&
-    (typeof sc.target === 'string' || typeof sc.target === 'number') &&
-    (typeof sc.current_baseline === 'string' || typeof sc.current_baseline === 'number') &&
-    typeof sc.verification_method === 'string'
+    typeof sc.metric === "string" &&
+    (typeof sc.target === "string" || typeof sc.target === "number") &&
+    (typeof sc.current_baseline === "string" ||
+      typeof sc.current_baseline === "number") &&
+    typeof sc.verification_method === "string"
   );
 }
 
@@ -195,13 +196,13 @@ export function isSuccessCriteria(obj: unknown): obj is SuccessCriteria {
 export function isPhaseState(obj: unknown): obj is PhaseState {
   const ps = obj as PhaseState;
   return (
-    typeof ps === 'object' &&
+    typeof ps === "object" &&
     ps !== null &&
-    typeof ps.phase_num === 'number' &&
-    ['not_started', 'in_progress', 'complete', 'blocked'].includes(ps.status) &&
-    typeof ps.file_count === 'number' &&
-    typeof ps.loc_count === 'number' &&
-    typeof ps.test_count === 'number' &&
+    typeof ps.phase_num === "number" &&
+    ["not_started", "in_progress", "complete", "blocked"].includes(ps.status) &&
+    typeof ps.file_count === "number" &&
+    typeof ps.loc_count === "number" &&
+    typeof ps.test_count === "number" &&
     Array.isArray(ps.domains_completed)
   );
 }
@@ -228,7 +229,7 @@ export type {
   SendMessageResponse,
   UpdateConfigRequest,
   UpdateConfigResponse,
-} from './onboarding';
+} from "./onboarding";
 
 // Auto-updater types
 export type {
@@ -249,8 +250,8 @@ export type {
   SetUpdateConfigRequest,
   SetUpdateConfigResponse,
   UpdateStatusEvent,
-} from './updater';
-export { UpdateStatus } from './updater';
+} from "./updater";
+export { UpdateStatus } from "./updater";
 
 // Error boundary types
 export type {
@@ -263,8 +264,8 @@ export type {
   LogErrorResponse,
   GlobalErrorConfig,
   ErrorReport,
-} from './errors';
-export { ErrorSeverity, ErrorCategory } from './errors';
+} from "./errors";
+export { ErrorSeverity, ErrorCategory } from "./errors";
 
 // NOTE: Performance and Accessibility types will be added when files are created
 // export type { VirtualizationConfig, MemoizationStrategy, LazyLoadConfig } from './performance';

@@ -6,7 +6,7 @@
  * @module types/errors
  */
 
-import type { ErrorInfo as ReactErrorInfo } from 'react';
+import type { ErrorInfo as ReactErrorInfo } from "react";
 
 /**
  * Error recovery action strategy.
@@ -17,7 +17,12 @@ import type { ErrorInfo as ReactErrorInfo } from 'react';
  * - `reload`: Reload the entire application
  * - `navigate`: Navigate to a safe route (e.g., home)
  */
-export type ErrorRecoveryAction = 'retry' | 'reset' | 'ignore' | 'reload' | 'navigate';
+export type ErrorRecoveryAction =
+  | "retry"
+  | "reset"
+  | "ignore"
+  | "reload"
+  | "navigate";
 
 /**
  * Error severity level.
@@ -26,16 +31,16 @@ export type ErrorRecoveryAction = 'retry' | 'reset' | 'ignore' | 'reload' | 'nav
  */
 export enum ErrorSeverity {
   /** Low severity - UI glitch, non-critical feature failure */
-  Low = 'low',
+  Low = "low",
 
   /** Medium severity - Feature unavailable, degraded functionality */
-  Medium = 'medium',
+  Medium = "medium",
 
   /** High severity - Major feature failure, data loss risk */
-  High = 'high',
+  High = "high",
 
   /** Critical severity - App crash, security issue */
-  Critical = 'critical',
+  Critical = "critical",
 }
 
 /**
@@ -45,25 +50,25 @@ export enum ErrorSeverity {
  */
 export enum ErrorCategory {
   /** Network request failure */
-  Network = 'network',
+  Network = "network",
 
   /** IPC communication failure */
-  IPC = 'ipc',
+  IPC = "ipc",
 
   /** Validation error */
-  Validation = 'validation',
+  Validation = "validation",
 
   /** Authentication/authorization error */
-  Auth = 'auth',
+  Auth = "auth",
 
   /** Rendering error */
-  Render = 'render',
+  Render = "render",
 
   /** State management error */
-  State = 'state',
+  State = "state",
 
   /** Unknown error */
-  Unknown = 'unknown',
+  Unknown = "unknown",
 }
 
 /**

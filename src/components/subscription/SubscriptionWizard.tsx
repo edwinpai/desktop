@@ -8,8 +8,8 @@
  * 4. Complete - confirmation
  */
 
-import { useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { useState } from "react";
+import { CheckCircle2 } from "lucide-react";
 
 import {
   Dialog,
@@ -17,10 +17,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export interface SubscriptionWizardProps {
   open: boolean;
@@ -28,7 +28,7 @@ export interface SubscriptionWizardProps {
   onComplete: () => void;
 }
 
-type WizardStep = 'welcome' | 'choose-plan' | 'setup' | 'complete';
+type WizardStep = "welcome" | "choose-plan" | "setup" | "complete";
 
 interface PricingTier {
   id: string;
@@ -40,39 +40,39 @@ interface PricingTier {
 
 const PRICING_TIERS: PricingTier[] = [
   {
-    id: 'basic',
-    name: 'Basic',
-    price: '$5/month',
+    id: "basic",
+    name: "Basic",
+    price: "$5/month",
     features: [
-      'Access to AI assistant',
-      'Up to 100 messages/day',
-      'Community channels',
-      'Basic support',
+      "Access to AI assistant",
+      "Up to 100 messages/day",
+      "Community channels",
+      "Basic support",
     ],
   },
   {
-    id: 'pro',
-    name: 'Pro',
-    price: '$15/month',
+    id: "pro",
+    name: "Pro",
+    price: "$15/month",
     features: [
-      'Everything in Basic',
-      'Unlimited messages',
-      'Private channels',
-      'Priority support',
-      'Advanced features',
+      "Everything in Basic",
+      "Unlimited messages",
+      "Private channels",
+      "Priority support",
+      "Advanced features",
     ],
     recommended: true,
   },
   {
-    id: 'team',
-    name: 'Team',
-    price: '$50/month',
+    id: "team",
+    name: "Team",
+    price: "$50/month",
     features: [
-      'Everything in Pro',
-      'Up to 10 team members',
-      'Admin dashboard',
-      'Custom branding',
-      'Dedicated support',
+      "Everything in Pro",
+      "Up to 10 team members",
+      "Admin dashboard",
+      "Custom branding",
+      "Dedicated support",
     ],
   },
 ];
@@ -82,25 +82,25 @@ export function SubscriptionWizard({
   onOpenChange,
   onComplete,
 }: SubscriptionWizardProps) {
-  const [step, setStep] = useState<WizardStep>('welcome');
-  const [selectedPlan, setSelectedPlan] = useState<string>('pro');
+  const [step, setStep] = useState<WizardStep>("welcome");
+  const [selectedPlan, setSelectedPlan] = useState<string>("pro");
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleNext = () => {
-    if (step === 'welcome') {
-      setStep('choose-plan');
-    } else if (step === 'choose-plan') {
-      setStep('setup');
-    } else if (step === 'setup') {
+    if (step === "welcome") {
+      setStep("choose-plan");
+    } else if (step === "choose-plan") {
+      setStep("setup");
+    } else if (step === "setup") {
       handleSetup();
     }
   };
 
   const handleBack = () => {
-    if (step === 'choose-plan') {
-      setStep('welcome');
-    } else if (step === 'setup') {
-      setStep('choose-plan');
+    if (step === "choose-plan") {
+      setStep("welcome");
+    } else if (step === "setup") {
+      setStep("choose-plan");
     }
   };
 
@@ -111,9 +111,9 @@ export function SubscriptionWizard({
       // For now, simulate async operation
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      setStep('complete');
+      setStep("complete");
     } catch (error) {
-      console.error('Subscription setup failed:', error);
+      console.error("Subscription setup failed:", error);
       // TODO: Show error message
     } finally {
       setIsProcessing(false);
@@ -125,17 +125,17 @@ export function SubscriptionWizard({
     onOpenChange(false);
     // Reset wizard state
     setTimeout(() => {
-      setStep('welcome');
-      setSelectedPlan('pro');
+      setStep("welcome");
+      setSelectedPlan("pro");
     }, 300);
   };
 
   const renderStep = () => {
     switch (step) {
-      case 'welcome':
+      case "welcome":
         return <WelcomeStep onNext={handleNext} />;
 
-      case 'choose-plan':
+      case "choose-plan":
         return (
           <ChoosePlanStep
             selectedPlan={selectedPlan}
@@ -145,7 +145,7 @@ export function SubscriptionWizard({
           />
         );
 
-      case 'setup':
+      case "setup":
         return (
           <SetupStep
             selectedPlan={selectedPlan}
@@ -155,7 +155,7 @@ export function SubscriptionWizard({
           />
         );
 
-      case 'complete':
+      case "complete":
         return <CompleteStep onFinish={handleFinish} />;
 
       default:
@@ -165,9 +165,7 @@ export function SubscriptionWizard({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        {renderStep()}
-      </DialogContent>
+      <DialogContent className="max-w-2xl">{renderStep()}</DialogContent>
     </Dialog>
   );
 }
@@ -195,9 +193,9 @@ function WelcomeStep({ onNext }: WelcomeStepProps) {
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>
-              EdwinPAI is your personal AI assistant that helps you work smarter.
-              Get instant answers, collaborate with others, and access powerful
-              tools—all in one place.
+              EdwinPAI is your personal AI assistant that helps you work
+              smarter. Get instant answers, collaborate with others, and access
+              powerful tools—all in one place.
             </p>
             <ul className="space-y-2 pl-4">
               <li className="flex items-start gap-2">
@@ -253,9 +251,10 @@ function ChoosePlanStep({
           <Card
             key={tier.id}
             className={cn(
-              'cursor-pointer transition-all hover:border-primary',
-              selectedPlan === tier.id && 'border-primary ring-2 ring-primary/20',
-              tier.recommended && 'border-primary/50',
+              "cursor-pointer transition-all hover:border-primary",
+              selectedPlan === tier.id &&
+                "border-primary ring-2 ring-primary/20",
+              tier.recommended && "border-primary/50",
             )}
             onClick={() => onSelectPlan(tier.id)}
           >
@@ -348,7 +347,7 @@ function SetupStep({
           Back
         </Button>
         <Button onClick={onNext} disabled={isProcessing}>
-          {isProcessing ? 'Processing...' : 'Activate Subscription'}
+          {isProcessing ? "Processing..." : "Activate Subscription"}
         </Button>
       </div>
     </>

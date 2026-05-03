@@ -59,9 +59,14 @@ export function GatewayStatusIndicator() {
     // Also check configured URL from desktop config (may be non-default port)
     try {
       const desktopConfig = await readConfig();
-      if (desktopConfig.gatewayUrl && desktopConfig.gatewayUrl !== "http://localhost:18789") {
+      if (
+        desktopConfig.gatewayUrl &&
+        desktopConfig.gatewayUrl !== "http://localhost:18789"
+      ) {
         // Use Rust-side probe (JS fetch blocked by Tauri CSP)
-        const customProbe = await invoke<ProbeResult>("probe_gateway", { url: desktopConfig.gatewayUrl });
+        const customProbe = await invoke<ProbeResult>("probe_gateway", {
+          url: desktopConfig.gatewayUrl,
+        });
         if (customProbe.found) {
           setGatewayStatus({
             isRunning: true,

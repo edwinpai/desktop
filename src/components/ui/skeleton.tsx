@@ -36,7 +36,7 @@ export function Skeleton({
         variant === "pulse" && "animate-pulse",
         variant === "wave" &&
           "animate-shimmer bg-gradient-to-r from-muted via-muted-foreground/10 to-muted bg-[length:200%_100%]",
-        className
+        className,
       )}
       role="status"
       aria-label="Loading..."

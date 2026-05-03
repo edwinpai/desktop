@@ -2,8 +2,8 @@
  * Discovery List - Displays discovered peers with petname, pubkey, and signal strength
  */
 
-import { Button } from '@/components/ui/button';
-import type { DiscoveredPeer } from '@/types/api';
+import { Button } from "@/components/ui/button";
+import type { DiscoveredPeer } from "@/types/api";
 
 interface DiscoveryListProps {
   peers: DiscoveredPeer[];
@@ -11,12 +11,18 @@ interface DiscoveryListProps {
   isScanning?: boolean;
 }
 
-export function DiscoveryList({ peers, onSelect, isScanning }: DiscoveryListProps) {
+export function DiscoveryList({
+  peers,
+  onSelect,
+  isScanning,
+}: DiscoveryListProps) {
   if (isScanning && peers.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4" />
-        <p className="text-sm text-muted-foreground">Scanning for gateways...</p>
+        <p className="text-sm text-muted-foreground">
+          Scanning for gateways...
+        </p>
       </div>
     );
   }
@@ -60,7 +66,10 @@ export function DiscoveryList({ peers, onSelect, isScanning }: DiscoveryListProp
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <p className="font-medium truncate">{peer.petname}</p>
-                <SignalStrength isOnline={peer.isOnline} lastSeen={peer.lastSeen} />
+                <SignalStrength
+                  isOnline={peer.isOnline}
+                  lastSeen={peer.lastSeen}
+                />
               </div>
               <p className="text-xs text-muted-foreground font-mono truncate">
                 {peer.pubkey.slice(0, 16)}...{peer.pubkey.slice(-8)}
@@ -100,11 +109,11 @@ function SignalStrength({ isOnline, lastSeen }: SignalStrengthProps) {
     <div className="flex items-center gap-1">
       <div
         className={`w-2 h-2 rounded-full ${
-          isOnline ? 'bg-green-500' : 'bg-muted-foreground/30'
+          isOnline ? "bg-green-500" : "bg-muted-foreground/30"
         }`}
       />
       <span className="text-xs text-muted-foreground">
-        {isOnline ? 'Online' : getTimeSince()}
+        {isOnline ? "Online" : getTimeSince()}
       </span>
     </div>
   );

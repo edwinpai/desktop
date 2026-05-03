@@ -8,10 +8,10 @@
  * - Subscription status
  */
 
-import { useIdentityStore } from '@/stores/identityStore';
-import { useGatewayStore } from '@/stores/gateway';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { useIdentityStore } from "@/stores/identityStore";
+import { useGatewayStore } from "@/stores/gateway";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export function TopBar() {
   const identity = useIdentityStore((state) => state.identity);
@@ -28,28 +28,28 @@ export function TopBar() {
       <div className="flex items-center gap-3">
         {/* Gateway status */}
         <Badge
-          variant={gatewayStatus === 'running' ? 'default' : 'secondary'}
+          variant={gatewayStatus === "running" ? "default" : "secondary"}
           className={cn(
-            'flex items-center gap-1.5',
-            gatewayStatus === 'running' && 'bg-green-500',
-            gatewayStatus === 'starting' && 'bg-yellow-500',
-            gatewayStatus === 'unhealthy' && 'bg-red-500',
-            gatewayStatus === 'stopped' && 'bg-gray-500'
+            "flex items-center gap-1.5",
+            gatewayStatus === "running" && "bg-green-500",
+            gatewayStatus === "starting" && "bg-yellow-500",
+            gatewayStatus === "unhealthy" && "bg-red-500",
+            gatewayStatus === "stopped" && "bg-gray-500",
           )}
         >
           <span
             className={cn(
-              'h-2 w-2 rounded-full',
-              gatewayStatus === 'running' && 'bg-white animate-pulse',
-              gatewayStatus !== 'running' && 'bg-white/70'
+              "h-2 w-2 rounded-full",
+              gatewayStatus === "running" && "bg-white animate-pulse",
+              gatewayStatus !== "running" && "bg-white/70",
             )}
           />
           <span className="text-xs">
-            {gatewayStatus === 'running' && 'Online'}
-            {gatewayStatus === 'starting' && 'Starting...'}
-            {gatewayStatus === 'stopped' && 'Offline'}
-            {gatewayStatus === 'unhealthy' && 'Unhealthy'}
-            {gatewayStatus === 'crashed' && 'Crashed'}
+            {gatewayStatus === "running" && "Online"}
+            {gatewayStatus === "starting" && "Starting..."}
+            {gatewayStatus === "stopped" && "Offline"}
+            {gatewayStatus === "unhealthy" && "Unhealthy"}
+            {gatewayStatus === "crashed" && "Crashed"}
           </span>
         </Badge>
 

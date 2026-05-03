@@ -43,7 +43,8 @@ export async function generateIdenticon(
   config: IdenticonConfig = {},
 ): Promise<IdenticonResult> {
   const finalConfig = { ...DEFAULT_CONFIG, ...config };
-  const { size, backgroundColor, foregroundColors, gridSize, style } = finalConfig;
+  const { size, backgroundColor, foregroundColors, gridSize, style } =
+    finalConfig;
 
   // Hash the public key
   const hash = await sha256(publicKey);
@@ -165,7 +166,8 @@ export function generateIdenticonSync(
   config: IdenticonConfig = {},
 ): IdenticonResult {
   const finalConfig = { ...DEFAULT_CONFIG, ...config };
-  const { size, backgroundColor, foregroundColors, gridSize, style } = finalConfig;
+  const { size, backgroundColor, foregroundColors, gridSize, style } =
+    finalConfig;
 
   // Simple hash function for sync operation (not cryptographically secure, but deterministic)
   let hash = 0;

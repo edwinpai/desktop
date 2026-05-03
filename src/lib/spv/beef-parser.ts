@@ -17,16 +17,16 @@ import type {
   TransactionInput,
   TransactionOutput,
   MerkleProof,
-  BeefParseOptions
-} from '@/types';
+  BeefParseOptions,
+} from "@/types";
 
 /**
  * Convert Uint8Array to hex string
  */
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 /**
@@ -48,7 +48,7 @@ function hexToBytes(hex: string): Uint8Array {
  */
 export function parseBeef(
   beefBytes: Uint8Array,
-  options: BeefParseOptions = {}
+  options: BeefParseOptions = {},
 ): BeefEnvelope {
   const reader = new BeefReader(beefBytes);
 
@@ -192,14 +192,14 @@ function parseMerkleProof(reader: BeefReader): MerkleProof {
  */
 function validateBeefStructure(
   transactions: BRC62Transaction[],
-  proofs: MerkleProof[]
+  proofs: MerkleProof[],
 ): void {
   // Check that all mined transactions have corresponding proofs
-  const minedTxCount = transactions.filter(tx => tx.isMined).length;
+  const minedTxCount = transactions.filter((tx) => tx.isMined).length;
 
   if (minedTxCount !== proofs.length) {
     throw new Error(
-      `Mismatch: ${minedTxCount} mined transactions but ${proofs.length} proofs`
+      `Mismatch: ${minedTxCount} mined transactions but ${proofs.length} proofs`,
     );
   }
 
@@ -241,7 +241,9 @@ function sha256(_data: Uint8Array): Uint8Array {
 
   // For now, return mock hash for type safety
   // TODO: Implement actual SHA-256 hashing
-  throw new Error('SHA-256 not implemented - use Web Crypto API or crypto library');
+  throw new Error(
+    "SHA-256 not implemented - use Web Crypto API or crypto library",
+  );
 }
 
 /**
@@ -255,22 +257,28 @@ class BeefReader {
   readUint8(): number {
     const value = this.data[this.position];
     if (value === undefined) {
-      throw new Error('Unexpected end of BEEF data');
+      throw new Error("Unexpected end of BEEF data");
     }
     this.position += 1;
     return value;
   }
 
   readUint32LE(): number {
-    const value = new DataView(this.data.buffer, this.data.byteOffset + this.position, 4)
-      .getUint32(0, true);
+    const value = new DataView(
+      this.data.buffer,
+      this.data.byteOffset + this.position,
+      4,
+    ).getUint32(0, true);
     this.position += 4;
     return value;
   }
 
   readUint64LE(): bigint {
-    const value = new DataView(this.data.buffer, this.data.byteOffset + this.position, 8)
-      .getBigUint64(0, true);
+    const value = new DataView(
+      this.data.buffer,
+      this.data.byteOffset + this.position,
+      8,
+    ).getBigUint64(0, true);
     this.position += 8;
     return value;
   }
@@ -291,8 +299,11 @@ class BeefReader {
   }
 
   readUint16LE(): number {
-    const value = new DataView(this.data.buffer, this.data.byteOffset + this.position, 2)
-      .getUint16(0, true);
+    const value = new DataView(
+      this.data.buffer,
+      this.data.byteOffset + this.position,
+      2,
+    ).getUint16(0, true);
     this.position += 2;
     return value;
   }

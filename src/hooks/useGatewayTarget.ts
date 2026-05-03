@@ -43,7 +43,9 @@ export function useGatewayTarget() {
 
   useEffect(() => {
     isMounted.current = true;
-    return () => { isMounted.current = false; };
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   // Load target from saved desktop config on mount
@@ -58,16 +60,16 @@ export function useGatewayTarget() {
             kind: inferGatewayKind(desktopConfig.gatewayUrl),
           };
           if (isMounted.current) {
-            setState(prev => ({ ...prev, target, isLoading: false }));
+            setState((prev) => ({ ...prev, target, isLoading: false }));
           }
         } else {
           if (isMounted.current) {
-            setState(prev => ({ ...prev, isLoading: false }));
+            setState((prev) => ({ ...prev, isLoading: false }));
           }
         }
       } catch {
         if (isMounted.current) {
-          setState(prev => ({ ...prev, isLoading: false }));
+          setState((prev) => ({ ...prev, isLoading: false }));
         }
       }
     })();
@@ -77,7 +79,7 @@ export function useGatewayTarget() {
    * Set a new gateway target and optionally fetch its config.
    */
   const setTarget = useCallback(async (target: GatewayTarget) => {
-    setState(prev => ({ ...prev, target, isLoading: true, error: null }));
+    setState((prev) => ({ ...prev, target, isLoading: true, error: null }));
 
     try {
       const config = await fetchGatewayConfig(target);
@@ -95,11 +97,14 @@ export function useGatewayTarget() {
       }
     } catch (err) {
       if (isMounted.current) {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           target,
           isLoading: false,
-          error: err instanceof Error ? err.message : "Failed to fetch gateway config",
+          error:
+            err instanceof Error
+              ? err.message
+              : "Failed to fetch gateway config",
         }));
       }
     }
@@ -110,14 +115,14 @@ export function useGatewayTarget() {
    */
   const refreshConfig = useCallback(async () => {
     if (!state.target) return;
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
       const config = await fetchGatewayConfig(state.target);
       const channels = extractChannels(config);
 
       if (isMounted.current) {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           config,
           channels,
@@ -127,10 +132,11 @@ export function useGatewayTarget() {
       }
     } catch (err) {
       if (isMounted.current) {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           isLoading: false,
-          error: err instanceof Error ? err.message : "Failed to refresh config",
+          error:
+            err instanceof Error ? err.message : "Failed to refresh config",
         }));
       }
     }

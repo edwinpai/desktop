@@ -85,7 +85,9 @@ async function buildTarget(): Promise<GatewayTarget> {
 
 export function UsagePanel() {
   const [range, setRange] = useState<DateRange>("30d");
-  const [statusSummary, setStatusSummary] = useState<UsageStatusSummary | null>(null);
+  const [statusSummary, setStatusSummary] = useState<UsageStatusSummary | null>(
+    null,
+  );
   const [costSummary, setCostSummary] = useState<CostUsageSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +100,13 @@ export function UsagePanel() {
     try {
       const target = await buildTarget();
       const [status, cost] = await Promise.allSettled([
-        callGatewayMethod(target, "usage.status", {}, 15_000, "usage.status timed out") as Promise<UsageStatusSummary>,
+        callGatewayMethod(
+          target,
+          "usage.status",
+          {},
+          15_000,
+          "usage.status timed out",
+        ) as Promise<UsageStatusSummary>,
         callGatewayMethod(
           target,
           "usage.cost",
@@ -115,7 +123,9 @@ export function UsagePanel() {
       if (status.status === "rejected" && cost.status === "rejected") {
         throw new Error(
           [status.reason, cost.reason]
-            .map((reason) => (reason instanceof Error ? reason.message : String(reason)))
+            .map((reason) =>
+              reason instanceof Error ? reason.message : String(reason),
+            )
             .join(" | "),
         );
       }
@@ -157,8 +167,15 @@ export function UsagePanel() {
               Updated {lastRefresh.toLocaleTimeString()}
             </span>
           )}
-          <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refresh}
+            disabled={loading}
+          >
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
         </div>
@@ -194,9 +211,12 @@ export function UsagePanel() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatTokens(totals.totalTokens)}</div>
+            <div className="text-2xl font-bold">
+              {formatTokens(totals.totalTokens)}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {formatTokens(totals.input)} in / {formatTokens(totals.output)} out
+              {formatTokens(totals.input)} in / {formatTokens(totals.output)}{" "}
+              out
             </p>
           </CardContent>
         </Card>
@@ -209,7 +229,9 @@ export function UsagePanel() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCost(totals.totalCost)}</div>
+            <div className="text-2xl font-bold">
+              {formatCost(totals.totalCost)}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
               {totals.missingCostEntries > 0
                 ? `${totals.missingCostEntries} entries were estimated or missing cost metadata`
@@ -237,34 +259,55 @@ export function UsagePanel() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Provider quota windows</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Provider quota windows
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {!statusSummary || statusSummary.providers.length === 0 ? (
               <div className="py-6 text-center">
-                <p className="text-sm font-medium">No provider usage data yet</p>
+                <p className="text-sm font-medium">
+                  No provider usage data yet
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Connect provider credentials in the gateway to populate this panel.
+                  Connect provider credentials in the gateway to populate this
+                  panel.
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
                 {statusSummary.providers.map((provider) => (
-                  <div key={provider.provider} className="space-y-2 rounded-lg border p-3">
+                  <div
+                    key={provider.provider}
+                    className="space-y-2 rounded-lg border p-3"
+                  >
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="font-medium">{provider.displayName}</div>
-                        <div className="text-xs text-muted-foreground">{provider.provider}</div>
+                        <div className="font-medium">
+                          {provider.displayName}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {provider.provider}
+                        </div>
                       </div>
-                      {provider.plan && <Badge variant="outline">{provider.plan}</Badge>}
+                      {provider.plan && (
+                        <Badge variant="outline">{provider.plan}</Badge>
+                      )}
                     </div>
                     {provider.error ? (
-                      <div className="text-xs text-destructive">{provider.error}</div>
+                      <div className="text-xs text-destructive">
+                        {provider.error}
+                      </div>
                     ) : provider.windows.length === 0 ? (
-                      <div className="text-xs text-muted-foreground">No active quota windows reported.</div>
+                      <div className="text-xs text-muted-foreground">
+                        No active quota windows reported.
+                      </div>
                     ) : (
                       provider.windows.map((window) => (
-                        <div key={`${provider.provider}-${window.label}`} className="space-y-1">
+                        <div
+                          key={`${provider.provider}-${window.label}`}
+                          className="space-y-1"
+                        >
                           <div className="flex items-center justify-between text-xs">
                             <span>{window.label}</span>
                             <span>{Math.round(window.usedPercent)}%</span>
@@ -272,7 +315,9 @@ export function UsagePanel() {
                           <div className="h-2 rounded-full bg-muted overflow-hidden">
                             <div
                               className="h-full bg-primary transition-all"
-                              style={{ width: `${Math.max(0, Math.min(100, window.usedPercent))}%` }}
+                              style={{
+                                width: `${Math.max(0, Math.min(100, window.usedPercent))}%`,
+                              }}
                             />
                           </div>
                           {window.resetAt && (
@@ -292,20 +337,26 @@ export function UsagePanel() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Daily cost breakdown</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Daily cost breakdown
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {!costSummary || costSummary.daily.length === 0 ? (
               <div className="py-6 text-center">
                 <p className="text-sm font-medium">No session cost data yet</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  The gateway will populate this once chat sessions produce usage records.
+                  The gateway will populate this once chat sessions produce
+                  usage records.
                 </p>
               </div>
             ) : (
               <div className="space-y-2">
                 {costSummary.daily.map((day) => (
-                  <div key={day.date} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                  <div
+                    key={day.date}
+                    className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+                  >
                     <div>
                       <div className="font-medium">{day.date}</div>
                       <div className="text-xs text-muted-foreground">
@@ -313,9 +364,12 @@ export function UsagePanel() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-mono text-xs">{formatCost(day.totalCost)}</div>
+                      <div className="font-mono text-xs">
+                        {formatCost(day.totalCost)}
+                      </div>
                       <div className="text-xs text-muted-foreground">
-                        {formatTokens(day.input)} in / {formatTokens(day.output)} out
+                        {formatTokens(day.input)} in /{" "}
+                        {formatTokens(day.output)} out
                       </div>
                     </div>
                   </div>

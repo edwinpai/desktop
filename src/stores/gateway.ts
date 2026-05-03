@@ -8,14 +8,14 @@
  * - Process lifecycle (start/stop)
  */
 
-import { invoke } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import { create } from 'zustand';
+import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { create } from "zustand";
 
 import type {
   GatewayStatus,
   GatewayProcessEventPayload,
-} from '@/types/gateway';
+} from "@/types/gateway";
 
 // ============================================================================
 // Store State
@@ -56,7 +56,7 @@ interface GatewayState {
 
 export const useGatewayStore = create<GatewayState>((set, get) => ({
   // Initial state
-  status: 'stopped',
+  status: "stopped",
   pid: null,
   port: 18789,
   startedAt: null,
@@ -73,12 +73,12 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
   // ========================================================================
   startGateway: async (port = 18789) => {
     try {
-      set({ status: 'starting', error: null, port });
+      set({ status: "starting", error: null, port });
 
-      const pid = await invoke<number>('start_gateway_real', { port });
+      const pid = await invoke<number>("start_gateway_real", { port });
 
       set({
-        status: 'running',
+        status: "running",
         pid,
         port,
         startedAt: new Date().toISOString(),
@@ -86,9 +86,10 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
 
       get().startPolling();
     } catch (err) {
-      const error = err instanceof Error ? err.message : 'Failed to start gateway';
-      console.error('Failed to start gateway:', err);
-      set({ status: 'stopped', error });
+      const error =
+        err instanceof Error ? err.message : "Failed to start gateway";
+      console.error("Failed to start gateway:", err);
+      set({ status: "stopped", error });
       throw err;
     }
   },
@@ -98,21 +99,22 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
   // ========================================================================
   stopGateway: async () => {
     try {
-      set({ status: 'stopping', error: null });
+      set({ status: "stopping", error: null });
 
       get().stopPolling();
-      await invoke('stop_gateway_real');
+      await invoke("stop_gateway_real");
 
       set({
-        status: 'stopped',
+        status: "stopped",
         pid: null,
         startedAt: null,
         uptime: 0,
       });
     } catch (err) {
-      const error = err instanceof Error ? err.message : 'Failed to stop gateway';
-      console.error('Failed to stop gateway:', err);
-      set({ status: 'unhealthy', error });
+      const error =
+        err instanceof Error ? err.message : "Failed to stop gateway";
+      console.error("Failed to stop gateway:", err);
+      set({ status: "unhealthy", error });
       throw err;
     }
   },
@@ -133,15 +135,20 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
         restartCount?: number;
         restart_count?: number;
         uptime: number;
-      }>('get_gateway_status_real');
+      }>("get_gateway_status_real");
 
-      if (info.status === 'running' || info.status === 'starting' || info.status === 'unhealthy') {
+      if (
+        info.status === "running" ||
+        info.status === "starting" ||
+        info.status === "unhealthy"
+      ) {
         set({
           status: info.status,
           pid: info.pid,
           port: info.port,
           startedAt: info.startedAt ?? info.started_at ?? null,
-          lastHealthCheck: info.lastHealthCheck ?? info.last_health_check ?? null,
+          lastHealthCheck:
+            info.lastHealthCheck ?? info.last_health_check ?? null,
           restartCount: info.restartCount ?? info.restart_count ?? 0,
           uptime: info.uptime,
         });
@@ -153,11 +160,15 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
 
     // Fallback: probe for externally-managed gateway (systemd, etc.)
     try {
-      const probe = await invoke<{ found: boolean; url: string | null }>("probe_gateway");
+      const probe = await invoke<{ found: boolean; url: string | null }>(
+        "probe_gateway",
+      );
       if (probe.found) {
-        const port = probe.url ? parseInt(new URL(probe.url).port || "18789") : 18789;
+        const port = probe.url
+          ? parseInt(new URL(probe.url).port || "18789")
+          : 18789;
         set({
-          status: 'running',
+          status: "running",
           port,
           pid: null,
           startedAt: null,
@@ -172,8 +183,8 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
     }
 
     // Nothing running
-    if (get().status !== 'stopped') {
-      set({ status: 'stopped' });
+    if (get().status !== "stopped") {
+      set({ status: "stopped" });
     }
   },
 
@@ -182,18 +193,18 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
   // ========================================================================
   performHealthCheck: async () => {
     try {
-      const probe = await invoke<{ found: boolean }>('probe_gateway');
+      const probe = await invoke<{ found: boolean }>("probe_gateway");
       set({
-        status: probe.found ? 'running' : 'unhealthy',
+        status: probe.found ? "running" : "unhealthy",
         lastHealthCheck: new Date().toISOString(),
-        error: probe.found ? null : 'Health check failed',
+        error: probe.found ? null : "Health check failed",
       });
     } catch (err) {
-      console.error('Health check failed:', err);
+      console.error("Health check failed:", err);
       set({
-        status: 'unhealthy',
+        status: "unhealthy",
         lastHealthCheck: new Date().toISOString(),
-        error: err instanceof Error ? err.message : 'Health check failed',
+        error: err instanceof Error ? err.message : "Health check failed",
       });
     }
   },
@@ -235,7 +246,7 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
     try {
       // Listen for gateway started event
       const unlistenStarted = await listen<GatewayProcessEventPayload>(
-        'gateway:started',
+        "gateway:started",
         (event) => {
           const { status, pid } = event.payload;
           set({
@@ -244,12 +255,12 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
             startedAt: new Date().toISOString(),
           });
           get().startPolling();
-        }
+        },
       );
 
       // Listen for gateway stopped event
       const unlistenStopped = await listen<GatewayProcessEventPayload>(
-        'gateway:stopped',
+        "gateway:stopped",
         (event) => {
           const { status } = event.payload;
           set({
@@ -259,39 +270,39 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
             uptime: 0,
           });
           get().stopPolling();
-        }
+        },
       );
 
       // Listen for gateway crashed event
       const unlistenCrashed = await listen<GatewayProcessEventPayload>(
-        'gateway:crashed',
+        "gateway:crashed",
         (event) => {
           const { status, message } = event.payload;
           set({
             status,
             pid: null,
-            error: message || 'Gateway crashed',
+            error: message || "Gateway crashed",
           });
           get().stopPolling();
-        }
+        },
       );
 
       // Listen for gateway healthy event
       const unlistenHealthy = await listen<GatewayProcessEventPayload>(
-        'gateway:healthy',
+        "gateway:healthy",
         (event) => {
           const { status } = event.payload;
           set({ status, error: null });
-        }
+        },
       );
 
       // Listen for gateway unhealthy event
       const unlistenUnhealthy = await listen<GatewayProcessEventPayload>(
-        'gateway:unhealthy',
+        "gateway:unhealthy",
         (event) => {
           const { status, message } = event.payload;
-          set({ status, error: message || 'Gateway unhealthy' });
-        }
+          set({ status, error: message || "Gateway unhealthy" });
+        },
       );
 
       set({
@@ -304,7 +315,7 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
         ],
       });
     } catch (err) {
-      console.error('Failed to setup gateway event listeners:', err);
+      console.error("Failed to setup gateway event listeners:", err);
     }
   },
 
@@ -333,7 +344,7 @@ export function useGatewayInit() {
   const store = useGatewayStore();
 
   // Initialize on mount
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     store.setupEventListeners();
     store.refreshStatus();
 

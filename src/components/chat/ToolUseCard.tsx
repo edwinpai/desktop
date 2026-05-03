@@ -5,10 +5,10 @@
  * Uses react-markdown for code block rendering.
  */
 
-import { useState } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { useState } from "react";
+import ReactMarkdown from "react-markdown";
 
-import type { ToolUseBlock } from '@/types/streaming';
+import type { ToolUseBlock } from "@/types/streaming";
 
 // ============================================================================
 // Component Props
@@ -47,7 +47,7 @@ interface ToolUseCardProps {
 export function ToolUseCard({
   toolUse,
   defaultExpanded = false,
-  className = '',
+  className = "",
 }: ToolUseCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
@@ -103,7 +103,7 @@ export function ToolUseCard({
         {/* Expand/collapse icon */}
         <svg
           className={`w-5 h-5 text-gray-600 dark:text-gray-300 transition-transform ${
-            isExpanded ? 'rotate-180' : ''
+            isExpanded ? "rotate-180" : ""
           }`}
           fill="none"
           stroke="currentColor"
@@ -129,9 +129,7 @@ export function ToolUseCard({
 
             {/* JSON input with syntax highlighting */}
             <div className="rounded bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 overflow-x-auto prose prose-sm dark:prose-invert max-w-none p-3">
-              <ReactMarkdown>
-                {markdownContent}
-              </ReactMarkdown>
+              <ReactMarkdown>{markdownContent}</ReactMarkdown>
             </div>
           </div>
         </div>
@@ -165,7 +163,7 @@ interface ToolUseListProps {
  * />
  * ```
  */
-export function ToolUseList({ toolUses, className = '' }: ToolUseListProps) {
+export function ToolUseList({ toolUses, className = "" }: ToolUseListProps) {
   if (toolUses.length === 0) {
     return null;
   }

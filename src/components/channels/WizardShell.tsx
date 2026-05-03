@@ -8,50 +8,68 @@
  * 4. Confirmation - show success state
  */
 
-import { useState, ReactNode } from 'react'
-import { CheckCircle2, AlertCircle, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
+import { useState, ReactNode } from "react";
+import {
+  CheckCircle2,
+  AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+  Loader2,
+} from "lucide-react";
 
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export type WizardStep = 'intro' | 'credentials' | 'validation' | 'advanced' | 'confirmation'
+export type WizardStep =
+  | "intro"
+  | "credentials"
+  | "validation"
+  | "advanced"
+  | "confirmation";
 
 export interface WizardStepConfig {
-  step: WizardStep
-  title: string
-  description: string
-  content: ReactNode
+  step: WizardStep;
+  title: string;
+  description: string;
+  content: ReactNode;
   /** Validation function called when "Next" is clicked */
-  onValidate?: () => Promise<boolean>
+  onValidate?: () => Promise<boolean>;
   /** Custom next button label */
-  nextLabel?: string
+  nextLabel?: string;
   /** Hide next button */
-  hideNext?: boolean
+  hideNext?: boolean;
   /** Hide back button */
-  hideBack?: boolean
+  hideBack?: boolean;
 }
 
 export interface WizardShellProps {
   /** Wizard title */
-  title: string
+  title: string;
   /** Channel icon */
-  icon: ReactNode
+  icon: ReactNode;
   /** Wizard steps configuration */
-  steps: WizardStepConfig[]
+  steps: WizardStepConfig[];
   /** Current step index (0-based) */
-  currentStepIndex: number
+  currentStepIndex: number;
   /** Called when user clicks Back */
-  onBack: () => void
+  onBack: () => void;
   /** Called when user clicks Next (after validation passes) */
-  onNext: () => void
+  onNext: () => void;
   /** Called when user clicks Cancel */
-  onCancel: () => void
+  onCancel: () => void;
   /** Error message to display */
-  error?: string
+  error?: string;
   /** Loading state during validation */
-  loading?: boolean
+  loading?: boolean;
 }
 
 export function WizardShell({
@@ -65,42 +83,44 @@ export function WizardShell({
   error,
   loading,
 }: WizardShellProps) {
-  const [validating, setValidating] = useState(false)
+  const [validating, setValidating] = useState(false);
 
-  const currentStep = steps[currentStepIndex]
-  const progress = ((currentStepIndex + 1) / steps.length) * 100
-  const isFirstStep = currentStepIndex === 0
-  const isLastStep = currentStepIndex === steps.length - 1
+  const currentStep = steps[currentStepIndex];
+  const progress = ((currentStepIndex + 1) / steps.length) * 100;
+  const isFirstStep = currentStepIndex === 0;
+  const isLastStep = currentStepIndex === steps.length - 1;
 
   const handleNext = async () => {
-    if (!currentStep) return
+    if (!currentStep) return;
 
     // Run validation if provided
     if (currentStep.onValidate) {
-      setValidating(true)
+      setValidating(true);
       try {
-        const isValid = await currentStep.onValidate()
+        const isValid = await currentStep.onValidate();
         if (!isValid) {
-          setValidating(false)
-          return
+          setValidating(false);
+          return;
         }
       } catch {
-        setValidating(false)
-        return
+        setValidating(false);
+        return;
       }
-      setValidating(false)
+      setValidating(false);
     }
 
-    onNext()
-  }
+    onNext();
+  };
 
-  if (!currentStep) return null
+  if (!currentStep) return null;
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 flex items-center justify-center">{icon}</div>
+          <div className="w-10 h-10 flex items-center justify-center">
+            {icon}
+          </div>
           <CardTitle className="text-2xl">{title}</CardTitle>
         </div>
         <Progress value={progress} className="h-2" />
@@ -128,7 +148,11 @@ export function WizardShell({
       <CardFooter className="flex justify-between">
         <div className="flex gap-2">
           {!isFirstStep && !currentStep.hideBack && (
-            <Button variant="outline" onClick={onBack} disabled={loading || validating}>
+            <Button
+              variant="outline"
+              onClick={onBack}
+              disabled={loading || validating}
+            >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
@@ -136,7 +160,11 @@ export function WizardShell({
         </div>
 
         <div className="flex gap-2">
-          <Button variant="ghost" onClick={onCancel} disabled={loading || validating}>
+          <Button
+            variant="ghost"
+            onClick={onCancel}
+            disabled={loading || validating}
+          >
             Cancel
           </Button>
 
@@ -150,11 +178,11 @@ export function WizardShell({
               ) : isLastStep ? (
                 <>
                   <CheckCircle2 className="w-4 h-4 mr-2" />
-                  {currentStep.nextLabel || 'Finish'}
+                  {currentStep.nextLabel || "Finish"}
                 </>
               ) : (
                 <>
-                  {currentStep.nextLabel || 'Next'}
+                  {currentStep.nextLabel || "Next"}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </>
               )}
@@ -163,5 +191,5 @@ export function WizardShell({
         </div>
       </CardFooter>
     </Card>
-  )
+  );
 }

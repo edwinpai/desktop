@@ -101,7 +101,9 @@ describe("TelegramWizard", () => {
 
     // Now on validation step, click Next to trigger validateCredentials
     await waitFor(() => {
-      expect(screen.getByText(/Testing your Telegram bot token/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Testing your Telegram bot token/i),
+      ).toBeInTheDocument();
     });
 
     await user.click(screen.getByText("Next"));
@@ -124,7 +126,9 @@ describe("TelegramWizard", () => {
 
     // Validation step
     await waitFor(() => {
-      expect(screen.getByText(/Testing your Telegram bot token/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Testing your Telegram bot token/i),
+      ).toBeInTheDocument();
     });
 
     await user.click(screen.getByText("Next"));
@@ -155,7 +159,9 @@ describe("TelegramWizard", () => {
     await user.click(screen.getByText("Next"));
 
     await waitFor(() => {
-      expect(screen.getByText(/Testing your Telegram bot token/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Testing your Telegram bot token/i),
+      ).toBeInTheDocument();
     });
 
     await user.click(screen.getByText("Next"));
@@ -200,15 +206,19 @@ describe("TelegramWizard", () => {
         existingConfig={existingConfig}
         onComplete={vi.fn()}
         onCancel={vi.fn()}
-      />
+      />,
     );
 
     const nextButton = screen.getByText("Next");
     userEvent.click(nextButton);
 
     waitFor(() => {
-      const tokenInput = screen.getByLabelText(/bot token/i) as HTMLInputElement;
-      expect(tokenInput.value).toBe("987654321:XYZabcDEFghiJKLmnoQRStuv012345678");
+      const tokenInput = screen.getByLabelText(
+        /bot token/i,
+      ) as HTMLInputElement;
+      expect(tokenInput.value).toBe(
+        "987654321:XYZabcDEFghiJKLmnoQRStuv012345678",
+      );
     });
   });
 
@@ -236,7 +246,9 @@ describe("TelegramWizard", () => {
 
     // Validation step
     await waitFor(() => {
-      expect(screen.getByText(/Testing your Telegram bot token/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Testing your Telegram bot token/i),
+      ).toBeInTheDocument();
     });
 
     // Trigger validation

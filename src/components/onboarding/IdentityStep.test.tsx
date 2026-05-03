@@ -16,7 +16,13 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 // Mock IdentityBadge component
 vi.mock("@/components/shared/IdentityBadge", () => ({
-  IdentityBadge: ({ publicKey, petname }: { publicKey: string; petname: string }) => (
+  IdentityBadge: ({
+    publicKey,
+    petname,
+  }: {
+    publicKey: string;
+    petname: string;
+  }) => (
     <div data-testid="identity-badge">
       <div data-testid="public-key">{publicKey}</div>
       <div data-testid="petname">{petname}</div>
@@ -30,7 +36,9 @@ vi.mock("./GatewayDetection", () => ({
   ),
 }));
 
-const OnboardingWizard = await import("./OnboardingWizard").then((m) => m.OnboardingWizard);
+const OnboardingWizard = await import("./OnboardingWizard").then(
+  (m) => m.OnboardingWizard,
+);
 
 describe("IdentityStep", () => {
   beforeEach(() => {
@@ -50,9 +58,9 @@ describe("IdentityStep", () => {
 
     // Navigate: Welcome → ApiKey → Identity
     // In test mode, GatewayDetection doesn't render, so Get Started is already visible
-    const getStartedButton = screen.getAllByRole("button").find(
-      btn => btn.textContent?.includes("Get Started")
-    );
+    const getStartedButton = screen
+      .getAllByRole("button")
+      .find((btn) => btn.textContent?.includes("Get Started"));
     if (getStartedButton) await user.click(getStartedButton);
 
     await waitFor(() => {
@@ -62,7 +70,9 @@ describe("IdentityStep", () => {
     const input = screen.getByPlaceholderText(/sk-ant-/i);
     await user.type(input, "sk-ant-test");
 
-    const validateButton = screen.getByRole("button", { name: /validate & continue/i });
+    const validateButton = screen.getByRole("button", {
+      name: /validate & continue/i,
+    });
     await user.click(validateButton);
   };
 
@@ -76,10 +86,13 @@ describe("IdentityStep", () => {
 
     await navigateToIdentityStep();
 
-    await waitFor(() => {
-      expect(screen.getByText(/set up your identity/i)).toBeInTheDocument();
-      expect(screen.getByTestId("identity-badge")).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/set up your identity/i)).toBeInTheDocument();
+        expect(screen.getByTestId("identity-badge")).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 
   it.skip("displays generated identity details", async () => {
@@ -92,10 +105,17 @@ describe("IdentityStep", () => {
 
     await navigateToIdentityStep();
 
-    await waitFor(() => {
-      expect(screen.getByTestId("public-key")).toHaveTextContent("02abcdef123456");
-      expect(screen.getByTestId("petname")).toHaveTextContent("BobTheBuilder");
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("public-key")).toHaveTextContent(
+          "02abcdef123456",
+        );
+        expect(screen.getByTestId("petname")).toHaveTextContent(
+          "BobTheBuilder",
+        );
+      },
+      { timeout: 3000 },
+    );
   });
 
   it.skip("shows loading state during generation", async () => {
@@ -103,9 +123,14 @@ describe("IdentityStep", () => {
 
     await navigateToIdentityStep();
 
-    await waitFor(() => {
-      expect(screen.getByText(/generating your unique cryptographic identity/i)).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(/generating your unique cryptographic identity/i),
+        ).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 
   it.skip("handles generation error with retry button", async () => {
@@ -114,10 +139,15 @@ describe("IdentityStep", () => {
 
     await navigateToIdentityStep();
 
-    await waitFor(() => {
-      expect(screen.getByText(/keychain unavailable/i)).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/keychain unavailable/i)).toBeInTheDocument();
+        expect(
+          screen.getByRole("button", { name: /retry/i }),
+        ).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
 
     // Test retry
     vi.mocked(invoke).mockResolvedValueOnce({
@@ -130,9 +160,12 @@ describe("IdentityStep", () => {
     const retryButton = screen.getByRole("button", { name: /retry/i });
     await user.click(retryButton);
 
-    await waitFor(() => {
-      expect(screen.getByTestId("petname")).toHaveTextContent("RetryUser");
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("petname")).toHaveTextContent("RetryUser");
+      },
+      { timeout: 3000 },
+    );
   });
 
   it.skip("enables continue button after successful generation", async () => {
@@ -145,9 +178,14 @@ describe("IdentityStep", () => {
 
     await navigateToIdentityStep();
 
-    await waitFor(() => {
-      const continueButton = screen.getByRole("button", { name: /^continue$/i });
-      expect(continueButton).not.toBeDisabled();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        const continueButton = screen.getByRole("button", {
+          name: /^continue$/i,
+        });
+        expect(continueButton).not.toBeDisabled();
+      },
+      { timeout: 3000 },
+    );
   });
 });

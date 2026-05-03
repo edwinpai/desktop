@@ -9,7 +9,7 @@ import type {
   VerificationTestCase,
   PetnameTestCase,
   IdenticonTestCase,
-} from './test-fixtures';
+} from "./test-fixtures";
 
 // ============================================================================
 // BRC-42 Test Vector Constants
@@ -23,13 +23,15 @@ export const OFFICIAL_BRC42_VECTORS: readonly BRC42TestVector[] = [
   // These will be populated from the official spec
   // Vector 1: Basic derivation test
   {
-    id: 'vector_1',
-    description: 'Basic BRC-42 key derivation',
-    senderPrivateKey: '0000000000000000000000000000000000000000000000000000000000000001',
-    recipientPrivateKey: '0000000000000000000000000000000000000000000000000000000000000002',
-    invoiceNumber: 'test-invoice-1',
-    expectedPublicKey: '', // Populated from spec
-    expectedPrivateKey: '', // Populated from spec
+    id: "vector_1",
+    description: "Basic BRC-42 key derivation",
+    senderPrivateKey:
+      "0000000000000000000000000000000000000000000000000000000000000001",
+    recipientPrivateKey:
+      "0000000000000000000000000000000000000000000000000000000000000002",
+    invoiceNumber: "test-invoice-1",
+    expectedPublicKey: "", // Populated from spec
+    expectedPrivateKey: "", // Populated from spec
   },
   // Additional vectors will be added based on official spec
 ] as const;
@@ -39,22 +41,26 @@ export const OFFICIAL_BRC42_VECTORS: readonly BRC42TestVector[] = [
  */
 export const CUSTOM_BRC42_VECTORS: readonly BRC42TestVector[] = [
   {
-    id: 'edge_max_invoice',
-    description: 'Maximum length invoice number',
-    senderPrivateKey: '0000000000000000000000000000000000000000000000000000000000000001',
-    recipientPrivateKey: '0000000000000000000000000000000000000000000000000000000000000002',
-    invoiceNumber: 'x'.repeat(255),
-    expectedPublicKey: '',
-    expectedPrivateKey: '',
+    id: "edge_max_invoice",
+    description: "Maximum length invoice number",
+    senderPrivateKey:
+      "0000000000000000000000000000000000000000000000000000000000000001",
+    recipientPrivateKey:
+      "0000000000000000000000000000000000000000000000000000000000000002",
+    invoiceNumber: "x".repeat(255),
+    expectedPublicKey: "",
+    expectedPrivateKey: "",
   },
   {
-    id: 'edge_unicode_invoice',
-    description: 'Unicode characters in invoice number',
-    senderPrivateKey: '0000000000000000000000000000000000000000000000000000000000000001',
-    recipientPrivateKey: '0000000000000000000000000000000000000000000000000000000000000002',
-    invoiceNumber: '测试-🔑-キー',
-    expectedPublicKey: '',
-    expectedPrivateKey: '',
+    id: "edge_unicode_invoice",
+    description: "Unicode characters in invoice number",
+    senderPrivateKey:
+      "0000000000000000000000000000000000000000000000000000000000000001",
+    recipientPrivateKey:
+      "0000000000000000000000000000000000000000000000000000000000000002",
+    invoiceNumber: "测试-🔑-キー",
+    expectedPublicKey: "",
+    expectedPrivateKey: "",
   },
 ] as const;
 
@@ -67,31 +73,35 @@ export const CUSTOM_BRC42_VECTORS: readonly BRC42TestVector[] = [
  */
 export const SIGNING_TEST_VECTORS: readonly SigningTestVector[] = [
   {
-    id: 'sign_basic',
-    description: 'Basic message signing',
-    privateKey: '0000000000000000000000000000000000000000000000000000000000000001',
-    message: 'Hello, BSV!',
+    id: "sign_basic",
+    description: "Basic message signing",
+    privateKey:
+      "0000000000000000000000000000000000000000000000000000000000000001",
+    message: "Hello, BSV!",
     shouldVerify: true,
   },
   {
-    id: 'sign_empty',
-    description: 'Empty message signing',
-    privateKey: '0000000000000000000000000000000000000000000000000000000000000001',
-    message: '',
+    id: "sign_empty",
+    description: "Empty message signing",
+    privateKey:
+      "0000000000000000000000000000000000000000000000000000000000000001",
+    message: "",
     shouldVerify: true,
   },
   {
-    id: 'sign_long',
-    description: 'Long message signing',
-    privateKey: '0000000000000000000000000000000000000000000000000000000000000001',
-    message: 'x'.repeat(10000),
+    id: "sign_long",
+    description: "Long message signing",
+    privateKey:
+      "0000000000000000000000000000000000000000000000000000000000000001",
+    message: "x".repeat(10000),
     shouldVerify: true,
   },
   {
-    id: 'sign_binary',
-    description: 'Binary data signing',
-    privateKey: '0000000000000000000000000000000000000000000000000000000000000001',
-    message: '00ff00ff00ff',
+    id: "sign_binary",
+    description: "Binary data signing",
+    privateKey:
+      "0000000000000000000000000000000000000000000000000000000000000001",
+    message: "00ff00ff00ff",
     shouldVerify: true,
   },
 ] as const;
@@ -101,35 +111,35 @@ export const SIGNING_TEST_VECTORS: readonly SigningTestVector[] = [
  */
 export const VERIFICATION_TEST_CASES: readonly VerificationTestCase[] = [
   {
-    id: 'verify_valid',
-    description: 'Valid signature verification',
-    publicKey: '', // Derived from private key above
-    message: 'Hello, BSV!',
-    signature: '', // Generated signature
+    id: "verify_valid",
+    description: "Valid signature verification",
+    publicKey: "", // Derived from private key above
+    message: "Hello, BSV!",
+    signature: "", // Generated signature
     expectedValid: true,
   },
   {
-    id: 'verify_wrong_message',
-    description: 'Signature with modified message',
-    publicKey: '',
-    message: 'Goodbye, BSV!',
-    signature: '', // Signature for different message
+    id: "verify_wrong_message",
+    description: "Signature with modified message",
+    publicKey: "",
+    message: "Goodbye, BSV!",
+    signature: "", // Signature for different message
     expectedValid: false,
   },
   {
-    id: 'verify_wrong_key',
-    description: 'Signature with wrong public key',
-    publicKey: '', // Different public key
-    message: 'Hello, BSV!',
-    signature: '',
+    id: "verify_wrong_key",
+    description: "Signature with wrong public key",
+    publicKey: "", // Different public key
+    message: "Hello, BSV!",
+    signature: "",
     expectedValid: false,
   },
   {
-    id: 'verify_malformed',
-    description: 'Malformed signature',
-    publicKey: '',
-    message: 'Hello, BSV!',
-    signature: 'invalid_signature',
+    id: "verify_malformed",
+    description: "Malformed signature",
+    publicKey: "",
+    message: "Hello, BSV!",
+    signature: "invalid_signature",
     expectedValid: false,
   },
 ] as const;
@@ -143,24 +153,24 @@ export const VERIFICATION_TEST_CASES: readonly VerificationTestCase[] = [
  */
 export const PETNAME_TEST_CASES: readonly PetnameTestCase[] = [
   {
-    id: 'petname_basic',
-    description: 'Basic petname generation',
-    publicKey: '02' + '00'.repeat(32),
-    expectedPetname: '', // Generated from public key hash
+    id: "petname_basic",
+    description: "Basic petname generation",
+    publicKey: "02" + "00".repeat(32),
+    expectedPetname: "", // Generated from public key hash
     deterministic: true,
   },
   {
-    id: 'petname_all_ff',
-    description: 'Petname from max value public key',
-    publicKey: '02' + 'ff'.repeat(32),
-    expectedPetname: '',
+    id: "petname_all_ff",
+    description: "Petname from max value public key",
+    publicKey: "02" + "ff".repeat(32),
+    expectedPetname: "",
     deterministic: true,
   },
   {
-    id: 'petname_collision',
-    description: 'Different keys should produce different petnames',
-    publicKey: '03' + '00'.repeat(32),
-    expectedPetname: '',
+    id: "petname_collision",
+    description: "Different keys should produce different petnames",
+    publicKey: "03" + "00".repeat(32),
+    expectedPetname: "",
     deterministic: true,
   },
 ] as const;
@@ -170,9 +180,9 @@ export const PETNAME_TEST_CASES: readonly PetnameTestCase[] = [
  */
 export const IDENTICON_TEST_CASES: readonly IdenticonTestCase[] = [
   {
-    id: 'identicon_basic',
-    description: 'Basic identicon generation',
-    publicKey: '02' + '00'.repeat(32),
+    id: "identicon_basic",
+    description: "Basic identicon generation",
+    publicKey: "02" + "00".repeat(32),
     validation: {
       mustBeSvg: true,
       mustBeDeterministic: true,
@@ -180,18 +190,18 @@ export const IDENTICON_TEST_CASES: readonly IdenticonTestCase[] = [
     },
   },
   {
-    id: 'identicon_deterministic',
-    description: 'Same key produces same identicon',
-    publicKey: '02' + '00'.repeat(32),
+    id: "identicon_deterministic",
+    description: "Same key produces same identicon",
+    publicKey: "02" + "00".repeat(32),
     validation: {
       mustBeSvg: true,
       mustBeDeterministic: true,
     },
   },
   {
-    id: 'identicon_unique',
-    description: 'Different keys produce different identicons',
-    publicKey: '03' + '00'.repeat(32),
+    id: "identicon_unique",
+    description: "Different keys produce different identicons",
+    publicKey: "03" + "00".repeat(32),
     validation: {
       mustBeSvg: true,
       mustBeDeterministic: true,
@@ -208,29 +218,29 @@ export const IDENTICON_TEST_CASES: readonly IdenticonTestCase[] = [
  */
 export const ERROR_TEST_CASES = {
   invalidPrivateKey: {
-    id: 'error_invalid_privkey',
-    input: 'not_a_hex_string',
-    expectedError: 'Invalid private key format',
+    id: "error_invalid_privkey",
+    input: "not_a_hex_string",
+    expectedError: "Invalid private key format",
   },
   invalidPublicKey: {
-    id: 'error_invalid_pubkey',
-    input: 'not_33_bytes',
-    expectedError: 'Invalid public key format',
+    id: "error_invalid_pubkey",
+    input: "not_33_bytes",
+    expectedError: "Invalid public key format",
   },
   invalidSignature: {
-    id: 'error_invalid_sig',
-    input: 'malformed_der',
-    expectedError: 'Invalid signature format',
+    id: "error_invalid_sig",
+    input: "malformed_der",
+    expectedError: "Invalid signature format",
   },
   emptyInvoice: {
-    id: 'error_empty_invoice',
-    input: '',
-    expectedError: 'Invoice number cannot be empty',
+    id: "error_empty_invoice",
+    input: "",
+    expectedError: "Invoice number cannot be empty",
   },
   keychainNotFound: {
-    id: 'error_keychain_missing',
-    input: 'nonexistent_key',
-    expectedError: 'Key not found in keychain',
+    id: "error_keychain_missing",
+    input: "nonexistent_key",
+    expectedError: "Key not found in keychain",
   },
 } as const;
 
@@ -244,11 +254,11 @@ export const ERROR_TEST_CASES = {
 export const MOCK_SUCCESS_RESPONSES = {
   getPublicKey: {
     success: true,
-    publicKey: '02' + '00'.repeat(32),
+    publicKey: "02" + "00".repeat(32),
   },
   sign: {
     success: true,
-    signature: '3045022100' + '00'.repeat(32) + '0220' + '00'.repeat(32),
+    signature: "3045022100" + "00".repeat(32) + "0220" + "00".repeat(32),
   },
   verify: {
     success: true,
@@ -256,12 +266,12 @@ export const MOCK_SUCCESS_RESPONSES = {
   },
   deriveKey: {
     success: true,
-    publicKey: '02' + '00'.repeat(32),
-    privateKey: '00'.repeat(32),
+    publicKey: "02" + "00".repeat(32),
+    privateKey: "00".repeat(32),
   },
   checkSubscription: {
     success: true,
-    status: 'active' as const,
+    status: "active" as const,
   },
 } as const;
 
@@ -271,23 +281,23 @@ export const MOCK_SUCCESS_RESPONSES = {
 export const MOCK_ERROR_RESPONSES = {
   getPublicKey: {
     success: false,
-    error: 'Failed to retrieve public key',
+    error: "Failed to retrieve public key",
   },
   sign: {
     success: false,
-    error: 'Signing operation failed',
+    error: "Signing operation failed",
   },
   verify: {
     success: false,
-    error: 'Verification operation failed',
+    error: "Verification operation failed",
   },
   deriveKey: {
     success: false,
-    error: 'Key derivation failed',
+    error: "Key derivation failed",
   },
   checkSubscription: {
     success: false,
-    error: 'Subscription check failed',
+    error: "Subscription check failed",
   },
 } as const;
 

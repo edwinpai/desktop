@@ -8,16 +8,16 @@
  * - Connect button with BRC-103 auth
  */
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Dialog } from '@/components/ui/dialog';
-import { useDiscovery } from '@/hooks/useDiscovery';
-import { useClientConnection } from '@/hooks/useClientConnection';
-import type { DiscoveredPeer } from '@/types/api';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Dialog } from "@/components/ui/dialog";
+import { useDiscovery } from "@/hooks/useDiscovery";
+import { useClientConnection } from "@/hooks/useClientConnection";
+import type { DiscoveredPeer } from "@/types/api";
 
 interface GatewayDiscoveryProps {
   /** Callback when gateway connection succeeds */
@@ -31,10 +31,14 @@ export function GatewayDiscovery({
   autoStartScan = true,
 }: GatewayDiscoveryProps) {
   const { peers, isScanning, error, startScan, stopScan } = useDiscovery();
-  const { connect, connectionStatus, error: connectionError } = useClientConnection();
-  const isConnecting = connectionStatus === 'connecting';
+  const {
+    connect,
+    connectionStatus,
+    error: connectionError,
+  } = useClientConnection();
+  const isConnecting = connectionStatus === "connecting";
   const [selectedPeer, setSelectedPeer] = useState<DiscoveredPeer | null>(null);
-  const [manualUrl, setManualUrl] = useState('');
+  const [manualUrl, setManualUrl] = useState("");
   const [showManualDialog, setShowManualDialog] = useState(false);
   const [showQrDialog, setShowQrDialog] = useState(false);
 
@@ -66,13 +70,13 @@ export function GatewayDiscovery({
     try {
       // Parse manual URL (e.g., "http://192.168.1.100:18789" or "gateway.local:18789")
       const url = new URL(
-        manualUrl.startsWith('http') ? manualUrl : `http://${manualUrl}`
+        manualUrl.startsWith("http") ? manualUrl : `http://${manualUrl}`,
       );
       const address = `${url.hostname}:${url.port || 18789}`;
 
       // Fetch identity to get pubkey and petname
       const response = await fetch(`${url.origin}/v1/identity`);
-      if (!response.ok) throw new Error('Failed to fetch gateway identity');
+      if (!response.ok) throw new Error("Failed to fetch gateway identity");
 
       const identity = await response.json();
 
@@ -83,7 +87,7 @@ export function GatewayDiscovery({
 
       if (success) {
         setShowManualDialog(false);
-        setManualUrl('');
+        setManualUrl("");
         if (onConnectionSuccess) {
           onConnectionSuccess({
             pubkey: identity.publicKey,
@@ -91,12 +95,12 @@ export function GatewayDiscovery({
             address,
             isOnline: true,
             lastSeen: new Date().toISOString(),
-            authorizationLevel: 'guest', // Will be updated after auth
+            authorizationLevel: "guest", // Will be updated after auth
           });
         }
       }
     } catch (err) {
-      console.error('Manual connect failed:', err);
+      console.error("Manual connect failed:", err);
     }
   };
 
@@ -193,7 +197,11 @@ export function GatewayDiscovery({
               <Button size="sm" onClick={startScan}>
                 Scan Again
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowManualDialog(true)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowManualDialog(true)}
+              >
                 Enter Manually
               </Button>
             </div>
@@ -228,22 +236,29 @@ export function GatewayDiscovery({
               <tbody className="divide-y">
                 {peers.map((peer) => {
                   const isSelected = selectedPeer?.pubkey === peer.pubkey;
-                  const isStale = Date.now() - new Date(peer.lastSeen).getTime() > 30000;
+                  const isStale =
+                    Date.now() - new Date(peer.lastSeen).getTime() > 30000;
 
                   return (
                     <tr
                       key={peer.pubkey}
                       className={`hover:bg-muted/30 transition-colors ${
-                        isSelected ? 'bg-blue-50' : ''
+                        isSelected ? "bg-blue-50" : ""
                       }`}
                     >
                       <td className="px-4 py-3">
                         {peer.isOnline && !isStale ? (
-                          <Badge variant="default" className="bg-green-100 text-green-700 border-green-200">
+                          <Badge
+                            variant="default"
+                            className="bg-green-100 text-green-700 border-green-200"
+                          >
                             Online
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-muted-foreground">
+                          <Badge
+                            variant="outline"
+                            className="text-muted-foreground"
+                          >
                             Offline
                           </Badge>
                         )}
@@ -276,7 +291,7 @@ export function GatewayDiscovery({
                               Connecting...
                             </>
                           ) : (
-                            'Connect'
+                            "Connect"
                           )}
                         </Button>
                       </td>
@@ -302,7 +317,9 @@ export function GatewayDiscovery({
       {/* Manual URL entry dialog */}
       <Dialog open={showManualDialog} onOpenChange={setShowManualDialog}>
         <div className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Connect to Gateway Manually</h3>
+          <h3 className="text-lg font-semibold mb-4">
+            Connect to Gateway Manually
+          </h3>
           <div className="space-y-4">
             <div>
               <Label htmlFor="gateway-url">Gateway URL or IP Address</Label>
@@ -323,13 +340,16 @@ export function GatewayDiscovery({
                 variant="outline"
                 onClick={() => {
                   setShowManualDialog(false);
-                  setManualUrl('');
+                  setManualUrl("");
                 }}
               >
                 Cancel
               </Button>
-              <Button onClick={handleManualConnect} disabled={!manualUrl.trim() || isConnecting}>
-                {isConnecting ? 'Connecting...' : 'Connect'}
+              <Button
+                onClick={handleManualConnect}
+                disabled={!manualUrl.trim() || isConnecting}
+              >
+                {isConnecting ? "Connecting..." : "Connect"}
               </Button>
             </div>
           </div>
@@ -382,7 +402,7 @@ function formatLastSeen(isoDate: string): string {
   const diffSecs = Math.floor(diffMs / 1000);
   const diffMins = Math.floor(diffSecs / 60);
 
-  if (diffSecs < 10) return 'just now';
+  if (diffSecs < 10) return "just now";
   if (diffSecs < 60) return `${diffSecs}s ago`;
   if (diffMins < 60) return `${diffMins}m ago`;
 

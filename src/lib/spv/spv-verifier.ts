@@ -10,14 +10,18 @@
  * - BRC-71 (BUMP): https://github.com/bitcoin-sv/BRCs/blob/master/transactions/0071.md
  */
 
-import { parseBeef } from './beef-parser';
-import { parseBlockHeader, parseBump, validateBlockHeaderPoW } from './bump-parser';
+import { parseBeef } from "./beef-parser";
+import {
+  parseBlockHeader,
+  parseBump,
+  validateBlockHeaderPoW,
+} from "./bump-parser";
 import {
   calculateConfirmations,
   validateMerkleProofStructure,
   verifyMerkleProof,
   verifyMerkleProofWithHeader,
-} from './merkle-calculator';
+} from "./merkle-calculator";
 
 import type {
   BeefParseOptions,
@@ -25,7 +29,7 @@ import type {
   BRC62Transaction,
   MerkleProof,
   SpvVerification,
-} from '@/types';
+} from "@/types";
 
 /**
  * SPV verification options
@@ -60,9 +64,7 @@ export interface SpvVerificationResult extends SpvVerification {
  * Orchestrates parsing and verification of SPV proofs
  */
 export class SpvVerifier {
-  constructor(
-    private options: SpvVerificationOptions = {}
-  ) {}
+  constructor(private options: SpvVerificationOptions = {}) {}
 
   /**
    * Verify a transaction using BEEF envelope
@@ -72,7 +74,7 @@ export class SpvVerifier {
    */
   async verifyBeef(
     beefBytes: Uint8Array,
-    txid: string
+    txid: string,
   ): Promise<SpvVerificationResult> {
     try {
       // Parse BEEF envelope
@@ -83,12 +85,12 @@ export class SpvVerifier {
       const beef = parseBeef(beefBytes, parseOptions);
 
       // Find transaction in BEEF
-      const transaction = beef.transactions.find(tx => tx.txid === txid);
+      const transaction = beef.transactions.find((tx) => tx.txid === txid);
 
       if (!transaction) {
         return this.createErrorResult(
           txid,
-          `Transaction ${txid} not found in BEEF envelope`
+          `Transaction ${txid} not found in BEEF envelope`,
         );
       }
 
@@ -96,7 +98,7 @@ export class SpvVerifier {
       if (!transaction.isMined || !transaction.proof) {
         return this.createErrorResult(
           txid,
-          'Transaction does not have Merkle proof (not mined)'
+          "Transaction does not have Merkle proof (not mined)",
         );
       }
 
@@ -105,18 +107,18 @@ export class SpvVerifier {
 
       // Validate proof structure
       if (!validateMerkleProofStructure(proof)) {
-        return this.createErrorResult(txid, 'Invalid Merkle proof structure');
+        return this.createErrorResult(txid, "Invalid Merkle proof structure");
       }
 
       // Get block header from BEEF (if available)
       const blockHeader = beef.blockHeaders?.find(
-        header => header.height === proof.blockHeight
+        (header) => header.height === proof.blockHeight,
       );
 
       if (!blockHeader) {
         return this.createErrorResult(
           txid,
-          'Block header not found in BEEF envelope'
+          "Block header not found in BEEF envelope",
         );
       }
 
@@ -124,19 +126,25 @@ export class SpvVerifier {
       const proofValid = verifyMerkleProofWithHeader(txid, proof, blockHeader);
 
       if (!proofValid) {
-        return this.createErrorResult(txid, 'Merkle proof verification failed');
+        return this.createErrorResult(txid, "Merkle proof verification failed");
       }
 
       // Validate block header PoW if requested
       if (this.options.validatePoW) {
         if (!validateBlockHeaderPoW(blockHeader)) {
-          return this.createErrorResult(txid, 'Block header PoW validation failed');
+          return this.createErrorResult(
+            txid,
+            "Block header PoW validation failed",
+          );
         }
       }
 
       // Calculate confirmations
       const confirmations = this.options.currentBlockHeight
-        ? calculateConfirmations(proof.blockHeight, this.options.currentBlockHeight)
+        ? calculateConfirmations(
+            proof.blockHeight,
+            this.options.currentBlockHeight,
+          )
         : undefined;
 
       // Check minimum confirmations
@@ -144,7 +152,7 @@ export class SpvVerifier {
         if (confirmations < this.options.minConfirmations) {
           return this.createErrorResult(
             txid,
-            `Insufficient confirmations: ${confirmations} < ${this.options.minConfirmations}`
+            `Insufficient confirmations: ${confirmations} < ${this.options.minConfirmations}`,
           );
         }
       }
@@ -164,7 +172,7 @@ export class SpvVerifier {
     } catch (error) {
       return this.createErrorResult(
         txid,
-        error instanceof Error ? error.message : 'Unknown error'
+        error instanceof Error ? error.message : "Unknown error",
       );
     }
   }
@@ -179,7 +187,7 @@ export class SpvVerifier {
   async verifyBump(
     txid: string,
     bumpBytes: Uint8Array,
-    headerBytes: Uint8Array
+    headerBytes: Uint8Array,
   ): Promise<SpvVerificationResult> {
     try {
       // Parse BUMP proof
@@ -191,26 +199,32 @@ export class SpvVerifier {
 
       // Validate proof structure
       if (!validateMerkleProofStructure(proof)) {
-        return this.createErrorResult(txid, 'Invalid Merkle proof structure');
+        return this.createErrorResult(txid, "Invalid Merkle proof structure");
       }
 
       // Verify Merkle proof
       const proofValid = verifyMerkleProof(txid, proof, blockHeader.merkleRoot);
 
       if (!proofValid) {
-        return this.createErrorResult(txid, 'Merkle proof verification failed');
+        return this.createErrorResult(txid, "Merkle proof verification failed");
       }
 
       // Validate block header PoW if requested
       if (this.options.validatePoW) {
         if (!validateBlockHeaderPoW(blockHeader)) {
-          return this.createErrorResult(txid, 'Block header PoW validation failed');
+          return this.createErrorResult(
+            txid,
+            "Block header PoW validation failed",
+          );
         }
       }
 
       // Calculate confirmations
       const confirmations = this.options.currentBlockHeight
-        ? calculateConfirmations(proof.blockHeight, this.options.currentBlockHeight)
+        ? calculateConfirmations(
+            proof.blockHeight,
+            this.options.currentBlockHeight,
+          )
         : undefined;
 
       // Check minimum confirmations
@@ -218,7 +232,7 @@ export class SpvVerifier {
         if (confirmations < this.options.minConfirmations) {
           return this.createErrorResult(
             txid,
-            `Insufficient confirmations: ${confirmations} < ${this.options.minConfirmations}`
+            `Insufficient confirmations: ${confirmations} < ${this.options.minConfirmations}`,
           );
         }
       }
@@ -237,7 +251,7 @@ export class SpvVerifier {
     } catch (error) {
       return this.createErrorResult(
         txid,
-        error instanceof Error ? error.message : 'Unknown error'
+        error instanceof Error ? error.message : "Unknown error",
       );
     }
   }
@@ -252,31 +266,37 @@ export class SpvVerifier {
   async verifyMerkleProof(
     txid: string,
     proof: MerkleProof,
-    blockHeader: BlockHeader
+    blockHeader: BlockHeader,
   ): Promise<SpvVerificationResult> {
     try {
       // Validate proof structure
       if (!validateMerkleProofStructure(proof)) {
-        return this.createErrorResult(txid, 'Invalid Merkle proof structure');
+        return this.createErrorResult(txid, "Invalid Merkle proof structure");
       }
 
       // Verify proof
       const proofValid = verifyMerkleProofWithHeader(txid, proof, blockHeader);
 
       if (!proofValid) {
-        return this.createErrorResult(txid, 'Merkle proof verification failed');
+        return this.createErrorResult(txid, "Merkle proof verification failed");
       }
 
       // Validate block header PoW if requested
       if (this.options.validatePoW) {
         if (!validateBlockHeaderPoW(blockHeader)) {
-          return this.createErrorResult(txid, 'Block header PoW validation failed');
+          return this.createErrorResult(
+            txid,
+            "Block header PoW validation failed",
+          );
         }
       }
 
       // Calculate confirmations
       const confirmations = this.options.currentBlockHeight
-        ? calculateConfirmations(proof.blockHeight, this.options.currentBlockHeight)
+        ? calculateConfirmations(
+            proof.blockHeight,
+            this.options.currentBlockHeight,
+          )
         : undefined;
 
       // Success!
@@ -293,7 +313,7 @@ export class SpvVerifier {
     } catch (error) {
       return this.createErrorResult(
         txid,
-        error instanceof Error ? error.message : 'Unknown error'
+        error instanceof Error ? error.message : "Unknown error",
       );
     }
   }
@@ -306,7 +326,7 @@ export class SpvVerifier {
    */
   async verifyBatch(
     beefBytes: Uint8Array,
-    txids: string[]
+    txids: string[],
   ): Promise<SpvVerificationResult[]> {
     // Parse BEEF once
     const beef = parseBeef(beefBytes, { validateProofs: true });
@@ -316,21 +336,23 @@ export class SpvVerifier {
 
     for (const txid of txids) {
       // Find transaction
-      const transaction = beef.transactions.find(tx => tx.txid === txid);
+      const transaction = beef.transactions.find((tx) => tx.txid === txid);
 
       if (!transaction || !transaction.isMined || !transaction.proof) {
-        results.push(this.createErrorResult(txid, 'Transaction not found or not mined'));
+        results.push(
+          this.createErrorResult(txid, "Transaction not found or not mined"),
+        );
         continue;
       }
 
       // Find block header
       const proof = transaction.proof;
       const blockHeader = beef.blockHeaders?.find(
-        header => header.height === proof.blockHeight
+        (header) => header.height === proof.blockHeight,
       );
 
       if (!blockHeader) {
-        results.push(this.createErrorResult(txid, 'Block header not found'));
+        results.push(this.createErrorResult(txid, "Block header not found"));
         continue;
       }
 
@@ -338,7 +360,7 @@ export class SpvVerifier {
       const result = await this.verifyMerkleProof(
         txid,
         transaction.proof,
-        blockHeader
+        blockHeader,
       );
 
       results.push(result);
@@ -352,7 +374,7 @@ export class SpvVerifier {
    */
   private createErrorResult(
     txid: string,
-    error: string
+    error: string,
   ): SpvVerificationResult {
     return {
       valid: false,
@@ -374,7 +396,7 @@ export class SpvVerifier {
 export async function verifyBeef(
   beefBytes: Uint8Array,
   txid: string,
-  options?: SpvVerificationOptions
+  options?: SpvVerificationOptions,
 ): Promise<SpvVerificationResult> {
   const verifier = new SpvVerifier(options);
   return verifier.verifyBeef(beefBytes, txid);
@@ -392,7 +414,7 @@ export async function verifyBump(
   txid: string,
   bumpBytes: Uint8Array,
   headerBytes: Uint8Array,
-  options?: SpvVerificationOptions
+  options?: SpvVerificationOptions,
 ): Promise<SpvVerificationResult> {
   const verifier = new SpvVerifier(options);
   return verifier.verifyBump(txid, bumpBytes, headerBytes);
@@ -408,7 +430,7 @@ export async function verifyBump(
 export async function verifyBatch(
   beefBytes: Uint8Array,
   txids: string[],
-  options?: SpvVerificationOptions
+  options?: SpvVerificationOptions,
 ): Promise<SpvVerificationResult[]> {
   const verifier = new SpvVerifier(options);
   return verifier.verifyBatch(beefBytes, txids);

@@ -8,7 +8,13 @@
  * - Actions: Refresh, Renew, Cancel
  */
 
-import { RefreshCw, CheckCircle2, AlertCircle, XCircle, Info } from 'lucide-react';
+import {
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle,
+  XCircle,
+  Info,
+} from "lucide-react";
 
 import {
   Card,
@@ -18,11 +24,11 @@ import {
   CardContent,
   CardAction,
   CardFooter,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useSubscriptionStatus } from '@/hooks/useSubscription';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useSubscriptionStatus } from "@/hooks/useSubscription";
+import { cn } from "@/lib/utils";
 
 export interface SubscriptionSettingsProps {
   onRenew?: () => void;
@@ -36,7 +42,7 @@ export function SubscriptionSettings({
   const subscription = useSubscriptionStatus();
 
   const formatDate = (isoString?: string) => {
-    if (!isoString) return 'N/A';
+    if (!isoString) return "N/A";
     return new Date(isoString).toLocaleString();
   };
 
@@ -54,15 +60,15 @@ export function SubscriptionSettings({
 
   const getStatusIcon = () => {
     switch (subscription.state) {
-      case 'Active':
+      case "Active":
         return <CheckCircle2 className="size-5 text-green-500" />;
-      case 'Cached':
+      case "Cached":
         return <AlertCircle className="size-5 text-yellow-500" />;
-      case 'Expired':
+      case "Expired":
         return <XCircle className="size-5 text-red-500" />;
-      case 'GraceExceeded':
+      case "GraceExceeded":
         return <Info className="size-5 text-muted-foreground" />;
-      case 'NotFound':
+      case "NotFound":
         return <Info className="size-5 text-muted-foreground" />;
       default:
         return null;
@@ -84,10 +90,7 @@ export function SubscriptionSettings({
             </div>
           </div>
           <CardAction>
-            <Badge
-              variant={subscription.badge.variant}
-              className="text-xs"
-            >
+            <Badge variant={subscription.badge.variant} className="text-xs">
               {subscription.badge.label}
             </Badge>
           </CardAction>
@@ -95,19 +98,22 @@ export function SubscriptionSettings({
 
         <CardContent className="space-y-3">
           {/* Grace Period Countdown (Cached state only) */}
-          {subscription.state === 'Cached' && subscription.gracePeriodRemaining !== null && (
-            <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Grace Period Remaining</span>
-                <span className="text-sm font-bold tabular-nums">
-                  {formatTimeRemaining(subscription.gracePeriodRemaining)}
-                </span>
+          {subscription.state === "Cached" &&
+            subscription.gracePeriodRemaining !== null && (
+              <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">
+                    Grace Period Remaining
+                  </span>
+                  <span className="text-sm font-bold tabular-nums">
+                    {formatTimeRemaining(subscription.gracePeriodRemaining)}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Attempting to reconnect and verify subscription
+                </p>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Attempting to reconnect and verify subscription
-              </p>
-            </div>
-          )}
+            )}
 
           {/* Details Grid */}
           {subscription.txid && (
@@ -119,7 +125,10 @@ export function SubscriptionSettings({
                 truncate
               />
               {subscription.vout !== undefined && (
-                <DetailRow label="Output Index" value={String(subscription.vout)} />
+                <DetailRow
+                  label="Output Index"
+                  value={String(subscription.vout)}
+                />
               )}
               {subscription.verifiedAt && (
                 <DetailRow
@@ -138,7 +147,7 @@ export function SubscriptionSettings({
           )}
 
           {/* Not Found State */}
-          {subscription.state === 'NotFound' && (
+          {subscription.state === "NotFound" && (
             <div className="rounded-lg border bg-muted/50 p-4 text-center">
               <p className="text-sm text-muted-foreground">
                 No active subscription found. Subscribe to unlock all features.
@@ -147,7 +156,7 @@ export function SubscriptionSettings({
           )}
 
           {/* Expired State */}
-          {subscription.state === 'Expired' && (
+          {subscription.state === "Expired" && (
             <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3">
               <p className="text-sm font-medium text-red-600 dark:text-red-400">
                 Your subscription has ended
@@ -159,7 +168,7 @@ export function SubscriptionSettings({
           )}
 
           {/* Grace Exceeded State */}
-          {subscription.state === 'GraceExceeded' && (
+          {subscription.state === "GraceExceeded" && (
             <div className="rounded-lg border bg-muted/50 p-3">
               <p className="text-sm font-medium">Limited Mode Active</p>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -180,17 +189,17 @@ export function SubscriptionSettings({
           >
             <RefreshCw
               className={cn(
-                'size-4',
-                subscription.isRefreshing && 'animate-spin',
+                "size-4",
+                subscription.isRefreshing && "animate-spin",
               )}
             />
-            {subscription.isRefreshing ? 'Checking...' : 'Refresh'}
+            {subscription.isRefreshing ? "Checking..." : "Refresh"}
           </Button>
 
           {/* Renew Button (for Expired/NotFound) */}
           {subscription.needsRenewal && onRenew && (
             <Button size="sm" onClick={onRenew}>
-              {subscription.state === 'Expired' ? 'Renew' : 'Subscribe'}
+              {subscription.state === "Expired" ? "Renew" : "Subscribe"}
             </Button>
           )}
 
@@ -239,7 +248,7 @@ interface DetailRowProps {
   value: string;
   mono?: boolean;
   truncate?: boolean;
-  badge?: 'secondary' | 'outline';
+  badge?: "secondary" | "outline";
 }
 
 function DetailRow({ label, value, mono, truncate, badge }: DetailRowProps) {
@@ -253,9 +262,9 @@ function DetailRow({ label, value, mono, truncate, badge }: DetailRowProps) {
       ) : (
         <span
           className={cn(
-            'text-foreground',
-            mono && 'font-mono text-xs',
-            truncate && 'max-w-[200px] truncate',
+            "text-foreground",
+            mono && "font-mono text-xs",
+            truncate && "max-w-[200px] truncate",
           )}
           title={truncate ? value : undefined}
         >

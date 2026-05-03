@@ -1,35 +1,37 @@
-import { act, renderHook } from '@testing-library/react';
-import { invoke } from '@tauri-apps/api/core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, renderHook } from "@testing-library/react";
+import { invoke } from "@tauri-apps/api/core";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useDiscovery } from './useDiscovery';
+import { useDiscovery } from "./useDiscovery";
 
-import type { DiscoveredPeer } from '@/types/api';
+import type { DiscoveredPeer } from "@/types/api";
 
 // Mock Tauri API
-vi.mock('@tauri-apps/api/core', () => ({
+vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
 }));
 
-describe('useDiscovery', () => {
+describe("useDiscovery", () => {
   const mockInvoke = invoke as ReturnType<typeof vi.fn>;
 
   const mockPeer1: DiscoveredPeer = {
-    pubkey: '0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
-    petname: 'alice-gateway',
-    address: '192.168.1.100:3000',
+    pubkey:
+      "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+    petname: "alice-gateway",
+    address: "192.168.1.100:3000",
     isOnline: true,
-    lastSeen: '2026-02-11T10:00:00Z',
-    authorizationLevel: 'owner',
+    lastSeen: "2026-02-11T10:00:00Z",
+    authorizationLevel: "owner",
   };
 
   const mockPeer2: DiscoveredPeer = {
-    pubkey: '02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5',
-    petname: 'bob-gateway',
-    address: '192.168.1.101:3000',
+    pubkey:
+      "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+    petname: "bob-gateway",
+    address: "192.168.1.101:3000",
     isOnline: false,
-    lastSeen: '2026-02-11T09:55:00Z',
-    authorizationLevel: 'member',
+    lastSeen: "2026-02-11T09:55:00Z",
+    authorizationLevel: "member",
   };
 
   beforeEach(() => {
@@ -42,8 +44,8 @@ describe('useDiscovery', () => {
     vi.restoreAllMocks();
   });
 
-  describe('initialization', () => {
-    it('initializes with empty peers and scanning disabled', () => {
+  describe("initialization", () => {
+    it("initializes with empty peers and scanning disabled", () => {
       const { result } = renderHook(() => useDiscovery());
 
       expect(result.current.peers).toEqual([]);
@@ -51,17 +53,17 @@ describe('useDiscovery', () => {
       expect(result.current.error).toBeNull();
     });
 
-    it('provides all required functions', () => {
+    it("provides all required functions", () => {
       const { result } = renderHook(() => useDiscovery());
 
-      expect(typeof result.current.startScan).toBe('function');
-      expect(typeof result.current.stopScan).toBe('function');
-      expect(typeof result.current.refreshPeers).toBe('function');
+      expect(typeof result.current.startScan).toBe("function");
+      expect(typeof result.current.stopScan).toBe("function");
+      expect(typeof result.current.refreshPeers).toBe("function");
     });
   });
 
-  describe('refreshPeers', () => {
-    it('fetches peers from scan_network command', async () => {
+  describe("refreshPeers", () => {
+    it("fetches peers from scan_network command", async () => {
       mockInvoke.mockResolvedValue([mockPeer1, mockPeer2]);
 
       const { result } = renderHook(() => useDiscovery());
@@ -71,12 +73,12 @@ describe('useDiscovery', () => {
         await vi.advanceTimersByTimeAsync(500); // debounce delay
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith('scan_network');
+      expect(mockInvoke).toHaveBeenCalledWith("scan_network");
       expect(result.current.peers).toEqual([mockPeer1, mockPeer2]);
       expect(result.current.error).toBeNull();
     });
 
-    it('handles empty peer list', async () => {
+    it("handles empty peer list", async () => {
       mockInvoke.mockResolvedValue([]);
 
       const { result } = renderHook(() => useDiscovery());
@@ -90,8 +92,8 @@ describe('useDiscovery', () => {
       expect(result.current.error).toBeNull();
     });
 
-    it('sets error on scan failure', async () => {
-      mockInvoke.mockRejectedValue(new Error('Network scan failed'));
+    it("sets error on scan failure", async () => {
+      mockInvoke.mockRejectedValue(new Error("Network scan failed"));
 
       const { result } = renderHook(() => useDiscovery());
 
@@ -100,12 +102,12 @@ describe('useDiscovery', () => {
         await vi.advanceTimersByTimeAsync(500);
       });
 
-      expect(result.current.error).toBe('Network scan failed');
+      expect(result.current.error).toBe("Network scan failed");
       expect(result.current.peers).toEqual([]);
     });
 
-    it('clears previous error on successful scan', async () => {
-      mockInvoke.mockRejectedValueOnce(new Error('First scan failed'));
+    it("clears previous error on successful scan", async () => {
+      mockInvoke.mockRejectedValueOnce(new Error("First scan failed"));
       mockInvoke.mockResolvedValueOnce([mockPeer1]);
 
       const { result } = renderHook(() => useDiscovery());
@@ -115,7 +117,7 @@ describe('useDiscovery', () => {
         result.current.refreshPeers();
         await vi.advanceTimersByTimeAsync(500);
       });
-      expect(result.current.error).toBe('First scan failed');
+      expect(result.current.error).toBe("First scan failed");
 
       // Second scan succeeds
       await act(async () => {
@@ -126,8 +128,8 @@ describe('useDiscovery', () => {
       expect(result.current.peers).toEqual([mockPeer1]);
     });
 
-    it('handles non-Error exceptions', async () => {
-      mockInvoke.mockRejectedValue('String error');
+    it("handles non-Error exceptions", async () => {
+      mockInvoke.mockRejectedValue("String error");
 
       const { result } = renderHook(() => useDiscovery());
 
@@ -136,13 +138,13 @@ describe('useDiscovery', () => {
         await vi.advanceTimersByTimeAsync(500);
       });
 
-      expect(result.current.error).toBe('Failed to scan network');
+      expect(result.current.error).toBe("Failed to scan network");
       expect(result.current.peers).toEqual([]);
     });
   });
 
-  describe('startScan', () => {
-    it('triggers initial scan immediately', async () => {
+  describe("startScan", () => {
+    it("triggers initial scan immediately", async () => {
       mockInvoke.mockResolvedValue([mockPeer1]);
 
       const { result } = renderHook(() => useDiscovery());
@@ -156,11 +158,11 @@ describe('useDiscovery', () => {
 
       expect(result.current.isScanning).toBe(true);
       expect(result.current.peers).toEqual([mockPeer1]);
-      expect(mockInvoke).toHaveBeenCalledWith('scan_network');
+      expect(mockInvoke).toHaveBeenCalledWith("scan_network");
     });
 
-    it('sets up polling interval of 5 seconds', async () => {
-      const setIntervalSpy = vi.spyOn(global, 'setInterval');
+    it("sets up polling interval of 5 seconds", async () => {
+      const setIntervalSpy = vi.spyOn(global, "setInterval");
       mockInvoke.mockResolvedValue([mockPeer1]);
 
       const { result } = renderHook(() => useDiscovery());
@@ -178,7 +180,7 @@ describe('useDiscovery', () => {
       setIntervalSpy.mockRestore();
     });
 
-    it('continues polling with updated peer lists', async () => {
+    it("continues polling with updated peer lists", async () => {
       mockInvoke
         .mockResolvedValueOnce([mockPeer1])
         .mockResolvedValueOnce([mockPeer1, mockPeer2])
@@ -209,7 +211,7 @@ describe('useDiscovery', () => {
       expect(result.current.peers).toEqual([mockPeer2]);
     });
 
-    it('does not restart scan if already scanning', async () => {
+    it("does not restart scan if already scanning", async () => {
       mockInvoke.mockResolvedValue([mockPeer1]);
 
       const { result } = renderHook(() => useDiscovery());
@@ -231,9 +233,9 @@ describe('useDiscovery', () => {
     });
   });
 
-  describe('stopScan', () => {
-    it('stops scanning and clears interval', async () => {
-      const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
+  describe("stopScan", () => {
+    it("stops scanning and clears interval", async () => {
+      const clearIntervalSpy = vi.spyOn(global, "clearInterval");
       mockInvoke.mockResolvedValue([mockPeer1]);
 
       const { result } = renderHook(() => useDiscovery());
@@ -255,7 +257,7 @@ describe('useDiscovery', () => {
       clearIntervalSpy.mockRestore();
     });
 
-    it('can be called multiple times safely', () => {
+    it("can be called multiple times safely", () => {
       const { result } = renderHook(() => useDiscovery());
 
       act(() => {
@@ -268,9 +270,9 @@ describe('useDiscovery', () => {
     });
   });
 
-  describe('cleanup', () => {
-    it('clears interval on unmount', async () => {
-      const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
+  describe("cleanup", () => {
+    it("clears interval on unmount", async () => {
+      const clearIntervalSpy = vi.spyOn(global, "clearInterval");
       mockInvoke.mockResolvedValue([mockPeer1]);
 
       const { result, unmount } = renderHook(() => useDiscovery());
@@ -291,8 +293,8 @@ describe('useDiscovery', () => {
     });
   });
 
-  describe('scan and stop workflow', () => {
-    it('supports start-stop-start cycle', async () => {
+  describe("scan and stop workflow", () => {
+    it("supports start-stop-start cycle", async () => {
       mockInvoke.mockResolvedValue([mockPeer1]);
 
       const { result } = renderHook(() => useDiscovery());

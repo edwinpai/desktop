@@ -1,6 +1,6 @@
 [package]
 name = "edwinpai-desktop"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.3"
 description = "EdwinPAI Desktop — AI assistant for everyone"
 authors = ["EdwinPAI"]
 edition = "2021"

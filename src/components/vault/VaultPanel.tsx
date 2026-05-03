@@ -27,16 +27,27 @@ interface VaultEntryMeta {
 
 function toUserFacingError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err);
-  if (msg.includes("Cannot read properties of undefined (reading 'invoke')") || msg.includes('Failed to initialize configuration')) {
-    return 'Desktop integration is unavailable right now. Please reopen this screen inside the desktop app.';
+  if (
+    msg.includes("Cannot read properties of undefined (reading 'invoke')") ||
+    msg.includes("Failed to initialize configuration")
+  ) {
+    return "Desktop integration is unavailable right now. Please reopen this screen inside the desktop app.";
   }
   return msg;
 }
 
 const ASK_MODES: { value: AskMode; label: string; description: string }[] = [
   { value: "always", label: "Always Ask", description: "Prompt every time" },
-  { value: "first-time", label: "First Time", description: "Prompt once per session" },
-  { value: "auto-grant", label: "Auto-Grant", description: "Never prompt, always grant" },
+  {
+    value: "first-time",
+    label: "First Time",
+    description: "Prompt once per session",
+  },
+  {
+    value: "auto-grant",
+    label: "Auto-Grant",
+    description: "Never prompt, always grant",
+  },
   { value: "deny", label: "Deny", description: "Never grant" },
 ];
 
@@ -88,14 +99,26 @@ export function VaultPanel({ profileId = "default" }: { profileId?: string }) {
   }, [refresh]);
 
   const handleAdd = async () => {
-    console.log("[Vault] handleAdd called, id:", newId, "name:", newName, "value length:", newValue.length);
+    console.log(
+      "[Vault] handleAdd called, id:",
+      newId,
+      "name:",
+      newName,
+      "value length:",
+      newValue.length,
+    );
     if (!newId.trim() || !newName.trim() || !newValue.trim()) {
       setError("ID, name, and value are required.");
       return;
     }
     setError(null);
     try {
-      console.log("[Vault] Storing credential:", newId.trim(), "profile:", profileId);
+      console.log(
+        "[Vault] Storing credential:",
+        newId.trim(),
+        "profile:",
+        profileId,
+      );
       await invoke("vault_store", {
         profileId,
         id: newId.trim(),
@@ -145,10 +168,14 @@ export function VaultPanel({ profileId = "default" }: { profileId?: string }) {
 
   const askBadgeVariant = (mode: AskMode) => {
     switch (mode) {
-      case "auto-grant": return "default" as const;
-      case "first-time": return "secondary" as const;
-      case "deny": return "destructive" as const;
-      default: return "outline" as const;
+      case "auto-grant":
+        return "default" as const;
+      case "first-time":
+        return "secondary" as const;
+      case "deny":
+        return "destructive" as const;
+      default:
+        return "outline" as const;
     }
   };
 
@@ -169,7 +196,12 @@ export function VaultPanel({ profileId = "default" }: { profileId?: string }) {
       )}
 
       <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={refresh}
+          disabled={loading}
+        >
           {loading ? "Loading..." : "Refresh"}
         </Button>
         <Button size="sm" onClick={() => setShowAdd(!showAdd)}>
@@ -236,7 +268,8 @@ export function VaultPanel({ profileId = "default" }: { profileId?: string }) {
 
       {entries.length === 0 && !loading && (
         <div className="text-sm text-muted-foreground py-8 text-center">
-          No credentials stored. Add one above or grant a credential request with "Remember" checked.
+          No credentials stored. Add one above or grant a credential request
+          with "Remember" checked.
         </div>
       )}
 
@@ -255,18 +288,25 @@ export function VaultPanel({ profileId = "default" }: { profileId?: string }) {
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {entry.provider && <span>{entry.provider} · </span>}
-                    Last used: {formatTimeAgo(entry.last_accessed_at)} · {entry.access_count} accesses
+                    Last used: {formatTimeAgo(entry.last_accessed_at)} ·{" "}
+                    {entry.access_count} accesses
                   </div>
-                  <div className="text-xs font-mono text-muted-foreground/60">{entry.id}</div>
+                  <div className="text-xs font-mono text-muted-foreground/60">
+                    {entry.id}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <StyledSelect
                     value={mode}
-                    onChange={(e) => handlePolicyChange(entry.id, e.target.value as AskMode)}
+                    onChange={(e) =>
+                      handlePolicyChange(entry.id, e.target.value as AskMode)
+                    }
                     className="text-xs"
                   >
                     {ASK_MODES.map((m) => (
-                      <option key={m.value} value={m.value}>{m.label}</option>
+                      <option key={m.value} value={m.value}>
+                        {m.label}
+                      </option>
                     ))}
                   </StyledSelect>
                   <Button

@@ -36,13 +36,9 @@ export interface UseWindowTitleOptions {
  */
 export function useWindowTitle(
   title: string | null,
-  options: UseWindowTitleOptions = {}
+  options: UseWindowTitleOptions = {},
 ) {
-  const {
-    base = "EdwinPAI",
-    separator = " | ",
-    updateNative = true,
-  } = options;
+  const { base = "EdwinPAI", separator = " | ", updateNative = true } = options;
 
   useEffect(() => {
     const fullTitle = title ? `${title}${separator}${base}` : base;
@@ -55,7 +51,9 @@ export function useWindowTitle(
       const window = getCurrentWindow();
       window
         .setTitle(fullTitle)
-        .catch((error: unknown) => console.error("Failed to set window title:", error));
+        .catch((error: unknown) =>
+          console.error("Failed to set window title:", error),
+        );
     }
 
     // Cleanup: reset to base title on unmount
@@ -66,7 +64,9 @@ export function useWindowTitle(
         const window = getCurrentWindow();
         window
           .setTitle(base)
-          .catch((error: unknown) => console.error("Failed to reset window title:", error));
+          .catch((error: unknown) =>
+            console.error("Failed to reset window title:", error),
+          );
       }
     };
   }, [title, base, separator, updateNative]);
@@ -84,7 +84,7 @@ export function useWindowTitle(
 export function formatTitle(
   page: string | null,
   base: string = "EdwinPAI",
-  separator: string = " | "
+  separator: string = " | ",
 ): string {
   return page ? `${page}${separator}${base}` : base;
 }

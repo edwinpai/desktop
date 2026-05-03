@@ -1,11 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Search } from "lucide-react";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/types/api";
@@ -48,13 +44,21 @@ export function SearchDialog({
 
       // Build a snippet around the match
       const snippetStart = Math.max(0, matchStart - 30);
-      const snippetEnd = Math.min(content.length, matchStart + query.length + 50);
+      const snippetEnd = Math.min(
+        content.length,
+        matchStart + query.length + 50,
+      );
       const snippet =
         (snippetStart > 0 ? "..." : "") +
         content.slice(snippetStart, snippetEnd) +
         (snippetEnd < content.length ? "..." : "");
 
-      matches.push({ index: i, role: msg.role, snippet, matchStart: matchStart - snippetStart + (snippetStart > 0 ? 3 : 0) });
+      matches.push({
+        index: i,
+        role: msg.role,
+        snippet,
+        matchStart: matchStart - snippetStart + (snippetStart > 0 ? 3 : 0),
+      });
     }
     return matches;
   }, [query, messages]);
@@ -69,7 +73,10 @@ export function SearchDialog({
     if (!open) return;
 
     const resetTimeoutId = window.setTimeout(() => setQuery(""), 0);
-    const focusTimeoutId = window.setTimeout(() => inputRef.current?.focus(), 50);
+    const focusTimeoutId = window.setTimeout(
+      () => inputRef.current?.focus(),
+      50,
+    );
 
     return () => {
       window.clearTimeout(resetTimeoutId);
@@ -113,10 +120,7 @@ export function SearchDialog({
             className="border-0 focus-visible:ring-0 shadow-none h-12"
           />
         </div>
-        <div
-          ref={resultsRef}
-          className="max-h-72 overflow-y-auto"
-        >
+        <div ref={resultsRef} className="max-h-72 overflow-y-auto">
           {query.trim() && results.length === 0 && (
             <div className="px-4 py-8 text-center text-sm text-muted-foreground">
               No messages found
@@ -127,7 +131,7 @@ export function SearchDialog({
               key={result.index}
               className={cn(
                 "flex w-full flex-col gap-0.5 px-4 py-2 text-left text-sm hover:bg-accent",
-                i === selectedIndex && "bg-accent"
+                i === selectedIndex && "bg-accent",
               )}
               onClick={() => {
                 onScrollToMessage(result.index);

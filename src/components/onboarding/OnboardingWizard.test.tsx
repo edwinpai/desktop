@@ -57,7 +57,9 @@ class MockWebSocket {
       setTimeout(() => {
         this._trigger("message", {
           data: JSON.stringify({
-            type: "res", id: frame.id, ok: true,
+            type: "res",
+            id: frame.id,
+            ok: true,
             payload: { type: "hello-ok", server: { version: "test" } },
           }),
         });
@@ -66,7 +68,9 @@ class MockWebSocket {
       setTimeout(() => {
         this._trigger("message", {
           data: JSON.stringify({
-            type: "res", id: frame.id, ok: true,
+            type: "res",
+            id: frame.id,
+            ok: true,
             payload: { runId: "r1", status: "started" },
           }),
         });
@@ -74,9 +78,11 @@ class MockWebSocket {
       setTimeout(() => {
         this._trigger("message", {
           data: JSON.stringify({
-            type: "event", event: "chat",
+            type: "event",
+            event: "chat",
             payload: {
-              state: "final", sessionKey: "main",
+              state: "final",
+              sessionKey: "main",
               message: { content: [{ type: "text", text: "Hello!" }] },
             },
           }),
@@ -85,14 +91,22 @@ class MockWebSocket {
     }
   }
 
-  close() { this.readyState = MockWebSocket.CLOSED; }
+  close() {
+    this.readyState = MockWebSocket.CLOSED;
+  }
 }
 
 const OriginalWebSocket = globalThis.WebSocket;
 
 // Mock IdentityBadge component
 vi.mock("@/components/shared/IdentityBadge", () => ({
-  IdentityBadge: ({ publicKey, petname }: { publicKey: string; petname: string }) => (
+  IdentityBadge: ({
+    publicKey,
+    petname,
+  }: {
+    publicKey: string;
+    petname: string;
+  }) => (
     <div data-testid="identity-badge">
       <div>{publicKey}</div>
       <div>{petname}</div>
@@ -115,11 +129,21 @@ describe("OnboardingWizard", () => {
     // Default mock for all IPC calls
     vi.mocked(invoke).mockImplementation(async (cmd: string) => {
       switch (cmd) {
-        case "scan_gateways": return [{ url: "http://localhost:18789", version: null, name: null }];
-        case "probe_gateway": return { found: true, url: "http://localhost:18789", error: null };
-        case "add_provider": return { providers: [] };
-        case "get_identity": return { publicKey: "02test", petname: "Test", avatarSvg: "<svg></svg>", shortId: "test" };
-        default: return {};
+        case "scan_gateways":
+          return [{ url: "http://localhost:18789", version: null, name: null }];
+        case "probe_gateway":
+          return { found: true, url: "http://localhost:18789", error: null };
+        case "add_provider":
+          return { providers: [] };
+        case "get_identity":
+          return {
+            publicKey: "02test",
+            petname: "Test",
+            avatarSvg: "<svg></svg>",
+            shortId: "test",
+          };
+        default:
+          return {};
       }
     });
   });
@@ -151,9 +175,9 @@ describe("OnboardingWizard", () => {
     render(<OnboardingWizard onComplete={vi.fn()} />);
 
     // In test mode, GatewayDetection doesn't render, so Get Started button is already visible
-    const getStartedButton = screen.getAllByRole("button").find(
-      btn => btn.textContent?.includes("Get Started")
-    );
+    const getStartedButton = screen
+      .getAllByRole("button")
+      .find((btn) => btn.textContent?.includes("Get Started"));
     expect(getStartedButton).toBeDefined();
     if (getStartedButton) await user.click(getStartedButton);
 
@@ -198,19 +222,25 @@ describe("OnboardingWizard", () => {
     const onCancel = vi.fn();
     render(<OnboardingWizard onComplete={vi.fn()} onCancel={onCancel} />);
     // The component doesn't actually have a cancel button - this test should reflect reality
-    expect(screen.queryByRole("button", { name: /cancel|close/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /cancel|close/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("calls onCancel when cancel button clicked", async () => {
     const onCancel = vi.fn();
     render(<OnboardingWizard onComplete={vi.fn()} onCancel={onCancel} />);
     // No cancel button exists in the actual component
-    expect(screen.queryByRole("button", { name: /cancel/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /cancel/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("does not show cancel button when onCancel not provided", () => {
     render(<OnboardingWizard onComplete={vi.fn()} />);
-    expect(screen.queryByRole("button", { name: /cancel|close/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /cancel|close/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders feature cards on welcome step", async () => {
@@ -253,15 +283,25 @@ describe("OnboardingWizard", () => {
   it.skip("shows complete button on final step", async () => {
     const user = userEvent.setup();
     const onComplete = vi.fn();
-    
+
     // Mock all required IPC calls
     vi.mocked(invoke).mockImplementation(async (cmd: string) => {
       switch (cmd) {
-        case "add_provider": return { providers: [] };
-        case "get_identity": return { publicKey: "02test", petname: "Test", avatarSvg: "<svg></svg>", shortId: "test" };
-        case "scan_gateways": return [{ url: "http://localhost:18789", version: null, name: null }];
-        case "probe_gateway": return { found: true, url: "http://localhost:18789", error: null };
-        default: return {};
+        case "add_provider":
+          return { providers: [] };
+        case "get_identity":
+          return {
+            publicKey: "02test",
+            petname: "Test",
+            avatarSvg: "<svg></svg>",
+            shortId: "test",
+          };
+        case "scan_gateways":
+          return [{ url: "http://localhost:18789", version: null, name: null }];
+        case "probe_gateway":
+          return { found: true, url: "http://localhost:18789", error: null };
+        default:
+          return {};
       }
     });
 
@@ -279,31 +319,48 @@ describe("OnboardingWizard", () => {
     // API Key step
     await waitFor(() => screen.getByPlaceholderText(/sk-ant-/i));
     await user.type(screen.getByPlaceholderText(/sk-ant-/i), "sk-ant-test");
-    await user.click(screen.getByRole("button", { name: /validate & continue/i }));
+    await user.click(
+      screen.getByRole("button", { name: /validate & continue/i }),
+    );
 
     // Identity step
     await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
     await user.click(screen.getByRole("button", { name: /^continue$/i }));
 
     // Test Chat step
-    await waitFor(() => screen.getByRole("button", { name: /send test message/i }));
-    await user.click(screen.getByRole("button", { name: /send test message/i }));
-    await waitFor(() => screen.getAllByRole("button", { name: /^continue$/i }).length > 0);
-    const continueButton = screen.getAllByRole("button", { name: /^continue$/i })[0];
+    await waitFor(() =>
+      screen.getByRole("button", { name: /send test message/i }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: /send test message/i }),
+    );
+    await waitFor(
+      () => screen.getAllByRole("button", { name: /^continue$/i }).length > 0,
+    );
+    const continueButton = screen.getAllByRole("button", {
+      name: /^continue$/i,
+    })[0];
     expect(continueButton).toBeDefined();
     if (!continueButton) throw new Error("Expected a continue button");
     await user.click(continueButton);
 
     // Channels step
-    await waitFor(() => screen.getAllByText(/connect channels/i).length > 0, { timeout: 5000 });
+    await waitFor(() => screen.getAllByText(/connect channels/i).length > 0, {
+      timeout: 5000,
+    });
     const skipButton = screen.getByRole("button", { name: /skip for now/i });
     await user.click(skipButton);
 
     // Done step
-    await waitFor(() => {
-      expect(screen.getByText(/you're all set/i)).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /complete/i })).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/you're all set/i)).toBeInTheDocument();
+        expect(
+          screen.getByRole("button", { name: /complete/i }),
+        ).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 
   it("renders step titles correctly", () => {
@@ -327,10 +384,13 @@ describe("OnboardingWizard", () => {
 
     await user.click(screen.getByRole("button", { name: /get started/i }));
 
-    await waitFor(() => {
-      // Step 2: 1/7 completed = ~14% complete
-      expect(screen.getByText(/14% complete/i)).toBeInTheDocument();
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        // Step 2: 1/7 completed = ~14% complete
+        expect(screen.getByText(/14% complete/i)).toBeInTheDocument();
+      },
+      { timeout: 2000 },
+    );
   });
 
   describe("Step content rendering", () => {
@@ -338,15 +398,18 @@ describe("OnboardingWizard", () => {
       const user = userEvent.setup();
       render(<OnboardingWizard onComplete={vi.fn()} />);
 
-      const getStartedButton = screen.getAllByRole("button").find(
-        btn => btn.textContent?.includes("Get Started")
-      );
+      const getStartedButton = screen
+        .getAllByRole("button")
+        .find((btn) => btn.textContent?.includes("Get Started"));
       if (getStartedButton) await user.click(getStartedButton);
 
-      await waitFor(() => {
-        // API Key step is step 2, which has "AI Provider API Key" title
-        expect(screen.getByText(/ai provider api key/i)).toBeInTheDocument();
-      }, { timeout: 2000 });
+      await waitFor(
+        () => {
+          // API Key step is step 2, which has "AI Provider API Key" title
+          expect(screen.getByText(/ai provider api key/i)).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
     });
 
     it("renders Identity on step 4", async () => {
@@ -355,9 +418,9 @@ describe("OnboardingWizard", () => {
       render(<OnboardingWizard onComplete={vi.fn()} />);
 
       // Welcome → Gateway → ApiKey → Identity
-      const getStartedButton = screen.getAllByRole("button").find(
-        btn => btn.textContent?.includes("Get Started")
-      );
+      const getStartedButton = screen
+        .getAllByRole("button")
+        .find((btn) => btn.textContent?.includes("Get Started"));
       if (getStartedButton) await user.click(getStartedButton);
 
       // Gateway step
@@ -369,7 +432,9 @@ describe("OnboardingWizard", () => {
       // API Key step
       await waitFor(() => screen.getByPlaceholderText(/sk-ant-/i));
       await user.type(screen.getByPlaceholderText(/sk-ant-/i), "sk-ant-test");
-      await user.click(screen.getByRole("button", { name: /validate & continue/i }));
+      await user.click(
+        screen.getByRole("button", { name: /validate & continue/i }),
+      );
 
       await waitFor(() => {
         // Step 4 is Identity step
@@ -383,9 +448,9 @@ describe("OnboardingWizard", () => {
       render(<OnboardingWizard onComplete={vi.fn()} />);
 
       // Welcome → Gateway → ApiKey → Identity → TestChat → Channels
-      const getStartedButton = screen.getAllByRole("button").find(
-        btn => btn.textContent?.includes("Get Started")
-      );
+      const getStartedButton = screen
+        .getAllByRole("button")
+        .find((btn) => btn.textContent?.includes("Get Started"));
       if (getStartedButton) await user.click(getStartedButton);
 
       // Gateway step
@@ -397,52 +462,78 @@ describe("OnboardingWizard", () => {
       // ApiKey step
       await waitFor(() => screen.getByPlaceholderText(/sk-ant-/i));
       await user.type(screen.getByPlaceholderText(/sk-ant-/i), "sk-ant-test");
-      await user.click(screen.getByRole("button", { name: /validate & continue/i }));
+      await user.click(
+        screen.getByRole("button", { name: /validate & continue/i }),
+      );
 
       // Identity step
       await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
       await user.click(screen.getByRole("button", { name: /^continue$/i }));
 
       // TestChat step
-      await waitFor(() => screen.getByRole("button", { name: /send test message/i }));
-      await user.click(screen.getByRole("button", { name: /send test message/i }));
+      await waitFor(() =>
+        screen.getByRole("button", { name: /send test message/i }),
+      );
+      await user.click(
+        screen.getByRole("button", { name: /send test message/i }),
+      );
 
-      await waitFor(() => screen.getAllByRole("button", { name: /^continue$/i }).length > 0);
-      const continueButton = screen.getAllByRole("button", { name: /^continue$/i })[0];
-    expect(continueButton).toBeDefined();
-    if (!continueButton) throw new Error("Expected a continue button");
-    await user.click(continueButton);
+      await waitFor(
+        () => screen.getAllByRole("button", { name: /^continue$/i }).length > 0,
+      );
+      const continueButton = screen.getAllByRole("button", {
+        name: /^continue$/i,
+      })[0];
+      expect(continueButton).toBeDefined();
+      if (!continueButton) throw new Error("Expected a continue button");
+      await user.click(continueButton);
 
-      await waitFor(() => {
-        const channelHeaders = screen.getAllByText(/connect channels/i);
-        expect(channelHeaders.length).toBeGreaterThan(0);
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          const channelHeaders = screen.getAllByText(/connect channels/i);
+          expect(channelHeaders.length).toBeGreaterThan(0);
+        },
+        { timeout: 5000 },
+      );
     });
 
     it.skip("allows skipping channel setup", async () => {
       const user = userEvent.setup();
 
-      vi.mocked(invoke)
-        .mockImplementation(async (cmd: string) => {
-          switch (cmd) {
-            case "add_provider": return { providers: [] };
-            case "get_identity": return { publicKey: "02test", petname: "Test", avatarSvg: "<svg></svg>", shortId: "test" };
-            case "scan_gateways": return [{ url: "http://localhost:18789", version: null, name: null }];
-            case "probe_gateway": return { found: true, url: "http://localhost:18789", error: null };
-            default: return {};
-          }
-        });
+      vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+        switch (cmd) {
+          case "add_provider":
+            return { providers: [] };
+          case "get_identity":
+            return {
+              publicKey: "02test",
+              petname: "Test",
+              avatarSvg: "<svg></svg>",
+              shortId: "test",
+            };
+          case "scan_gateways":
+            return [
+              { url: "http://localhost:18789", version: null, name: null },
+            ];
+          case "probe_gateway":
+            return { found: true, url: "http://localhost:18789", error: null };
+          default:
+            return {};
+        }
+      });
 
       render(<OnboardingWizard onComplete={vi.fn()} />);
 
-      const getStartedButton = screen.getAllByRole("button").find(
-        btn => btn.textContent?.includes("Get Started")
-      );
+      const getStartedButton = screen
+        .getAllByRole("button")
+        .find((btn) => btn.textContent?.includes("Get Started"));
       if (getStartedButton) await user.click(getStartedButton);
 
       await waitFor(() => screen.getByPlaceholderText(/sk-ant-/i));
       await user.type(screen.getByPlaceholderText(/sk-ant-/i), "sk-ant-test");
-      await user.click(screen.getByRole("button", { name: /validate & continue/i }));
+      await user.click(
+        screen.getByRole("button", { name: /validate & continue/i }),
+      );
 
       await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
       await user.click(screen.getByRole("button", { name: /^continue$/i }));
@@ -452,16 +543,26 @@ describe("OnboardingWizard", () => {
       await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
       await user.click(screen.getByRole("button", { name: /^continue$/i }));
 
-      await waitFor(() => screen.getByRole("button", { name: /send test message/i }));
-      await user.click(screen.getByRole("button", { name: /send test message/i }));
+      await waitFor(() =>
+        screen.getByRole("button", { name: /send test message/i }),
+      );
+      await user.click(
+        screen.getByRole("button", { name: /send test message/i }),
+      );
 
-      await waitFor(() => screen.getAllByRole("button", { name: /^continue$/i }).length > 0);
-      const continueButton = screen.getAllByRole("button", { name: /^continue$/i })[0];
-    expect(continueButton).toBeDefined();
-    if (!continueButton) throw new Error("Expected a continue button");
-    await user.click(continueButton);
+      await waitFor(
+        () => screen.getAllByRole("button", { name: /^continue$/i }).length > 0,
+      );
+      const continueButton = screen.getAllByRole("button", {
+        name: /^continue$/i,
+      })[0];
+      expect(continueButton).toBeDefined();
+      if (!continueButton) throw new Error("Expected a continue button");
+      await user.click(continueButton);
 
-      await waitFor(() => screen.getAllByText(/connect channels/i).length > 0, { timeout: 5000 });
+      await waitFor(() => screen.getAllByText(/connect channels/i).length > 0, {
+        timeout: 5000,
+      });
       const skipButton = screen.getByRole("button", { name: /skip for now/i });
       await user.click(skipButton);
 

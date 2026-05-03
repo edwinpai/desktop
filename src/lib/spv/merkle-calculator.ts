@@ -8,7 +8,7 @@
  * by providing only the hashes along the path from transaction to root.
  */
 
-import type { MerkleProof, MerkleProofNode, BlockHeader } from '@/types';
+import type { MerkleProof, MerkleProofNode, BlockHeader } from "@/types";
 
 /**
  * Calculate Merkle root from a transaction hash and proof path
@@ -18,7 +18,7 @@ import type { MerkleProof, MerkleProofNode, BlockHeader } from '@/types';
  */
 export function calculateMerkleRoot(
   txHash: string,
-  proof: MerkleProof
+  proof: MerkleProof,
 ): string {
   // Start with transaction hash
   let currentHash = txHash;
@@ -47,7 +47,7 @@ export function calculateMerkleRoot(
 export function verifyMerkleProof(
   txHash: string,
   proof: MerkleProof,
-  expectedRoot: string
+  expectedRoot: string,
 ): boolean {
   const calculatedRoot = calculateMerkleRoot(txHash, proof);
   return calculatedRoot.toLowerCase() === expectedRoot.toLowerCase();
@@ -63,7 +63,7 @@ export function verifyMerkleProof(
 export function verifyMerkleProofWithHeader(
   txHash: string,
   proof: MerkleProof,
-  blockHeader: BlockHeader
+  blockHeader: BlockHeader,
 ): boolean {
   // Check block height matches
   if (proof.blockHeight !== blockHeader.height) {
@@ -81,7 +81,7 @@ export function verifyMerkleProofWithHeader(
  */
 export function buildMerkleTree(txids: string[]): string {
   if (txids.length === 0) {
-    throw new Error('Cannot build Merkle tree from empty transaction list');
+    throw new Error("Cannot build Merkle tree from empty transaction list");
   }
 
   // Create leaf level (transaction hashes)
@@ -98,14 +98,14 @@ export function buildMerkleTree(txids: string[]): string {
         const left = level[i];
         const right = level[i + 1];
         if (!left || !right) {
-          throw new Error('Invalid Merkle tree level');
+          throw new Error("Invalid Merkle tree level");
         }
         nextLevel.push(hashPair(left, right));
       } else {
         // Odd number of nodes - duplicate the last one (Bitcoin convention)
         const last = level[i];
         if (!last) {
-          throw new Error('Invalid Merkle tree level');
+          throw new Error("Invalid Merkle tree level");
         }
         nextLevel.push(hashPair(last, last));
       }
@@ -116,7 +116,7 @@ export function buildMerkleTree(txids: string[]): string {
 
   const root = level[0];
   if (!root) {
-    throw new Error('Failed to compute Merkle root');
+    throw new Error("Failed to compute Merkle root");
   }
   return root;
 }
@@ -129,7 +129,7 @@ export function buildMerkleTree(txids: string[]): string {
  */
 export function generateMerkleProof(
   txids: string[],
-  txIndex: number
+  txIndex: number,
 ): MerkleProofNode[] {
   if (txIndex < 0 || txIndex >= txids.length) {
     throw new Error(`Invalid transaction index: ${txIndex}`);
@@ -159,7 +159,7 @@ export function generateMerkleProof(
       hash: (() => {
         const siblingHash = level[siblingIndex];
         if (!siblingHash) {
-          throw new Error('Invalid sibling hash in Merkle proof generation');
+          throw new Error("Invalid sibling hash in Merkle proof generation");
         }
         return siblingHash;
       })(),
@@ -172,13 +172,13 @@ export function generateMerkleProof(
         const left = level[i];
         const right = level[i + 1];
         if (!left || !right) {
-          throw new Error('Invalid Merkle tree level');
+          throw new Error("Invalid Merkle tree level");
         }
         nextLevel.push(hashPair(left, right));
       } else {
         const last = level[i];
         if (!last) {
-          throw new Error('Invalid Merkle tree level');
+          throw new Error("Invalid Merkle tree level");
         }
         nextLevel.push(hashPair(last, last));
       }
@@ -223,7 +223,7 @@ export function validateMerkleProofStructure(proof: MerkleProof): boolean {
     if (!/^[0-9a-fA-F]{64}$/.test(node.hash)) return false;
 
     // isLeft must be boolean
-    if (typeof node.isLeft !== 'boolean') return false;
+    if (typeof node.isLeft !== "boolean") return false;
   }
 
   // Tree height should be reasonable (max ~30 for billions of txs)
@@ -266,7 +266,9 @@ function sha256(_data: Uint8Array): Uint8Array {
   // - Or @noble/hashes: sha256(data)
 
   // For now, throw error - implementation required
-  throw new Error('SHA-256 not implemented - use Web Crypto API or crypto library');
+  throw new Error(
+    "SHA-256 not implemented - use Web Crypto API or crypto library",
+  );
 }
 
 /**
@@ -274,13 +276,13 @@ function sha256(_data: Uint8Array): Uint8Array {
  */
 function hexToBytes(hex: string): Uint8Array {
   // Remove 0x prefix if present
-  if (hex.startsWith('0x')) {
+  if (hex.startsWith("0x")) {
     hex = hex.slice(2);
   }
 
   // Ensure even length
   if (hex.length % 2 !== 0) {
-    throw new Error('Invalid hex string: odd length');
+    throw new Error("Invalid hex string: odd length");
   }
 
   const bytes = new Uint8Array(hex.length / 2);
@@ -297,8 +299,8 @@ function hexToBytes(hex: string): Uint8Array {
  */
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 /**
@@ -309,7 +311,7 @@ function bytesToHex(bytes: Uint8Array): string {
  */
 export function calculateConfirmations(
   txBlockHeight: number,
-  currentBlockHeight: number
+  currentBlockHeight: number,
 ): number {
   if (txBlockHeight > currentBlockHeight) {
     return 0; // Transaction in future block (shouldn't happen)

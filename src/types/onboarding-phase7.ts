@@ -31,24 +31,24 @@
  * 8. complete - Onboarding complete
  */
 export type OnboardingStepId =
-  | 'welcome'
-  | 'identity'
-  | 'backup'
-  | 'mode-select'
-  | 'gateway-setup'
-  | 'client-discovery'
-  | 'subscription'
-  | 'complete';
+  | "welcome"
+  | "identity"
+  | "backup"
+  | "mode-select"
+  | "gateway-setup"
+  | "client-discovery"
+  | "subscription"
+  | "complete";
 
 /**
  * Onboarding step status.
  */
 export type OnboardingStepStatus =
-  | 'pending' // Not started
-  | 'in-progress' // Currently active
-  | 'completed' // Successfully completed
-  | 'skipped' // User skipped (if optional)
-  | 'error'; // Validation failed
+  | "pending" // Not started
+  | "in-progress" // Currently active
+  | "completed" // Successfully completed
+  | "skipped" // User skipped (if optional)
+  | "error"; // Validation failed
 
 /**
  * Individual onboarding step state.
@@ -141,7 +141,7 @@ export interface OnboardingState {
   completedAt: string | null;
 
   /** Operating mode selected during onboarding */
-  selectedMode?: 'gateway' | 'client';
+  selectedMode?: "gateway" | "client";
 
   /** Gateway setup data (if mode=gateway) */
   gatewaySetup?: {
@@ -195,7 +195,7 @@ export interface BackupStepData {
  */
 export interface ModeSelectStepData {
   /** Selected operating mode */
-  selectedMode: 'gateway' | 'client';
+  selectedMode: "gateway" | "client";
 }
 
 /**
@@ -212,7 +212,7 @@ export interface GatewaySetupStepData {
   mdnsEnabled: boolean;
 
   /** Binary discovery strategy */
-  binaryStrategy: 'bundled' | 'path' | 'explicit';
+  binaryStrategy: "bundled" | "path" | "explicit";
 
   /** Binary path (if strategy='explicit') */
   binaryPath?: string;
@@ -235,13 +235,13 @@ export interface ClientDiscoveryStepData {
   gatewayPetname: string;
 
   /** Discovery method used */
-  discoveryMethod: 'mdns' | 'manual' | 'qr';
+  discoveryMethod: "mdns" | "manual" | "qr";
 
   /** Connection timestamp (ISO 8601) */
   connectedAt: string;
 
   /** Permission level granted */
-  permission: 'owner' | 'member' | 'guest';
+  permission: "owner" | "member" | "guest";
 }
 
 /**
@@ -255,10 +255,10 @@ export interface SubscriptionStepData {
   vout: number;
 
   /** Subscription state */
-  state: 'active' | 'cached' | 'expired' | 'grace_exceeded' | 'not_found';
+  state: "active" | "cached" | "expired" | "grace_exceeded" | "not_found";
 
   /** Verification method */
-  method: 'spv' | 'cached' | 'offline';
+  method: "spv" | "cached" | "offline";
 
   /** Last verification timestamp (ISO 8601) */
   verifiedAt: string;
@@ -321,14 +321,14 @@ export interface OnboardingNavigation {
  * Onboarding step order.
  */
 export const ONBOARDING_STEP_ORDER: OnboardingStepId[] = [
-  'welcome',
-  'identity',
-  'backup',
-  'mode-select',
-  'gateway-setup',
-  'client-discovery',
-  'subscription',
-  'complete',
+  "welcome",
+  "identity",
+  "backup",
+  "mode-select",
+  "gateway-setup",
+  "client-discovery",
+  "subscription",
+  "complete",
 ];
 
 /**
@@ -339,42 +339,42 @@ export const ONBOARDING_STEP_METADATA: Record<
   { title: string; description: string; optional: boolean }
 > = {
   welcome: {
-    title: 'Welcome to EdwinPAI',
-    description: 'Your personal AI assistant with true privacy',
+    title: "Welcome to EdwinPAI",
+    description: "Your personal AI assistant with true privacy",
     optional: false,
   },
   identity: {
-    title: 'Set Up Your Identity',
-    description: 'Create your BSV identity and petname',
+    title: "Set Up Your Identity",
+    description: "Create your BSV identity and petname",
     optional: false,
   },
   backup: {
-    title: 'Backup Your Key',
-    description: 'Secure your identity with a recovery phrase',
+    title: "Backup Your Key",
+    description: "Secure your identity with a recovery phrase",
     optional: true,
   },
-  'mode-select': {
-    title: 'Choose Your Mode',
-    description: 'Run your own gateway or connect to an existing one',
+  "mode-select": {
+    title: "Choose Your Mode",
+    description: "Run your own gateway or connect to an existing one",
     optional: false,
   },
-  'gateway-setup': {
-    title: 'Configure Gateway',
-    description: 'Set up your EdwinPAI gateway server',
+  "gateway-setup": {
+    title: "Configure Gateway",
+    description: "Set up your EdwinPAI gateway server",
     optional: false, // conditional: only shown if mode=gateway
   },
-  'client-discovery': {
-    title: 'Connect to Gateway',
-    description: 'Find and connect to an EdwinPAI gateway on your network',
+  "client-discovery": {
+    title: "Connect to Gateway",
+    description: "Find and connect to an EdwinPAI gateway on your network",
     optional: false, // conditional: only shown if mode=client
   },
   subscription: {
-    title: 'Verify Subscription',
-    description: 'Check your subscription status',
+    title: "Verify Subscription",
+    description: "Check your subscription status",
     optional: true,
   },
   complete: {
-    title: 'Setup Complete',
+    title: "Setup Complete",
     description: "You're all set! Start chatting with EdwinPAI.",
     optional: false,
   },
@@ -389,7 +389,7 @@ export const ONBOARDING_STEP_METADATA: Record<
  */
 export function calculateCompletion(steps: OnboardingStep[]): number {
   const completedCount = steps.filter(
-    (s) => s.status === 'completed' || s.status === 'skipped',
+    (s) => s.status === "completed" || s.status === "skipped",
   ).length;
   return Math.round((completedCount / steps.length) * 100);
 }
@@ -399,10 +399,13 @@ export function calculateCompletion(steps: OnboardingStep[]): number {
  */
 export function getNextStep(
   currentStep: OnboardingStepId,
-  mode?: 'gateway' | 'client',
+  mode?: "gateway" | "client",
 ): OnboardingStepId | null {
   const currentIndex = ONBOARDING_STEP_ORDER.indexOf(currentStep);
-  if (currentIndex === -1 || currentIndex === ONBOARDING_STEP_ORDER.length - 1) {
+  if (
+    currentIndex === -1 ||
+    currentIndex === ONBOARDING_STEP_ORDER.length - 1
+  ) {
     return null;
   }
 
@@ -410,10 +413,10 @@ export function getNextStep(
   let nextStep = ONBOARDING_STEP_ORDER[nextIndex];
 
   // Skip conditional steps based on mode
-  if (mode === 'gateway' && nextStep === 'client-discovery') {
+  if (mode === "gateway" && nextStep === "client-discovery") {
     nextIndex++;
     nextStep = ONBOARDING_STEP_ORDER[nextIndex];
-  } else if (mode === 'client' && nextStep === 'gateway-setup') {
+  } else if (mode === "client" && nextStep === "gateway-setup") {
     nextIndex++;
     nextStep = ONBOARDING_STEP_ORDER[nextIndex];
   }
@@ -426,7 +429,7 @@ export function getNextStep(
  */
 export function getPreviousStep(
   currentStep: OnboardingStepId,
-  mode?: 'gateway' | 'client',
+  mode?: "gateway" | "client",
 ): OnboardingStepId | null {
   const currentIndex = ONBOARDING_STEP_ORDER.indexOf(currentStep);
   if (currentIndex <= 0) {
@@ -437,10 +440,10 @@ export function getPreviousStep(
   let prevStep = ONBOARDING_STEP_ORDER[prevIndex];
 
   // Skip conditional steps based on mode
-  if (mode === 'gateway' && prevStep === 'client-discovery') {
+  if (mode === "gateway" && prevStep === "client-discovery") {
     prevIndex--;
     prevStep = ONBOARDING_STEP_ORDER[prevIndex];
-  } else if (mode === 'client' && prevStep === 'gateway-setup') {
+  } else if (mode === "client" && prevStep === "gateway-setup") {
     prevIndex--;
     prevStep = ONBOARDING_STEP_ORDER[prevIndex];
   }
@@ -454,7 +457,7 @@ export function getPreviousStep(
 export function isOnboardingComplete(state: OnboardingState): boolean {
   const requiredSteps = state.steps.filter((s) => !s.optional);
   const completedRequired = requiredSteps.filter(
-    (s) => s.status === 'completed',
+    (s) => s.status === "completed",
   );
   return completedRequired.length === requiredSteps.length;
 }
@@ -463,19 +466,19 @@ export function isOnboardingComplete(state: OnboardingState): boolean {
  * Get required steps based on selected mode.
  */
 export function getRequiredSteps(
-  mode: 'gateway' | 'client' | null,
+  mode: "gateway" | "client" | null,
 ): OnboardingStepId[] {
   const baseSteps: OnboardingStepId[] = [
-    'welcome',
-    'identity',
-    'mode-select',
-    'complete',
+    "welcome",
+    "identity",
+    "mode-select",
+    "complete",
   ];
 
-  if (mode === 'gateway') {
-    return [...baseSteps.slice(0, 3), 'gateway-setup', 'complete'];
-  } else if (mode === 'client') {
-    return [...baseSteps.slice(0, 3), 'client-discovery', 'complete'];
+  if (mode === "gateway") {
+    return [...baseSteps.slice(0, 3), "gateway-setup", "complete"];
+  } else if (mode === "client") {
+    return [...baseSteps.slice(0, 3), "client-discovery", "complete"];
   }
 
   return baseSteps;
@@ -489,13 +492,13 @@ export function initializeOnboardingState(): OnboardingState {
     id,
     title: ONBOARDING_STEP_METADATA[id].title,
     description: ONBOARDING_STEP_METADATA[id].description,
-    status: id === 'welcome' ? 'in-progress' : 'pending',
+    status: id === "welcome" ? "in-progress" : "pending",
     optional: ONBOARDING_STEP_METADATA[id].optional,
     completedAt: null,
   }));
 
   return {
-    currentStep: 'welcome',
+    currentStep: "welcome",
     steps,
     completionPercent: 0,
     isComplete: false,

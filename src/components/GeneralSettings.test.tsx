@@ -1,20 +1,34 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { GeneralSettings } from './GeneralSettings';
-import * as useConfigModule from '@/hooks/useConfig';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { GeneralSettings } from "./GeneralSettings";
+import * as useConfigModule from "@/hooks/useConfig";
 
 // Mock child settings cards that hit Tauri FS / gateway context
-vi.mock('@/components/ProviderSettings', () => ({ ProviderSettings: () => <div>ProviderSettings</div> }));
-vi.mock('@/components/GatewayConfigCard', () => ({ GatewayConfigCard: () => <div>GatewayConfigCard</div> }));
-vi.mock('@/components/WebToolsCard', () => ({ WebToolsCard: () => <div>WebToolsCard</div> }));
-vi.mock('@/components/AgentConfigCard', () => ({ AgentConfigCard: () => <div>AgentConfigCard</div> }));
-vi.mock('@/components/RuntimeStatus', () => ({ RuntimeStatus: () => <div>RuntimeStatus</div> }));
-vi.mock('@/components/AppLockSettings', () => ({ AppLockSettings: () => <div>AppLockSettings</div> }));
-vi.mock('@/components/TtsSettingsCard', () => ({ TtsSettingsCard: () => <div>TtsSettingsCard</div> }));
+vi.mock("@/components/ProviderSettings", () => ({
+  ProviderSettings: () => <div>ProviderSettings</div>,
+}));
+vi.mock("@/components/GatewayConfigCard", () => ({
+  GatewayConfigCard: () => <div>GatewayConfigCard</div>,
+}));
+vi.mock("@/components/WebToolsCard", () => ({
+  WebToolsCard: () => <div>WebToolsCard</div>,
+}));
+vi.mock("@/components/AgentConfigCard", () => ({
+  AgentConfigCard: () => <div>AgentConfigCard</div>,
+}));
+vi.mock("@/components/RuntimeStatus", () => ({
+  RuntimeStatus: () => <div>RuntimeStatus</div>,
+}));
+vi.mock("@/components/AppLockSettings", () => ({
+  AppLockSettings: () => <div>AppLockSettings</div>,
+}));
+vi.mock("@/components/TtsSettingsCard", () => ({
+  TtsSettingsCard: () => <div>TtsSettingsCard</div>,
+}));
 
 // Mock Tauri invoke for ProviderSettings
-vi.mock('@tauri-apps/api/core', () => ({
+vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn().mockResolvedValue({ providers: [] }),
 }));
 
@@ -24,28 +38,28 @@ const mockReset = vi.fn().mockResolvedValue(undefined);
 const mockReload = vi.fn().mockResolvedValue(undefined);
 
 const defaultMockConfig = {
-  gatewayUrl: 'http://localhost:18789',
+  gatewayUrl: "http://localhost:18789",
   gatewayPort: 18789,
-  gatewayToken: '',
-  defaultModel: 'claude-sonnet-4-5',
+  gatewayToken: "",
+  defaultModel: "claude-sonnet-4-5",
   gatewayProfiles: [
     {
-      id: 'default',
-      name: 'Default Gateway',
-      gatewayUrl: 'http://localhost:18789',
+      id: "default",
+      name: "Default Gateway",
+      gatewayUrl: "http://localhost:18789",
       gatewayPort: 18789,
-      gatewayToken: '',
+      gatewayToken: "",
     },
     {
-      id: 'remote',
-      name: 'Remote Gateway',
-      gatewayUrl: 'https://gateway.example',
+      id: "remote",
+      name: "Remote Gateway",
+      gatewayUrl: "https://gateway.example",
       gatewayPort: 443,
-      gatewayToken: 'remote-token',
+      gatewayToken: "remote-token",
     },
   ],
-  activeGatewayProfileId: 'default',
-  theme: 'system' as const,
+  activeGatewayProfileId: "default",
+  theme: "system" as const,
   autoStartGateway: true,
   chat: {
     enableStreaming: true,
@@ -59,7 +73,7 @@ const defaultMockConfig = {
   },
 };
 
-vi.mock('@/hooks/useConfig', () => ({
+vi.mock("@/hooks/useConfig", () => ({
   useConfig: vi.fn(),
 }));
 
@@ -76,10 +90,10 @@ beforeEach(() => {
   }
 });
 
-describe('GeneralSettings', () => {
+describe("GeneralSettings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Default mock implementation
     vi.mocked(useConfigModule.useConfig).mockReturnValue({
       config: defaultMockConfig,
@@ -96,17 +110,17 @@ describe('GeneralSettings', () => {
     });
   });
 
-  it('renders all settings sections', () => {
+  it("renders all settings sections", () => {
     render(<GeneralSettings />);
 
-    expect(screen.getByText('Settings')).toBeInTheDocument();
-    expect(screen.getByText('Appearance')).toBeInTheDocument();
-    expect(screen.getByText('Behavior')).toBeInTheDocument();
-    expect(screen.getByText('Gateway Connection')).toBeInTheDocument();
-    expect(screen.getByText('Gateway Profiles')).toBeInTheDocument();
+    expect(screen.getByText("Settings")).toBeInTheDocument();
+    expect(screen.getByText("Appearance")).toBeInTheDocument();
+    expect(screen.getByText("Behavior")).toBeInTheDocument();
+    expect(screen.getByText("Gateway Connection")).toBeInTheDocument();
+    expect(screen.getByText("Gateway Profiles")).toBeInTheDocument();
   });
 
-  it('shows loading state when config is loading', () => {
+  it("shows loading state when config is loading", () => {
     vi.mocked(useConfigModule.useConfig).mockReturnValue({
       config: defaultMockConfig,
       loading: true,
@@ -123,35 +137,37 @@ describe('GeneralSettings', () => {
 
     render(<GeneralSettings />);
 
-    expect(screen.getByText('Loading settings...')).toBeInTheDocument();
+    expect(screen.getByText("Loading settings...")).toBeInTheDocument();
   });
 
-  it('renders with default values from config', () => {
+  it("renders with default values from config", () => {
     render(<GeneralSettings />);
 
-    const notificationsSwitch = screen.getByLabelText('Notifications');
+    const notificationsSwitch = screen.getByLabelText("Notifications");
     expect(notificationsSwitch).toBeChecked();
 
-    const autoScrollSwitch = screen.getByLabelText('Auto-scroll');
+    const autoScrollSwitch = screen.getByLabelText("Auto-scroll");
     expect(autoScrollSwitch).toBeChecked();
 
-    const gatewayUrlInput = screen.getByLabelText('Gateway URL');
-    expect(gatewayUrlInput).toHaveValue('http://localhost:18789');
-    expect(screen.getByLabelText('Active Gateway Profile')).toHaveTextContent('Default Gateway');
+    const gatewayUrlInput = screen.getByLabelText("Gateway URL");
+    expect(gatewayUrlInput).toHaveValue("http://localhost:18789");
+    expect(screen.getByLabelText("Active Gateway Profile")).toHaveTextContent(
+      "Default Gateway",
+    );
   });
 
-  it('renders theme selector with system as default', () => {
+  it("renders theme selector with system as default", () => {
     render(<GeneralSettings />);
 
-    const themeSelect = screen.getAllByRole('combobox')[0];
-    expect(themeSelect).toHaveTextContent('System');
+    const themeSelect = screen.getAllByRole("combobox")[0];
+    expect(themeSelect).toHaveTextContent("System");
   });
 
-  it('toggles notifications switch', async () => {
+  it("toggles notifications switch", async () => {
     const user = userEvent.setup();
     render(<GeneralSettings />);
 
-    const notificationsSwitch = screen.getByLabelText('Notifications');
+    const notificationsSwitch = screen.getByLabelText("Notifications");
 
     expect(notificationsSwitch).toBeChecked();
 
@@ -160,11 +176,11 @@ describe('GeneralSettings', () => {
     expect(notificationsSwitch).not.toBeChecked();
   });
 
-  it('toggles auto-scroll switch', async () => {
+  it("toggles auto-scroll switch", async () => {
     const user = userEvent.setup();
     render(<GeneralSettings />);
 
-    const autoScrollSwitch = screen.getByLabelText('Auto-scroll');
+    const autoScrollSwitch = screen.getByLabelText("Auto-scroll");
 
     expect(autoScrollSwitch).toBeChecked();
 
@@ -173,131 +189,139 @@ describe('GeneralSettings', () => {
     expect(autoScrollSwitch).not.toBeChecked();
   });
 
-  it('changes gateway URL input', async () => {
+  it("changes gateway URL input", async () => {
     const user = userEvent.setup();
     render(<GeneralSettings />);
 
-    const gatewayUrlInput = screen.getByLabelText('Gateway URL');
+    const gatewayUrlInput = screen.getByLabelText("Gateway URL");
 
     await user.clear(gatewayUrlInput);
-    await user.type(gatewayUrlInput, 'http://localhost:5000');
+    await user.type(gatewayUrlInput, "http://localhost:5000");
 
-    expect(gatewayUrlInput).toHaveValue('http://localhost:5000');
+    expect(gatewayUrlInput).toHaveValue("http://localhost:5000");
   });
 
-  it('switches the editable gateway fields when the active profile changes', async () => {
+  it("switches the editable gateway fields when the active profile changes", async () => {
     const user = userEvent.setup();
     render(<GeneralSettings />);
 
-    const profileSelect = screen.getByLabelText('Active Gateway Profile');
+    const profileSelect = screen.getByLabelText("Active Gateway Profile");
     await user.click(profileSelect);
-    await user.click(await screen.findByRole('option', { name: 'Remote Gateway' }));
+    await user.click(
+      await screen.findByRole("option", { name: "Remote Gateway" }),
+    );
 
-    expect(screen.getByLabelText('Gateway URL')).toHaveValue('https://gateway.example');
-    expect(screen.getByLabelText('Auth Token')).toHaveValue('remote-token');
+    expect(screen.getByLabelText("Gateway URL")).toHaveValue(
+      "https://gateway.example",
+    );
+    expect(screen.getByLabelText("Auth Token")).toHaveValue("remote-token");
   });
 
-  it('persists active profile changes when saved', async () => {
+  it("persists active profile changes when saved", async () => {
     const user = userEvent.setup();
     render(<GeneralSettings />);
 
-    const profileSelect = screen.getByLabelText('Active Gateway Profile');
+    const profileSelect = screen.getByLabelText("Active Gateway Profile");
     await user.click(profileSelect);
-    await user.click(await screen.findByRole('option', { name: 'Remote Gateway' }));
+    await user.click(
+      await screen.findByRole("option", { name: "Remote Gateway" }),
+    );
 
-    await user.click(screen.getByRole('button', { name: /Save Changes/i }));
+    await user.click(screen.getByRole("button", { name: /Save Changes/i }));
 
     await waitFor(() => {
       expect(mockUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          activeGatewayProfileId: 'remote',
+          activeGatewayProfileId: "remote",
           gatewayProfiles: expect.arrayContaining([
             expect.objectContaining({
-              id: 'remote',
-              gatewayUrl: 'https://gateway.example',
-              gatewayToken: 'remote-token',
+              id: "remote",
+              gatewayUrl: "https://gateway.example",
+              gatewayToken: "remote-token",
             }),
           ]),
-          gatewayUrl: 'https://gateway.example',
+          gatewayUrl: "https://gateway.example",
           gatewayPort: 443,
-          gatewayToken: 'remote-token',
-        })
+          gatewayToken: "remote-token",
+        }),
       );
     });
   });
 
-  it('creates a new gateway profile draft from the current fields', async () => {
+  it("creates a new gateway profile draft from the current fields", async () => {
     const user = userEvent.setup();
     render(<GeneralSettings />);
 
-    await user.click(screen.getByRole('button', { name: /New Profile/i }));
+    await user.click(screen.getByRole("button", { name: /New Profile/i }));
 
-    expect(screen.getByLabelText('Profile Name')).toHaveValue('New Gateway');
-    expect(screen.getByLabelText('Gateway URL')).toHaveValue('http://localhost:18789');
-    expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+    expect(screen.getByLabelText("Profile Name")).toHaveValue("New Gateway");
+    expect(screen.getByLabelText("Gateway URL")).toHaveValue(
+      "http://localhost:18789",
+    );
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
   });
 
-  it('renders theme selector', () => {
+  it("renders theme selector", () => {
     render(<GeneralSettings />);
 
     // Verify theme selector is present
-    const themeSelect = screen.getAllByRole('combobox')[0];
+    const themeSelect = screen.getAllByRole("combobox")[0];
     expect(themeSelect).toBeInTheDocument();
-    expect(themeSelect).toHaveTextContent('System');
-    
+    expect(themeSelect).toHaveTextContent("System");
+
     // Verify it's labeled correctly
-    expect(screen.getByLabelText('Theme')).toBeInTheDocument();
+    expect(screen.getByLabelText("Theme")).toBeInTheDocument();
   });
 
   it('shows "unsaved changes" badge when settings change', async () => {
     const user = userEvent.setup();
     render(<GeneralSettings />);
 
-    expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument();
+    expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
 
-    const notificationsSwitch = screen.getByLabelText('Notifications');
+    const notificationsSwitch = screen.getByLabelText("Notifications");
     await user.click(notificationsSwitch);
 
-    expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
   });
 
-  it('calls update hook when save button is clicked', async () => {
+  it("calls update hook when save button is clicked", async () => {
     const user = userEvent.setup();
     render(<GeneralSettings />);
 
-    const gatewayUrlInput = screen.getByLabelText('Gateway URL');
+    const gatewayUrlInput = screen.getByLabelText("Gateway URL");
     await user.clear(gatewayUrlInput);
-    await user.type(gatewayUrlInput, 'http://localhost:5000');
+    await user.type(gatewayUrlInput, "http://localhost:5000");
 
-    const saveButton = screen.getByRole('button', { name: /Save Changes/i });
+    const saveButton = screen.getByRole("button", { name: /Save Changes/i });
     await user.click(saveButton);
 
     await waitFor(() => {
       expect(mockUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          gatewayUrl: 'http://localhost:5000',
-        })
+          gatewayUrl: "http://localhost:5000",
+        }),
       );
     });
   });
 
-  it('calls onSave callback when save button is clicked', async () => {
+  it("calls onSave callback when save button is clicked", async () => {
     const onSave = vi.fn();
     const user = userEvent.setup();
     render(<GeneralSettings onSave={onSave} />);
 
-    const gatewayUrlInput = screen.getByLabelText('Gateway URL');
+    const gatewayUrlInput = screen.getByLabelText("Gateway URL");
     await user.clear(gatewayUrlInput);
-    await user.type(gatewayUrlInput, 'http://localhost:9999');
+    await user.type(gatewayUrlInput, "http://localhost:9999");
 
-    const saveButton = screen.getByRole('button', { name: /Save Changes/i });
+    const saveButton = screen.getByRole("button", { name: /Save Changes/i });
     await user.click(saveButton);
 
     await waitFor(() => {
       expect(onSave).toHaveBeenCalledWith(
         expect.objectContaining({
-          gatewayUrl: 'http://localhost:9999',
-        })
+          gatewayUrl: "http://localhost:9999",
+        }),
       );
     });
   });
@@ -306,115 +330,121 @@ describe('GeneralSettings', () => {
     const user = userEvent.setup();
     render(<GeneralSettings onSave={vi.fn()} />);
 
-    const notificationsSwitch = screen.getByLabelText('Notifications');
+    const notificationsSwitch = screen.getByLabelText("Notifications");
     await user.click(notificationsSwitch);
 
-    expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
 
-    const saveButton = screen.getByRole('button', { name: /Save Changes/i });
+    const saveButton = screen.getByRole("button", { name: /Save Changes/i });
     await user.click(saveButton);
 
     await waitFor(() => {
-      expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument();
+      expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
     });
   });
 
-  it('disables save button when no changes', () => {
+  it("disables save button when no changes", () => {
     render(<GeneralSettings />);
 
-    const saveButton = screen.getByRole('button', { name: /Save Changes/i });
+    const saveButton = screen.getByRole("button", { name: /Save Changes/i });
 
     expect(saveButton).toBeDisabled();
   });
 
-  it('enables save button when changes are made', async () => {
+  it("enables save button when changes are made", async () => {
     const user = userEvent.setup();
     render(<GeneralSettings />);
 
-    const saveButton = screen.getByRole('button', { name: /Save Changes/i });
+    const saveButton = screen.getByRole("button", { name: /Save Changes/i });
     expect(saveButton).toBeDisabled();
 
-    const notificationsSwitch = screen.getByLabelText('Notifications');
+    const notificationsSwitch = screen.getByLabelText("Notifications");
     await user.click(notificationsSwitch);
 
     expect(saveButton).toBeEnabled();
   });
 
-  it('resets to default values when reset button is clicked', async () => {
+  it("resets to default values when reset button is clicked", async () => {
     const user = userEvent.setup();
     render(<GeneralSettings />);
 
     // Make some changes first
-    const gatewayUrlInput = screen.getByLabelText('Gateway URL');
+    const gatewayUrlInput = screen.getByLabelText("Gateway URL");
     await user.clear(gatewayUrlInput);
-    await user.type(gatewayUrlInput, 'http://localhost:5000');
+    await user.type(gatewayUrlInput, "http://localhost:5000");
 
-    const resetButton = screen.getByRole('button', { name: /Reset to Defaults/i });
+    const resetButton = screen.getByRole("button", {
+      name: /Reset to Defaults/i,
+    });
     await user.click(resetButton);
 
     // Check that values are reset
-    expect(gatewayUrlInput).toHaveValue('http://localhost:18789');
+    expect(gatewayUrlInput).toHaveValue("http://localhost:18789");
   });
 
-  it('shows unsaved changes after reset', async () => {
+  it("shows unsaved changes after reset", async () => {
     const user = userEvent.setup();
     render(<GeneralSettings />);
 
-    const resetButton = screen.getByRole('button', { name: /Reset to Defaults/i });
+    const resetButton = screen.getByRole("button", {
+      name: /Reset to Defaults/i,
+    });
     await user.click(resetButton);
 
-    expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
   });
 
-  it('updates theme in config when changed', async () => {
+  it("updates theme in config when changed", async () => {
     render(<GeneralSettings />);
 
     // Verify the theme selector shows the current theme from config
-    const themeSelect = screen.getAllByRole('combobox')[0];
-    expect(themeSelect).toHaveTextContent('System');
-    
+    const themeSelect = screen.getAllByRole("combobox")[0];
+    expect(themeSelect).toHaveTextContent("System");
+
     // Note: We don't interact with the Radix UI dropdown in tests due to JSDOM limitations.
     // Theme functionality is verified through integration tests and the "syncs theme from config" test.
   });
 
-  it('displays helper text for gateway URL', () => {
+  it("displays helper text for gateway URL", () => {
     render(<GeneralSettings />);
 
-    expect(screen.getByText(/The URL of your EdwinPAI Gateway instance/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/The URL of your EdwinPAI Gateway instance/),
+    ).toBeInTheDocument();
   });
 
-  it('handles multiple setting changes before saving', async () => {
+  it("handles multiple setting changes before saving", async () => {
     const onSave = vi.fn();
     const user = userEvent.setup();
     render(<GeneralSettings onSave={onSave} />);
 
-    const notificationsSwitch = screen.getByLabelText('Notifications');
+    const notificationsSwitch = screen.getByLabelText("Notifications");
     await user.click(notificationsSwitch);
 
-    const autoScrollSwitch = screen.getByLabelText('Auto-scroll');
+    const autoScrollSwitch = screen.getByLabelText("Auto-scroll");
     await user.click(autoScrollSwitch);
 
-    const gatewayUrlInput = screen.getByLabelText('Gateway URL');
+    const gatewayUrlInput = screen.getByLabelText("Gateway URL");
     await user.clear(gatewayUrlInput);
-    await user.type(gatewayUrlInput, 'http://localhost:8000');
+    await user.type(gatewayUrlInput, "http://localhost:8000");
 
-    const saveButton = screen.getByRole('button', { name: /Save Changes/i });
+    const saveButton = screen.getByRole("button", { name: /Save Changes/i });
     await user.click(saveButton);
 
     await waitFor(() => {
       expect(onSave).toHaveBeenCalledWith(
         expect.objectContaining({
-          gatewayUrl: 'http://localhost:8000',
-        })
+          gatewayUrl: "http://localhost:8000",
+        }),
       );
     });
   });
 
-  it('handles rapid toggle changes', async () => {
+  it("handles rapid toggle changes", async () => {
     const user = userEvent.setup();
     render(<GeneralSettings />);
 
-    const notificationsSwitch = screen.getByLabelText('Notifications');
+    const notificationsSwitch = screen.getByLabelText("Notifications");
 
     // Toggle multiple times
     await user.click(notificationsSwitch);
@@ -424,58 +454,72 @@ describe('GeneralSettings', () => {
     expect(notificationsSwitch).not.toBeChecked();
   });
 
-  it('renders mode switcher when onModeChange is provided', () => {
+  it("renders mode switcher when onModeChange is provided", () => {
     const onModeChange = vi.fn();
-    render(<GeneralSettings onModeChange={onModeChange} currentMode="gateway" />);
+    render(
+      <GeneralSettings onModeChange={onModeChange} currentMode="gateway" />,
+    );
 
-    expect(screen.getByText('Application Mode')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Gateway Mode/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Client Mode/i })).toBeInTheDocument();
+    expect(screen.getByText("Application Mode")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Gateway Mode/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Client Mode/i }),
+    ).toBeInTheDocument();
   });
 
-  it('does not render mode switcher when onModeChange is not provided', () => {
+  it("does not render mode switcher when onModeChange is not provided", () => {
     render(<GeneralSettings />);
 
-    expect(screen.queryByText('Application Mode')).not.toBeInTheDocument();
+    expect(screen.queryByText("Application Mode")).not.toBeInTheDocument();
   });
 
-  it('calls onModeChange when switching to client mode', async () => {
+  it("calls onModeChange when switching to client mode", async () => {
     const onModeChange = vi.fn();
     const user = userEvent.setup();
-    render(<GeneralSettings onModeChange={onModeChange} currentMode="gateway" />);
+    render(
+      <GeneralSettings onModeChange={onModeChange} currentMode="gateway" />,
+    );
 
-    const clientModeButton = screen.getByRole('button', { name: /Client Mode/i });
+    const clientModeButton = screen.getByRole("button", {
+      name: /Client Mode/i,
+    });
     await user.click(clientModeButton);
 
-    expect(onModeChange).toHaveBeenCalledWith('client');
+    expect(onModeChange).toHaveBeenCalledWith("client");
   });
 
-  it('calls onModeChange when switching to gateway mode', async () => {
+  it("calls onModeChange when switching to gateway mode", async () => {
     const onModeChange = vi.fn();
     const user = userEvent.setup();
-    render(<GeneralSettings onModeChange={onModeChange} currentMode="client" />);
+    render(
+      <GeneralSettings onModeChange={onModeChange} currentMode="client" />,
+    );
 
-    const gatewayModeButton = screen.getByRole('button', { name: /Gateway Mode/i });
+    const gatewayModeButton = screen.getByRole("button", {
+      name: /Gateway Mode/i,
+    });
     await user.click(gatewayModeButton);
 
-    expect(onModeChange).toHaveBeenCalledWith('gateway');
+    expect(onModeChange).toHaveBeenCalledWith("gateway");
   });
 
-  it('syncs gatewayUrl from config when it changes', () => {
+  it("syncs gatewayUrl from config when it changes", () => {
     const { rerender } = render(<GeneralSettings />);
 
-    const gatewayUrlInput = screen.getByLabelText('Gateway URL');
-    expect(gatewayUrlInput).toHaveValue('http://localhost:18789');
+    const gatewayUrlInput = screen.getByLabelText("Gateway URL");
+    expect(gatewayUrlInput).toHaveValue("http://localhost:18789");
 
     // Update mock to return different config
     vi.mocked(useConfigModule.useConfig).mockReturnValue({
       config: {
         ...defaultMockConfig,
-        gatewayUrl: 'http://localhost:9999',
+        gatewayUrl: "http://localhost:9999",
         gatewayProfiles: [
           {
             ...defaultMockConfig.gatewayProfiles[0]!,
-            gatewayUrl: 'http://localhost:9999',
+            gatewayUrl: "http://localhost:9999",
             gatewayPort: 9999,
           },
           defaultMockConfig.gatewayProfiles[1]!,
@@ -489,14 +533,14 @@ describe('GeneralSettings', () => {
       gatewayProfiles: [
         {
           ...defaultMockConfig.gatewayProfiles[0]!,
-          gatewayUrl: 'http://localhost:9999',
+          gatewayUrl: "http://localhost:9999",
           gatewayPort: 9999,
         },
         defaultMockConfig.gatewayProfiles[1]!,
       ],
       activeGatewayProfile: {
         ...defaultMockConfig.gatewayProfiles[0]!,
-        gatewayUrl: 'http://localhost:9999',
+        gatewayUrl: "http://localhost:9999",
         gatewayPort: 9999,
       },
       saveGatewayProfile: vi.fn(),
@@ -506,20 +550,20 @@ describe('GeneralSettings', () => {
 
     rerender(<GeneralSettings />);
 
-    expect(gatewayUrlInput).toHaveValue('http://localhost:9999');
+    expect(gatewayUrlInput).toHaveValue("http://localhost:9999");
   });
 
-  it('syncs theme from config when it changes', () => {
+  it("syncs theme from config when it changes", () => {
     const { rerender } = render(<GeneralSettings />);
 
-    const themeSelect = screen.getAllByRole('combobox')[0];
-    expect(themeSelect).toHaveTextContent('System');
+    const themeSelect = screen.getAllByRole("combobox")[0];
+    expect(themeSelect).toHaveTextContent("System");
 
     // Update mock to return different config
     vi.mocked(useConfigModule.useConfig).mockReturnValue({
       config: {
         ...defaultMockConfig,
-        theme: 'dark',
+        theme: "dark",
       },
       loading: false,
       error: null,
@@ -535,47 +579,47 @@ describe('GeneralSettings', () => {
 
     rerender(<GeneralSettings />);
 
-    expect(themeSelect).toHaveTextContent('Dark');
+    expect(themeSelect).toHaveTextContent("Dark");
   });
 
-  it('parses port from gateway URL when saving', async () => {
+  it("parses port from gateway URL when saving", async () => {
     const user = userEvent.setup();
     render(<GeneralSettings />);
 
-    const gatewayUrlInput = screen.getByLabelText('Gateway URL');
+    const gatewayUrlInput = screen.getByLabelText("Gateway URL");
     await user.clear(gatewayUrlInput);
-    await user.type(gatewayUrlInput, 'http://localhost:9999');
+    await user.type(gatewayUrlInput, "http://localhost:9999");
 
-    const saveButton = screen.getByRole('button', { name: /Save Changes/i });
+    const saveButton = screen.getByRole("button", { name: /Save Changes/i });
     await user.click(saveButton);
 
     await waitFor(() => {
       expect(mockUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          gatewayUrl: 'http://localhost:9999',
+          gatewayUrl: "http://localhost:9999",
           gatewayPort: 9999,
-        })
+        }),
       );
     });
   });
 
-  it('uses default port when URL has no port', async () => {
+  it("uses default port when URL has no port", async () => {
     const user = userEvent.setup();
     render(<GeneralSettings />);
 
-    const gatewayUrlInput = screen.getByLabelText('Gateway URL');
+    const gatewayUrlInput = screen.getByLabelText("Gateway URL");
     await user.clear(gatewayUrlInput);
-    await user.type(gatewayUrlInput, 'http://example.com');
+    await user.type(gatewayUrlInput, "http://example.com");
 
-    const saveButton = screen.getByRole('button', { name: /Save Changes/i });
+    const saveButton = screen.getByRole("button", { name: /Save Changes/i });
     await user.click(saveButton);
 
     await waitFor(() => {
       expect(mockUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          gatewayUrl: 'http://example.com',
+          gatewayUrl: "http://example.com",
           gatewayPort: 18789, // default port from config
-        })
+        }),
       );
     });
   });

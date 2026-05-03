@@ -6,8 +6,12 @@
  * back to the parent via callback.
  */
 
-import { useEffect, useRef, useCallback } from 'react';
-import { pushJsonlToFrame, resetFrame, type A2UIOutboundMessage } from '@/lib/a2ui-bridge';
+import { useEffect, useRef, useCallback } from "react";
+import {
+  pushJsonlToFrame,
+  resetFrame,
+  type A2UIOutboundMessage,
+} from "@/lib/a2ui-bridge";
 
 interface A2UIRendererProps {
   /** JSONL string to push into the A2UI surface */
@@ -23,7 +27,7 @@ export function A2UIRenderer({
   jsonl,
   resetKey = 0,
   onUserAction,
-  className = '',
+  className = "",
 }: A2UIRendererProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const loadedRef = useRef(false);
@@ -32,14 +36,14 @@ export function A2UIRenderer({
   // Listen for user action messages from the iframe
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
-      if (!ev.data || typeof ev.data !== 'object') return;
+      if (!ev.data || typeof ev.data !== "object") return;
       const msg = ev.data as A2UIOutboundMessage;
-      if (msg.type === 'a2ui:action' && msg.userAction) {
+      if (msg.type === "a2ui:action" && msg.userAction) {
         onUserAction?.(msg.userAction);
       }
     };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
   }, [onUserAction]);
 
   // Handle iframe load — flush any pending JSONL

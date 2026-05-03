@@ -12,8 +12,8 @@
  * (4) Coverage report schemas (CoverageThreshold, TestManifest)
  */
 
-import type { ReactElement, ReactNode } from 'react';
-import type { RenderOptions } from '@testing-library/react';
+import type { ReactElement, ReactNode } from "react";
+import type { RenderOptions } from "@testing-library/react";
 
 // ============================================================================
 // (1) Crypto Test Types
@@ -133,7 +133,7 @@ export class AuditLogMock {
     error?: string;
   }): void {
     if (this.writeFailure) {
-      throw new Error('Mock write failure');
+      throw new Error("Mock write failure");
     }
     this.entries.push(entry);
   }
@@ -144,7 +144,9 @@ export class AuditLogMock {
   }
 
   /** Read filtered entries */
-  readFiltered(predicate: (entry: typeof this.entries[0]) => boolean): typeof this.entries {
+  readFiltered(
+    predicate: (entry: (typeof this.entries)[0]) => boolean,
+  ): typeof this.entries {
     return this.entries.filter(predicate);
   }
 
@@ -187,27 +189,27 @@ export interface IPCTestScenario {
  * Maps to Rust SubscriptionFSMState in test_types.rs
  */
 export type SubscriptionFSMState =
-  | { type: 'NotFound' }
+  | { type: "NotFound" }
   | {
-      type: 'Active';
+      type: "Active";
       txid: string;
       vout: number;
       verifiedAt: string;
     }
   | {
-      type: 'Cached';
+      type: "Cached";
       txid: string;
       vout: number;
       verifiedAt: string;
     }
   | {
-      type: 'Expired';
+      type: "Expired";
       txid: string;
       vout: number;
       verifiedAt: string;
     }
   | {
-      type: 'GraceExceeded';
+      type: "GraceExceeded";
       txid: string;
       vout: number;
       verifiedAt: string;
@@ -218,35 +220,35 @@ export type SubscriptionFSMState =
  */
 export function transitionSubscriptionState(
   state: SubscriptionFSMState,
-  elapsedHours: number
+  elapsedHours: number,
 ): SubscriptionFSMState {
-  if (state.type === 'Active') {
+  if (state.type === "Active") {
     if (elapsedHours >= 72) {
       return {
-        type: 'Expired',
+        type: "Expired",
         txid: state.txid,
         vout: state.vout,
         verifiedAt: new Date().toISOString(),
       };
     } else if (elapsedHours >= 24) {
       return {
-        type: 'Cached',
+        type: "Cached",
         txid: state.txid,
         vout: state.vout,
         verifiedAt: new Date().toISOString(),
       };
     }
-  } else if (state.type === 'Cached' && elapsedHours >= 72) {
+  } else if (state.type === "Cached" && elapsedHours >= 72) {
     return {
-      type: 'Expired',
+      type: "Expired",
       txid: state.txid,
       vout: state.vout,
       verifiedAt: new Date().toISOString(),
     };
-  } else if (state.type === 'Expired' && elapsedHours >= 168) {
+  } else if (state.type === "Expired" && elapsedHours >= 168) {
     // 7 days
     return {
-      type: 'GraceExceeded',
+      type: "GraceExceeded",
       txid: state.txid,
       vout: state.vout,
       verifiedAt: new Date().toISOString(),
@@ -308,7 +310,10 @@ export interface StoreTestFixture<TState> {
   /** Reset store to initial state */
   reset: () => void;
   /** Wait for state update */
-  waitForState: (predicate: (state: TState) => boolean, timeout?: number) => Promise<TState>;
+  waitForState: (
+    predicate: (state: TState) => boolean,
+    timeout?: number,
+  ) => Promise<TState>;
 }
 
 /**
@@ -337,7 +342,7 @@ export interface E2EPageObject {
  */
 export type MockTauriInvoke = <T = unknown>(
   cmd: string,
-  args?: Record<string, unknown>
+  args?: Record<string, unknown>,
 ) => Promise<T>;
 
 /**
@@ -369,7 +374,7 @@ export interface MockRouter {
  * Custom render options for React Testing Library
  * Includes providers and default mocks
  */
-export interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
+export interface CustomRenderOptions extends Omit<RenderOptions, "wrapper"> {
   /** Initial route */
   initialRoute?: string;
   /** Mock Tauri context */
@@ -382,7 +387,7 @@ export interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   userSession?: {
     publicKey: string;
     petname: string;
-    accessLevel: 'Owner' | 'Member' | 'Guest';
+    accessLevel: "Owner" | "Member" | "Guest";
   };
 }
 
@@ -539,12 +544,12 @@ export class BRC42FixtureBuilder {
   static create(id: string): BRC42FixtureBuilder {
     return new BRC42FixtureBuilder({
       id,
-      description: '',
-      senderPrivateKey: '',
-      recipientPublicKey: '',
-      invoiceNumber: '',
-      expectedPublicKey: '',
-      expectedPrivateKey: '',
+      description: "",
+      senderPrivateKey: "",
+      recipientPublicKey: "",
+      invoiceNumber: "",
+      expectedPublicKey: "",
+      expectedPrivateKey: "",
     });
   }
 
@@ -585,7 +590,7 @@ export class IPCScenarioBuilder {
     return new IPCScenarioBuilder({
       id,
       command,
-      description: '',
+      description: "",
       request: {},
       expectedResponse: {},
       setupSteps: [],
@@ -717,12 +722,12 @@ export class TauriMockBuilder {
 export async function waitForCondition(
   condition: () => boolean,
   timeout = 5000,
-  interval = 50
+  interval = 50,
 ): Promise<void> {
   const start = Date.now();
   while (!condition()) {
     if (Date.now() - start > timeout) {
-      throw new Error('Condition timeout');
+      throw new Error("Condition timeout");
     }
     await new Promise((resolve) => setTimeout(resolve, interval));
   }
@@ -732,19 +737,19 @@ export async function waitForCondition(
  * Create mock subscription state
  */
 export function createMockSubscriptionState(
-  type: SubscriptionFSMState['type'],
+  type: SubscriptionFSMState["type"],
   options?: {
     txid?: string;
     vout?: number;
     verifiedAt?: string;
-  }
+  },
 ): SubscriptionFSMState {
-  if (type === 'NotFound') {
-    return { type: 'NotFound' };
+  if (type === "NotFound") {
+    return { type: "NotFound" };
   }
   return {
     type,
-    txid: options?.txid || 'abc123',
+    txid: options?.txid || "abc123",
     vout: options?.vout || 0,
     verifiedAt: options?.verifiedAt || new Date().toISOString(),
   } as SubscriptionFSMState;

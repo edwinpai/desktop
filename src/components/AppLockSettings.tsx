@@ -2,28 +2,34 @@
  * AppLockSettings - Enable/disable PIN lock from Settings
  */
 
-import { useState, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Shield, Lock, Unlock, CheckCircle, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Shield, Lock, Unlock, CheckCircle, AlertCircle } from "lucide-react";
 
 export function AppLockSettings() {
   const [hasLock, setHasLock] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showSetup, setShowSetup] = useState(false);
   const [showDisable, setShowDisable] = useState(false);
-  const [pin, setPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
-  const [disablePin, setDisablePin] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [disablePin, setDisablePin] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    invoke<boolean>('has_app_lock')
+    invoke<boolean>("has_app_lock")
       .then(setHasLock)
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -31,39 +37,39 @@ export function AppLockSettings() {
 
   const handleSetPin = async () => {
     if (pin.length < 4) {
-      setError('PIN must be at least 4 characters');
+      setError("PIN must be at least 4 characters");
       return;
     }
     if (pin !== confirmPin) {
-      setError('PINs do not match');
+      setError("PINs do not match");
       return;
     }
 
     try {
-      await invoke('set_app_lock', { pin });
+      await invoke("set_app_lock", { pin });
       setHasLock(true);
       setShowSetup(false);
-      setPin('');
-      setConfirmPin('');
-      setError('');
-      setSuccess('App lock enabled. PIN required on next launch.');
-      setTimeout(() => setSuccess(''), 5000);
+      setPin("");
+      setConfirmPin("");
+      setError("");
+      setSuccess("App lock enabled. PIN required on next launch.");
+      setTimeout(() => setSuccess(""), 5000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to set PIN');
+      setError(err instanceof Error ? err.message : "Failed to set PIN");
     }
   };
 
   const handleDisable = async () => {
     try {
-      await invoke('disable_app_lock', { pin: disablePin });
+      await invoke("disable_app_lock", { pin: disablePin });
       setHasLock(false);
       setShowDisable(false);
-      setDisablePin('');
-      setError('');
-      setSuccess('App lock disabled.');
-      setTimeout(() => setSuccess(''), 5000);
+      setDisablePin("");
+      setError("");
+      setSuccess("App lock disabled.");
+      setTimeout(() => setSuccess(""), 5000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Incorrect PIN');
+      setError(err instanceof Error ? err.message : "Incorrect PIN");
     }
   };
 
@@ -82,8 +88,16 @@ export function AppLockSettings() {
               Require a PIN to access EdwinPAI Desktop on launch
             </CardDescription>
           </div>
-          <Badge variant={hasLock ? 'default' : 'secondary'}>
-            {hasLock ? <><Lock className="h-4 w-4 inline mr-1" /> Enabled</> : <><Unlock className="h-4 w-4 inline mr-1" /> Disabled</>}
+          <Badge variant={hasLock ? "default" : "secondary"}>
+            {hasLock ? (
+              <>
+                <Lock className="h-4 w-4 inline mr-1" /> Enabled
+              </>
+            ) : (
+              <>
+                <Unlock className="h-4 w-4 inline mr-1" /> Disabled
+              </>
+            )}
           </Badge>
         </div>
       </CardHeader>
@@ -103,7 +117,12 @@ export function AppLockSettings() {
         )}
 
         {!hasLock && !showSetup && (
-          <Button onClick={() => { setShowSetup(true); setError(''); }}>
+          <Button
+            onClick={() => {
+              setShowSetup(true);
+              setError("");
+            }}
+          >
             <Lock className="h-4 w-4 mr-2" />
             Set Up PIN
           </Button>
@@ -111,10 +130,22 @@ export function AppLockSettings() {
 
         {hasLock && !showDisable && (
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => { setShowDisable(true); setError(''); }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDisable(true);
+                setError("");
+              }}
+            >
               Disable Lock
             </Button>
-            <Button variant="outline" onClick={() => { setShowSetup(true); setError(''); }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowSetup(true);
+                setError("");
+              }}
+            >
               Change PIN
             </Button>
           </div>
@@ -146,7 +177,13 @@ export function AppLockSettings() {
               <Button onClick={handleSetPin} disabled={pin.length < 4}>
                 Save PIN
               </Button>
-              <Button variant="ghost" onClick={() => { setShowSetup(false); setError(''); }}>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowSetup(false);
+                  setError("");
+                }}
+              >
                 Cancel
               </Button>
             </div>
@@ -169,7 +206,13 @@ export function AppLockSettings() {
               <Button variant="destructive" onClick={handleDisable}>
                 Disable Lock
               </Button>
-              <Button variant="ghost" onClick={() => { setShowDisable(false); setError(''); }}>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowDisable(false);
+                  setError("");
+                }}
+              >
                 Cancel
               </Button>
             </div>

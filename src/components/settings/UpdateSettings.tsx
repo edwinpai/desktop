@@ -4,25 +4,44 @@
  * UI for configuring auto-updater behavior with interval selection and manual check.
  */
 
-import { useState } from 'react';
-import { useAutoUpdater, type UseAutoUpdaterOptions } from '@/hooks/useAutoUpdater';
-import { UpdateStatus, type UpdateInfo, type DownloadProgress } from '@/types/updater';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { toast } from 'sonner';
+import { useState } from "react";
+import {
+  useAutoUpdater,
+  type UseAutoUpdaterOptions,
+} from "@/hooks/useAutoUpdater";
+import {
+  UpdateStatus,
+  type UpdateInfo,
+  type DownloadProgress,
+} from "@/types/updater";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
 
 const CHECK_INTERVAL_OPTIONS = [
-  { label: 'Never (Manual only)', value: 0 },
-  { label: 'Every 15 minutes', value: 15 * 60 * 1000 },
-  { label: 'Every 30 minutes', value: 30 * 60 * 1000 },
-  { label: 'Every hour', value: 60 * 60 * 1000 },
-  { label: 'Every 6 hours', value: 6 * 60 * 60 * 1000 },
-  { label: 'Every 12 hours', value: 12 * 60 * 60 * 1000 },
-  { label: 'Daily', value: 24 * 60 * 60 * 1000 },
+  { label: "Never (Manual only)", value: 0 },
+  { label: "Every 15 minutes", value: 15 * 60 * 1000 },
+  { label: "Every 30 minutes", value: 30 * 60 * 1000 },
+  { label: "Every hour", value: 60 * 60 * 1000 },
+  { label: "Every 6 hours", value: 6 * 60 * 60 * 1000 },
+  { label: "Every 12 hours", value: 12 * 60 * 60 * 1000 },
+  { label: "Daily", value: 24 * 60 * 60 * 1000 },
 ];
 
 export interface UpdateSettingsProps {
@@ -56,22 +75,22 @@ export function UpdateSettings({ className }: UpdateSettingsProps) {
     autoDownload,
     autoInstall,
     onUpdateAvailable: (info: UpdateInfo) => {
-      toast.success('Update available', {
+      toast.success("Update available", {
         description: `Version ${info.version} - ${info.body?.substring(0, 100)}...`,
         duration: 5000,
       });
     },
     onUpdateDownloaded: (info: UpdateInfo) => {
-      toast.success('Update downloaded', {
+      toast.success("Update downloaded", {
         description: `Version ${info.version} is ready to install`,
         action: {
-          label: 'Install Now',
+          label: "Install Now",
           onClick: installUpdate,
         },
       });
     },
     onError: (error: Error) => {
-      toast.error('Update error', {
+      toast.error("Update error", {
         description: error.message,
       });
     },
@@ -99,13 +118,13 @@ export function UpdateSettings({ className }: UpdateSettingsProps) {
 
   const handleCancelDownload = () => {
     cancelDownload();
-    toast.info('Download cancelled');
+    toast.info("Download cancelled");
   };
 
   const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) return "0 B";
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
   };
@@ -128,19 +147,19 @@ export function UpdateSettings({ className }: UpdateSettingsProps) {
   const getStatusDisplay = (): string => {
     switch (status) {
       case UpdateStatus.Idle:
-        return updateInfo ? 'Update available' : 'Up to date';
+        return updateInfo ? "Update available" : "Up to date";
       case UpdateStatus.Checking:
-        return 'Checking for updates...';
+        return "Checking for updates...";
       case UpdateStatus.Available:
         return `Update available: ${updateInfo?.version}`;
       case UpdateStatus.Downloading:
-        return 'Downloading update...';
+        return "Downloading update...";
       case UpdateStatus.ReadyToInstall:
-        return 'Update ready to install';
+        return "Update ready to install";
       case UpdateStatus.Error:
         return `Error: ${error}`;
       default:
-        return 'Unknown status';
+        return "Unknown status";
     }
   };
 
@@ -161,7 +180,8 @@ export function UpdateSettings({ className }: UpdateSettingsProps) {
               <p className="text-sm font-medium">{getStatusDisplay()}</p>
               {updateInfo && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  Current: {updateInfo.currentVersion} → Latest: {updateInfo.version}
+                  Current: {updateInfo.currentVersion} → Latest:{" "}
+                  {updateInfo.version}
                 </p>
               )}
             </div>
@@ -176,8 +196,14 @@ export function UpdateSettings({ className }: UpdateSettingsProps) {
               </div>
               <Progress value={getDownloadProgress(progress)} />
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{formatBytes(progress.downloaded)} / {formatBytes(progress.total)}</span>
-                <span>{formatSpeed(progress.speed)} • {formatEta(progress.eta)} remaining</span>
+                <span>
+                  {formatBytes(progress.downloaded)} /{" "}
+                  {formatBytes(progress.total)}
+                </span>
+                <span>
+                  {formatSpeed(progress.speed)} • {formatEta(progress.eta)}{" "}
+                  remaining
+                </span>
               </div>
             </div>
           )}
@@ -194,7 +220,10 @@ export function UpdateSettings({ className }: UpdateSettingsProps) {
               </SelectTrigger>
               <SelectContent>
                 {CHECK_INTERVAL_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value.toString()}>
+                  <SelectItem
+                    key={option.value}
+                    value={option.value.toString()}
+                  >
                     {option.label}
                   </SelectItem>
                 ))}
@@ -243,15 +272,12 @@ export function UpdateSettings({ className }: UpdateSettingsProps) {
                 disabled={isChecking}
                 className="w-full"
               >
-                {isChecking ? 'Checking...' : 'Check for Updates'}
+                {isChecking ? "Checking..." : "Check for Updates"}
               </Button>
             )}
 
             {status === UpdateStatus.Available && !autoDownload && (
-              <Button
-                onClick={downloadUpdate}
-                className="w-full"
-              >
+              <Button onClick={downloadUpdate} className="w-full">
                 Download Update
               </Button>
             )}
@@ -267,10 +293,7 @@ export function UpdateSettings({ className }: UpdateSettingsProps) {
             )}
 
             {status === UpdateStatus.ReadyToInstall && (
-              <Button
-                onClick={installUpdate}
-                className="w-full"
-              >
+              <Button onClick={installUpdate} className="w-full">
                 Install and Restart
               </Button>
             )}

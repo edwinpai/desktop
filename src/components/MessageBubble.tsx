@@ -12,7 +12,15 @@ import { CodeBlock } from "@/components/chat/CodeBlock";
 import type { ChatMessage } from "@/types/api";
 
 /** Full-screen image lightbox overlay */
-function ImageLightbox({ src, alt, onClose }: { src: string; alt?: string; onClose: () => void }) {
+function ImageLightbox({
+  src,
+  alt,
+  onClose,
+}: {
+  src: string;
+  alt?: string;
+  onClose: () => void;
+}) {
   return (
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 cursor-zoom-out"
@@ -56,7 +64,15 @@ const allowImageDataUrl: UrlTransform = (url) => {
   return defaultUrlTransform(url);
 };
 
-export function MessageBubble({ message, timestamp, onRetry, onEdit, onDelete, isStreaming, groupPosition = "solo" }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  timestamp,
+  onRetry,
+  onEdit,
+  onDelete,
+  isStreaming,
+  groupPosition = "solo",
+}: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
@@ -99,10 +115,14 @@ export function MessageBubble({ message, timestamp, onRetry, onEdit, onDelete, i
       >
         {/* Header: Role label + timestamp (only shown for first/solo in group) */}
         {showHeader && (
-          <div className={cn(
-            "flex items-center gap-2 text-xs",
-            isUser ? "text-gray-900 dark:text-gray-300 justify-end" : "text-muted-foreground"
-          )}>
+          <div
+            className={cn(
+              "flex items-center gap-2 text-xs",
+              isUser
+                ? "text-gray-900 dark:text-gray-300 justify-end"
+                : "text-muted-foreground",
+            )}
+          >
             <span className="font-medium capitalize">{message.role}</span>
             {timestamp && <span>{timestamp}</span>}
           </div>
@@ -117,7 +137,7 @@ export function MessageBubble({ message, timestamp, onRetry, onEdit, onDelete, i
             "prose-code:before:content-[''] prose-code:after:content-['']",
             "prose-code:bg-slate-200 dark:prose-code:bg-slate-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:border prose-code:border-slate-300 dark:prose-code:border-slate-700",
             "prose-code:text-slate-900 dark:prose-code:text-slate-100 prose-code:font-semibold",
-            "prose-a:text-blue-700 dark:prose-a:text-blue-200 prose-a:font-medium"
+            "prose-a:text-blue-700 dark:prose-a:text-blue-200 prose-a:font-medium",
           )}
         >
           <ReactMarkdown
@@ -165,24 +185,59 @@ export function MessageBubble({ message, timestamp, onRetry, onEdit, onDelete, i
         {/* Message actions (visible on hover) */}
         {!isStreaming && (
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity -mb-1">
-            <Button variant="ghost" size="icon-sm" onClick={handleCopy} aria-label="Copy" className="h-6 w-6">
-              {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleCopy}
+              aria-label="Copy"
+              className="h-6 w-6"
+            >
+              {copied ? (
+                <Check className="h-3 w-3 text-green-500" />
+              ) : (
+                <Copy className="h-3 w-3" />
+              )}
             </Button>
             {isAssistant && onRetry && (
-              <Button variant="ghost" size="icon-sm" onClick={onRetry} aria-label="Retry" title="Retry" className="h-6 w-6">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={onRetry}
+                aria-label="Retry"
+                title="Retry"
+                className="h-6 w-6"
+              >
                 <RotateCcw className="h-3 w-3" />
               </Button>
             )}
             {isUser && onEdit && (
-              <Button variant="ghost" size="icon-sm" onClick={() => onEdit(message.content)} aria-label="Edit" title="Edit" className="h-6 w-6">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => onEdit(message.content)}
+                aria-label="Edit"
+                title="Edit"
+                className="h-6 w-6"
+              >
                 <Pencil className="h-3 w-3" />
               </Button>
             )}
             {onDelete && (
               <Button
-                variant="ghost" size="icon-sm" className={cn("h-6 w-6", confirmDelete && "text-destructive")}
-                onClick={() => { if (confirmDelete) { onDelete(); setConfirmDelete(false); } else { setConfirmDelete(true); setTimeout(() => setConfirmDelete(false), 3000); } }}
-                aria-label="Delete" title={confirmDelete ? "Click again to confirm" : "Delete"}
+                variant="ghost"
+                size="icon-sm"
+                className={cn("h-6 w-6", confirmDelete && "text-destructive")}
+                onClick={() => {
+                  if (confirmDelete) {
+                    onDelete();
+                    setConfirmDelete(false);
+                  } else {
+                    setConfirmDelete(true);
+                    setTimeout(() => setConfirmDelete(false), 3000);
+                  }
+                }}
+                aria-label="Delete"
+                title={confirmDelete ? "Click again to confirm" : "Delete"}
               >
                 <Trash2 className="h-3 w-3" />
               </Button>
@@ -190,9 +245,14 @@ export function MessageBubble({ message, timestamp, onRetry, onEdit, onDelete, i
           </div>
         )}
       </div>
-      {lightboxSrc && createPortal(
-        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />, document.body
-      )}
+      {lightboxSrc &&
+        createPortal(
+          <ImageLightbox
+            src={lightboxSrc}
+            onClose={() => setLightboxSrc(null)}
+          />,
+          document.body,
+        )}
     </div>
   );
 }

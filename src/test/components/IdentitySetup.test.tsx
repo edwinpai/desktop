@@ -20,9 +20,10 @@ vi.mock("@/lib/crypto-domain", () => ({
 
 describe("IdentitySetup Component", () => {
   const mockIdentity = {
-    public_key: "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+    public_key:
+      "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
     petname: "Swift Falcon",
-    avatar_svg: '<svg>mock</svg>',
+    avatar_svg: "<svg>mock</svg>",
     short_id: "edw:79be667e",
   };
 
@@ -37,7 +38,9 @@ describe("IdentitySetup Component", () => {
       render(<IdentitySetup onComplete={onComplete} />);
 
       expect(screen.getByText("Welcome to EdwinPAI")).toBeInTheDocument();
-      expect(screen.getByText(/BSV blockchain technology/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/BSV blockchain technology/i),
+      ).toBeInTheDocument();
     });
 
     it("should allow starting from custom initial step", () => {
@@ -46,7 +49,7 @@ describe("IdentitySetup Component", () => {
         <IdentitySetup
           onComplete={onComplete}
           initialStep={IdentitySetupStep.ReviewIdentity}
-        />
+        />,
       );
 
       // Should not show welcome screen
@@ -67,7 +70,9 @@ describe("IdentitySetup Component", () => {
       const onComplete = vi.fn();
       render(<IdentitySetup onComplete={onComplete} />);
 
-      expect(screen.queryByRole("button", { name: /cancel/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /cancel/i }),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -78,7 +83,9 @@ describe("IdentitySetup Component", () => {
 
       render(<IdentitySetup onComplete={onComplete} />);
 
-      const getStartedButton = screen.getByRole("button", { name: /get started/i });
+      const getStartedButton = screen.getByRole("button", {
+        name: /get started/i,
+      });
       await user.click(getStartedButton);
 
       await waitFor(() => {
@@ -95,7 +102,7 @@ describe("IdentitySetup Component", () => {
         <IdentitySetup
           onComplete={onComplete}
           initialStep={IdentitySetupStep.GenerateKey}
-        />
+        />,
       );
 
       await waitFor(() => {
@@ -114,7 +121,9 @@ describe("IdentitySetup Component", () => {
       render(<IdentitySetup onComplete={onComplete} />);
 
       // Navigate forward
-      const getStartedButton = screen.getByRole("button", { name: /get started/i });
+      const getStartedButton = screen.getByRole("button", {
+        name: /get started/i,
+      });
       await user.click(getStartedButton);
 
       // Mock resolves instantly, so identity is already generated
@@ -135,8 +144,8 @@ describe("IdentitySetup Component", () => {
       (cryptoDomain.getIdentity as Mock).mockImplementation(
         () =>
           new Promise((resolve) =>
-            setTimeout(() => resolve(mockIdentity), 100)
-          )
+            setTimeout(() => resolve(mockIdentity), 100),
+          ),
       );
 
       const onComplete = vi.fn();
@@ -145,7 +154,7 @@ describe("IdentitySetup Component", () => {
         <IdentitySetup
           onComplete={onComplete}
           initialStep={IdentitySetupStep.GenerateKey}
-        />
+        />,
       );
 
       // Should show loading spinner
@@ -161,8 +170,8 @@ describe("IdentitySetup Component", () => {
       (cryptoDomain.getIdentity as Mock).mockImplementation(
         () =>
           new Promise((resolve) =>
-            setTimeout(() => resolve(mockIdentity), 100)
-          )
+            setTimeout(() => resolve(mockIdentity), 100),
+          ),
       );
 
       const onComplete = vi.fn();
@@ -171,7 +180,7 @@ describe("IdentitySetup Component", () => {
         <IdentitySetup
           onComplete={onComplete}
           initialStep={IdentitySetupStep.GenerateKey}
-        />
+        />,
       );
 
       const continueButton = screen.getByRole("button", { name: /continue/i });
@@ -189,7 +198,7 @@ describe("IdentitySetup Component", () => {
         <IdentitySetup
           onComplete={onComplete}
           initialStep={IdentitySetupStep.GenerateKey}
-        />
+        />,
       );
 
       await waitFor(() => {
@@ -221,9 +230,13 @@ describe("IdentitySetup Component", () => {
         expect(screen.getByText("Review Your Identity")).toBeInTheDocument();
       });
       // Petname appears in both the CardTitle and IdentityBadge
-      expect(screen.getAllByText("Swift Falcon").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText("Swift Falcon").length).toBeGreaterThanOrEqual(
+        1,
+      );
       // Short ID appears in both the IdentityBadge and the explicit Short ID display
-      expect(screen.getAllByText(mockIdentity.short_id).length).toBeGreaterThanOrEqual(1);
+      expect(
+        screen.getAllByText(mockIdentity.short_id).length,
+      ).toBeGreaterThanOrEqual(1);
     });
 
     it("should allow toggling public key visibility", async () => {
@@ -238,7 +251,9 @@ describe("IdentitySetup Component", () => {
       await user.click(screen.getByRole("button", { name: /continue/i }));
 
       // Public key should be hidden by default
-      expect(screen.queryByText(mockIdentity.public_key)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(mockIdentity.public_key),
+      ).not.toBeInTheDocument();
 
       // Click show button
       const showButton = screen.getByRole("button", { name: /show/i });
@@ -252,7 +267,9 @@ describe("IdentitySetup Component", () => {
       await user.click(hideButton);
 
       // Public key should be hidden again
-      expect(screen.queryByText(mockIdentity.public_key)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(mockIdentity.public_key),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -321,7 +338,9 @@ describe("IdentitySetup Component", () => {
       await waitFor(() => screen.getByText(/you are swift falcon/i));
       await user.click(screen.getByRole("button", { name: /continue/i }));
       await user.click(screen.getByRole("button", { name: /continue/i }));
-      await user.click(screen.getByRole("button", { name: /i've saved my phrase/i }));
+      await user.click(
+        screen.getByRole("button", { name: /i've saved my phrase/i }),
+      );
 
       // Should show confirm backup step
       expect(screen.getByText("Confirm Your Backup")).toBeInTheDocument();
@@ -343,7 +362,9 @@ describe("IdentitySetup Component", () => {
       await waitFor(() => screen.getByText(/you are swift falcon/i));
       await user.click(screen.getByRole("button", { name: /continue/i }));
       await user.click(screen.getByRole("button", { name: /continue/i }));
-      await user.click(screen.getByRole("button", { name: /i've saved my phrase/i }));
+      await user.click(
+        screen.getByRole("button", { name: /i've saved my phrase/i }),
+      );
 
       const confirmButton = screen.getByRole("button", { name: /^confirm/i });
       expect(confirmButton).toBeDisabled();
@@ -362,7 +383,9 @@ describe("IdentitySetup Component", () => {
       await waitFor(() => screen.getByText(/you are swift falcon/i));
       await user.click(screen.getByRole("button", { name: /continue/i }));
       await user.click(screen.getByRole("button", { name: /continue/i }));
-      await user.click(screen.getByRole("button", { name: /i've saved my phrase/i }));
+      await user.click(
+        screen.getByRole("button", { name: /i've saved my phrase/i }),
+      );
 
       // Skip to complete (validation not tested here)
       // In real flow, would need valid recovery phrase input
@@ -388,7 +411,9 @@ describe("IdentitySetup Component", () => {
       await waitFor(() => screen.getByText("Back Up Your Key"));
 
       // BackupKey → ConfirmBackup
-      await user.click(screen.getByRole("button", { name: /i've saved my phrase/i }));
+      await user.click(
+        screen.getByRole("button", { name: /i've saved my phrase/i }),
+      );
       await waitFor(() => screen.getByText("Confirm Your Backup"));
 
       // Fill in the recovery phrase inputs — we can't easily predict which words
@@ -400,9 +425,11 @@ describe("IdentitySetup Component", () => {
 
   describe("Error Handling", () => {
     it("should handle identity generation failure gracefully", async () => {
-      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const consoleError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
       (cryptoDomain.getIdentity as Mock).mockRejectedValue(
-        new Error("Keychain unavailable")
+        new Error("Keychain unavailable"),
       );
 
       const onComplete = vi.fn();
@@ -411,13 +438,13 @@ describe("IdentitySetup Component", () => {
         <IdentitySetup
           onComplete={onComplete}
           initialStep={IdentitySetupStep.GenerateKey}
-        />
+        />,
       );
 
       await waitFor(() => {
         expect(consoleError).toHaveBeenCalledWith(
           "Failed to generate identity:",
-          expect.any(Error)
+          expect.any(Error),
         );
       });
 
@@ -430,7 +457,9 @@ describe("IdentitySetup Component", () => {
       const onComplete = vi.fn();
       render(<IdentitySetup onComplete={onComplete} />);
 
-      const heading = screen.getByRole("heading", { name: /welcome to edwinpai/i });
+      const heading = screen.getByRole("heading", {
+        name: /welcome to edwinpai/i,
+      });
       expect(heading.tagName).toBe("H1");
     });
 
@@ -438,7 +467,9 @@ describe("IdentitySetup Component", () => {
       const onComplete = vi.fn();
       render(<IdentitySetup onComplete={onComplete} />);
 
-      const getStartedButton = screen.getByRole("button", { name: /get started/i });
+      const getStartedButton = screen.getByRole("button", {
+        name: /get started/i,
+      });
       expect(getStartedButton).toBeInTheDocument();
       expect(getStartedButton).toHaveAccessibleName();
     });
@@ -454,7 +485,9 @@ describe("IdentitySetup Component", () => {
       await waitFor(() => screen.getByText(/you are swift falcon/i));
       await user.click(screen.getByRole("button", { name: /continue/i }));
       await user.click(screen.getByRole("button", { name: /continue/i }));
-      await user.click(screen.getByRole("button", { name: /i've saved my phrase/i }));
+      await user.click(
+        screen.getByRole("button", { name: /i've saved my phrase/i }),
+      );
 
       // Check for labels
       const labels = screen.getAllByText(/word #\d+/i);

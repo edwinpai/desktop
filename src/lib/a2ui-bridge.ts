@@ -9,14 +9,14 @@
 
 /** Message sent INTO the A2UI iframe */
 export interface A2UIInboundMessage {
-  type: 'a2ui:push' | 'a2ui:reset';
+  type: "a2ui:push" | "a2ui:reset";
   /** JSONL string for push, undefined for reset */
   jsonl?: string;
 }
 
 /** Message received FROM the A2UI iframe (user action) */
 export interface A2UIOutboundMessage {
-  type: 'a2ui:action';
+  type: "a2ui:action";
   userAction: {
     id: string;
     [key: string]: unknown;
@@ -86,7 +86,7 @@ export function buildTauriBridgeScript(): string {
  */
 export function injectTauriBridge(html: string): string {
   const snippet = buildTauriBridgeScript().trim();
-  const idx = html.toLowerCase().lastIndexOf('</body>');
+  const idx = html.toLowerCase().lastIndexOf("</body>");
   if (idx >= 0) {
     return `${html.slice(0, idx)}\n${snippet}\n${html.slice(idx)}`;
   }
@@ -96,13 +96,22 @@ export function injectTauriBridge(html: string): string {
 /**
  * Post an A2UI JSONL push command to the iframe.
  */
-export function pushJsonlToFrame(iframe: HTMLIFrameElement, jsonl: string): void {
-  iframe.contentWindow?.postMessage({ type: 'a2ui:push', jsonl } satisfies A2UIInboundMessage, '*');
+export function pushJsonlToFrame(
+  iframe: HTMLIFrameElement,
+  jsonl: string,
+): void {
+  iframe.contentWindow?.postMessage(
+    { type: "a2ui:push", jsonl } satisfies A2UIInboundMessage,
+    "*",
+  );
 }
 
 /**
  * Post an A2UI reset command to the iframe.
  */
 export function resetFrame(iframe: HTMLIFrameElement): void {
-  iframe.contentWindow?.postMessage({ type: 'a2ui:reset' } satisfies A2UIInboundMessage, '*');
+  iframe.contentWindow?.postMessage(
+    { type: "a2ui:reset" } satisfies A2UIInboundMessage,
+    "*",
+  );
 }

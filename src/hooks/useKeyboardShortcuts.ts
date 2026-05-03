@@ -45,9 +45,13 @@ export interface UseKeyboardShortcutsOptions {
  */
 export function useKeyboardShortcuts(
   shortcuts: KeyboardShortcut[],
-  options: UseKeyboardShortcutsOptions = {}
+  options: UseKeyboardShortcutsOptions = {},
 ): void {
-  const { enabled = true, preventDefault = true, stopPropagation = false } = options;
+  const {
+    enabled = true,
+    preventDefault = true,
+    stopPropagation = false,
+  } = options;
   const shortcutsRef = useRef<KeyboardShortcut[]>(shortcuts);
 
   // Update shortcuts ref when they change
@@ -64,10 +68,14 @@ export function useKeyboardShortcuts(
         const keyMatch = event.key.toLowerCase() === shortcut.key.toLowerCase();
 
         // Check modifier keys
-        const ctrlMatch = shortcut.ctrl === undefined || shortcut.ctrl === event.ctrlKey;
-        const altMatch = shortcut.alt === undefined || shortcut.alt === event.altKey;
-        const shiftMatch = shortcut.shift === undefined || shortcut.shift === event.shiftKey;
-        const metaMatch = shortcut.meta === undefined || shortcut.meta === event.metaKey;
+        const ctrlMatch =
+          shortcut.ctrl === undefined || shortcut.ctrl === event.ctrlKey;
+        const altMatch =
+          shortcut.alt === undefined || shortcut.alt === event.altKey;
+        const shiftMatch =
+          shortcut.shift === undefined || shortcut.shift === event.shiftKey;
+        const metaMatch =
+          shortcut.meta === undefined || shortcut.meta === event.metaKey;
 
         return keyMatch && ctrlMatch && altMatch && shiftMatch && metaMatch;
       });
@@ -78,7 +86,7 @@ export function useKeyboardShortcuts(
         matchingShortcut.handler(event);
       }
     },
-    [enabled, preventDefault, stopPropagation]
+    [enabled, preventDefault, stopPropagation],
   );
 
   useEffect(() => {

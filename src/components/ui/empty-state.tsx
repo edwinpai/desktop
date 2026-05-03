@@ -79,7 +79,7 @@ export function EmptyState({
     <div
       className={cn(
         "flex flex-col items-center justify-center text-center p-8 space-y-4",
-        className
+        className,
       )}
       role="status"
       aria-label={title}

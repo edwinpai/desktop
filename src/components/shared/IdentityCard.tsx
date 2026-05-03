@@ -16,7 +16,10 @@ interface IdentityCardProps {
   showTitle?: boolean;
 }
 
-export function IdentityCard({ className, showTitle = true }: IdentityCardProps) {
+export function IdentityCard({
+  className,
+  showTitle = true,
+}: IdentityCardProps) {
   const { identity: cryptoIdentity, loading, error } = useIdentity();
   const { identity: storedIdentity, setIdentity } = useIdentityStore();
 
@@ -38,7 +41,9 @@ export function IdentityCard({ className, showTitle = true }: IdentityCardProps)
           </CardHeader>
         )}
         <CardContent className="flex items-center justify-center py-8">
-          <div className="text-sm text-muted-foreground">Loading identity...</div>
+          <div className="text-sm text-muted-foreground">
+            Loading identity...
+          </div>
         </CardContent>
       </Card>
     );

@@ -28,12 +28,12 @@
  * ```
  */
 export type GatewayState =
-  | 'stopped' // Not running
-  | 'starting' // Launch initiated, awaiting first health check
-  | 'running' // Process healthy and responding to requests
-  | 'stopping' // Shutdown initiated (SIGTERM sent)
-  | 'unhealthy' // Process exists but failing health checks
-  | 'crashed'; // Unexpected termination detected
+  | "stopped" // Not running
+  | "starting" // Launch initiated, awaiting first health check
+  | "running" // Process healthy and responding to requests
+  | "stopping" // Shutdown initiated (SIGTERM sent)
+  | "unhealthy" // Process exists but failing health checks
+  | "crashed"; // Unexpected termination detected
 
 /**
  * Gateway process information.
@@ -88,9 +88,9 @@ export interface ProcessInfo {
  * Binary discovery strategy.
  */
 export type BinaryDiscoveryStrategy =
-  | 'bundled' // Use bundled gateway binary in Tauri resources
-  | 'path' // Search system PATH for `edwinpai` executable
-  | 'explicit'; // Use explicit path from config
+  | "bundled" // Use bundled gateway binary in Tauri resources
+  | "path" // Search system PATH for `edwinpai` executable
+  | "explicit"; // Use explicit path from config
 
 /**
  * Binary discovery result.
@@ -158,13 +158,13 @@ export interface HealthCheck {
 
   /** Gateway status response (if healthy) */
   status?: {
-    status: 'ok' | 'degraded' | 'error';
+    status: "ok" | "degraded" | "error";
     uptime: number;
     version: string;
-    mode: 'gateway' | 'client';
+    mode: "gateway" | "client";
     subscription: {
       active: boolean;
-      method: 'spv' | 'cached' | 'offline';
+      method: "spv" | "cached" | "offline";
     };
     services: {
       chat: boolean;
@@ -248,14 +248,14 @@ export interface StopGatewayOptions {
  * Emitted to frontend via Tauri event system.
  */
 export type GatewayProcessEvent =
-  | 'gateway:starting'
-  | 'gateway:started'
-  | 'gateway:stopping'
-  | 'gateway:stopped'
-  | 'gateway:healthy'
-  | 'gateway:unhealthy'
-  | 'gateway:crashed'
-  | 'gateway:restarting';
+  | "gateway:starting"
+  | "gateway:started"
+  | "gateway:stopping"
+  | "gateway:stopped"
+  | "gateway:healthy"
+  | "gateway:unhealthy"
+  | "gateway:crashed"
+  | "gateway:restarting";
 
 /**
  * Gateway process event payload.
@@ -296,8 +296,8 @@ export const DEFAULT_HEALTH_CHECK_CONFIG: HealthCheckConfig = {
  */
 export const DEFAULT_START_OPTIONS: Required<StartGatewayOptions> = {
   port: 18789,
-  binaryStrategy: 'bundled',
-  binaryPath: '',
+  binaryStrategy: "bundled",
+  binaryPath: "",
   autoRestart: true,
   maxRestarts: 5,
   healthCheck: DEFAULT_HEALTH_CHECK_CONFIG,
@@ -312,28 +312,28 @@ export const DEFAULT_START_OPTIONS: Required<StartGatewayOptions> = {
  * Check if gateway is in a running state.
  */
 export function isRunning(state: GatewayState): boolean {
-  return state === 'running' || state === 'unhealthy';
+  return state === "running" || state === "unhealthy";
 }
 
 /**
  * Check if gateway can be started.
  */
 export function canStart(state: GatewayState): boolean {
-  return state === 'stopped' || state === 'crashed';
+  return state === "stopped" || state === "crashed";
 }
 
 /**
  * Check if gateway can be stopped.
  */
 export function canStop(state: GatewayState): boolean {
-  return state === 'running' || state === 'unhealthy' || state === 'starting';
+  return state === "running" || state === "unhealthy" || state === "starting";
 }
 
 /**
  * Check if process is in a transitional state.
  */
 export function isTransitioning(state: GatewayState): boolean {
-  return state === 'starting' || state === 'stopping';
+  return state === "starting" || state === "stopping";
 }
 
 /**
@@ -345,8 +345,7 @@ export function needsRestart(
   maxRestarts: number,
 ): boolean {
   return (
-    (state === 'crashed' || state === 'unhealthy') &&
-    restartCount < maxRestarts
+    (state === "crashed" || state === "unhealthy") && restartCount < maxRestarts
   );
 }
 
@@ -371,7 +370,7 @@ export function calculateRestartDelay(restartCount: number): number {
  * formatUptime(3665) // "1h 1m 5s"
  */
 export function formatUptime(seconds: number): string {
-  if (seconds === 0) return '0s';
+  if (seconds === 0) return "0s";
 
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
@@ -382,7 +381,7 @@ export function formatUptime(seconds: number): string {
   if (minutes > 0) parts.push(`${minutes}m`);
   if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
 
-  return parts.join(' ');
+  return parts.join(" ");
 }
 
 /**
@@ -391,15 +390,18 @@ export function formatUptime(seconds: number): string {
  * Note: This is a client-side validation. Full validation
  * requires backend fs access.
  */
-export function validateBinaryPath(path: string): { valid: boolean; error?: string } {
-  if (!path || path.trim() === '') {
-    return { valid: false, error: 'Binary path is empty' };
+export function validateBinaryPath(path: string): {
+  valid: boolean;
+  error?: string;
+} {
+  if (!path || path.trim() === "") {
+    return { valid: false, error: "Binary path is empty" };
   }
 
   // Basic path validation (platform-specific checks in backend)
-  const isAbsolute = path.startsWith('/') || /^[A-Z]:\\/.test(path);
+  const isAbsolute = path.startsWith("/") || /^[A-Z]:\\/.test(path);
   if (!isAbsolute) {
-    return { valid: false, error: 'Binary path must be absolute' };
+    return { valid: false, error: "Binary path must be absolute" };
   }
 
   return { valid: true };

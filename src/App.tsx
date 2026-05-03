@@ -41,7 +41,28 @@ import type { ChatDraft } from "@/components/InputBar";
 
 const DEFAULT_GATEWAY_PORT = 18789;
 
-type View = "chat" | "canvas" | "settings" | "client-connect" | "mode-select" | "discover-gateways" | "access-control" | "channels" | "workflows" | "knowledge" | "nodes" | "exec-approvals" | "logs" | "status" | "usage" | "sessions" | "tasks" | "instances" | "debug" | "workspace" | "vault";
+type View =
+  | "chat"
+  | "canvas"
+  | "settings"
+  | "client-connect"
+  | "mode-select"
+  | "discover-gateways"
+  | "access-control"
+  | "channels"
+  | "workflows"
+  | "knowledge"
+  | "nodes"
+  | "exec-approvals"
+  | "logs"
+  | "status"
+  | "usage"
+  | "sessions"
+  | "tasks"
+  | "instances"
+  | "debug"
+  | "workspace"
+  | "vault";
 type Mode = "gateway" | "client";
 
 function App() {
@@ -49,7 +70,8 @@ function App() {
   const [currentMode, setCurrentMode] = useState<Mode>("gateway");
   const [isGatewayRunning, setIsGatewayRunning] = useState(false);
   const [isClientConnected, setIsClientConnected] = useState(false);
-  const [clientConnectionStatus, setClientConnectionStatus] = useState<ClientConnectionStatus>("disconnected");
+  const [clientConnectionStatus, setClientConnectionStatus] =
+    useState<ClientConnectionStatus>("disconnected");
   const startConfiguredGateway = useCallback(async () => {
     const config = await readConfig().catch(() => null);
     const port = config?.gatewayPort || DEFAULT_GATEWAY_PORT;
@@ -67,47 +89,65 @@ function App() {
   const [mainSessionKey, setMainSessionKey] = useState("main");
   const [sessionKey, setSessionKey] = useState("agent:main:main");
   const [chatDrafts, setChatDrafts] = useState<Record<string, ChatDraft>>({});
-  const [agentsList, setAgentsList] = useState<Array<{ id: string; name?: string }>>([]);
-  const [modelsList, setModelsList] = useState<Array<{ id: string; name: string; provider: string; reasoning?: boolean; contextWindow?: number }>>([]);
+  const [agentsList, setAgentsList] = useState<
+    Array<{ id: string; name?: string }>
+  >([]);
+  const [modelsList, setModelsList] = useState<
+    Array<{
+      id: string;
+      name: string;
+      provider: string;
+      reasoning?: boolean;
+      contextWindow?: number;
+    }>
+  >([]);
   const [modelId, setModelId] = useState<string | null>(null);
   const [thinkingLevel, setThinkingLevel] = useState("off");
   const [verboseLevel, setVerboseLevel] = useState("off");
   const [reasoningLevel, setReasoningLevel] = useState("off");
-  const [sessionsList, setSessionsList] = useState<Array<{
-    key: string;
-    label?: string;
-    displayName?: string;
-    derivedTitle?: string;
-    lastMessagePreview?: string;
-    thinkingLevel?: string;
-    verboseLevel?: string;
-    reasoningLevel?: string;
-    model?: string;
-    contextTokens?: number | null;
-    inputTokens?: number | null;
-    outputTokens?: number | null;
-    totalTokens?: number | null;
-    responseUsage?: "on" | "off" | "tokens" | "full";
-    activeTask?: {
-      goal?: string;
-      status?: string;
-      criteriaTotal?: number;
-      criteriaCompleted?: number;
-    };
-    taskQueue?: {
-      total?: number;
-      runnable?: number;
-    };
-  }>>([]);
+  const [sessionsList, setSessionsList] = useState<
+    Array<{
+      key: string;
+      label?: string;
+      displayName?: string;
+      derivedTitle?: string;
+      lastMessagePreview?: string;
+      thinkingLevel?: string;
+      verboseLevel?: string;
+      reasoningLevel?: string;
+      model?: string;
+      contextTokens?: number | null;
+      inputTokens?: number | null;
+      outputTokens?: number | null;
+      totalTokens?: number | null;
+      responseUsage?: "on" | "off" | "tokens" | "full";
+      activeTask?: {
+        goal?: string;
+        status?: string;
+        criteriaTotal?: number;
+        criteriaCompleted?: number;
+      };
+      taskQueue?: {
+        total?: number;
+        runnable?: number;
+      };
+    }>
+  >([]);
   const [deliverEnabled, setDeliverEnabled] = useState(false);
   const [memoryConfig, setMemoryConfig] = useState<{
     contextWindowSize?: number;
     autoSummarize?: boolean;
     summarizationThreshold?: number;
   } | null>(null);
-  const [gatewayTargetKey, setGatewayTargetKey] = useState("default:http://localhost:18789");
-  const [gatewayProfiles, setGatewayProfiles] = useState<GatewayProfile[]>([DEFAULT_GATEWAY_PROFILE]);
-  const [activeProfile, setActiveProfile] = useState<GatewayProfile>(DEFAULT_GATEWAY_PROFILE);
+  const [gatewayTargetKey, setGatewayTargetKey] = useState(
+    "default:http://localhost:18789",
+  );
+  const [gatewayProfiles, setGatewayProfiles] = useState<GatewayProfile[]>([
+    DEFAULT_GATEWAY_PROFILE,
+  ]);
+  const [activeProfile, setActiveProfile] = useState<GatewayProfile>(
+    DEFAULT_GATEWAY_PROFILE,
+  );
 
   // SSH tunnel for remote gateway profiles
   const { tunnelState, effectiveUrl } = useSshTunnel(activeProfile);
@@ -136,12 +176,15 @@ function App() {
     request,
   } = useWebSocketChat({
     sessionKey,
-    wsUrl: activeProfile.ssh?.enabled ? effectiveUrl.replace(/^http/, "ws") : undefined,
+    wsUrl: activeProfile.ssh?.enabled
+      ? effectiveUrl.replace(/^http/, "ws")
+      : undefined,
   });
 
   const handleChatDraftChange = useCallback((key: string, draft: ChatDraft) => {
     setChatDrafts((prev) => {
-      const isEmpty = draft.value.length === 0 && draft.attachments.length === 0;
+      const isEmpty =
+        draft.value.length === 0 && draft.attachments.length === 0;
       if (isEmpty) {
         if (!(key in prev)) return prev;
         const { [key]: _removedDraft, ...next } = prev;
@@ -152,14 +195,17 @@ function App() {
     });
   }, []);
 
-  const handleCurrentSessionDraftChange = useCallback((draft: ChatDraft) => {
-    handleChatDraftChange(sessionKey, draft);
-  }, [handleChatDraftChange, sessionKey]);
+  const handleCurrentSessionDraftChange = useCallback(
+    (draft: ChatDraft) => {
+      handleChatDraftChange(sessionKey, draft);
+    },
+    [handleChatDraftChange, sessionKey],
+  );
 
   const talkMode = useTalkMode({
     onSendMessage: handleSendMessage,
     request,
-    gatewayKind: 'local',
+    gatewayKind: "local",
     autoTts: true,
   });
 
@@ -247,12 +293,15 @@ function App() {
   useEffect(() => {
     readConfig()
       .then((config) => {
-        setGatewayTargetKey(`${config.activeGatewayProfileId}:${config.gatewayUrl}`);
+        setGatewayTargetKey(
+          `${config.activeGatewayProfileId}:${config.gatewayUrl}`,
+        );
         if (config.gatewayProfiles?.length) {
           setGatewayProfiles(config.gatewayProfiles);
-          const active = config.gatewayProfiles.find(
-            (p: GatewayProfile) => p.id === config.activeGatewayProfileId
-          ) ?? config.gatewayProfiles[0];
+          const active =
+            config.gatewayProfiles.find(
+              (p: GatewayProfile) => p.id === config.activeGatewayProfileId,
+            ) ?? config.gatewayProfiles[0];
           if (active) setActiveProfile(active);
         }
       })
@@ -384,7 +433,7 @@ function App() {
 
   const handleExecuteTasks = async () => {
     try {
-      await request('sessions.tasks.execute', { key: sessionKey });
+      await request("sessions.tasks.execute", { key: sessionKey });
       refreshSessions();
     } catch (err) {
       console.error("Failed to execute queued tasks:", err);
@@ -399,110 +448,125 @@ function App() {
     refreshSessions(nextAgentId);
   };
 
-  const handleSelectProfile = useCallback(async (profileId: string) => {
-    const profile = gatewayProfiles.find((p) => p.id === profileId);
-    if (!profile) return;
-    setActiveProfile(profile);
-    // Persist active profile + sync top-level fields so loadAuthAndUrl picks them up
-    const { updateConfig } = await import("@/lib/config");
-    await updateConfig({
-      activeGatewayProfileId: profileId,
-      gatewayUrl: profile.ssh?.enabled
-        ? `http://localhost:${profile.ssh.localPort}`
-        : profile.gatewayUrl,
-      gatewayPort: profile.ssh?.enabled
-        ? profile.ssh.localPort
-        : profile.gatewayPort,
-      gatewayToken: profile.gatewayToken,
-    });
-    // Reset session state for clean switch
-    setAgentId("main");
-    setMainSessionKey("main");
-    setSessionKey("agent:main:main");
-    setAgentsList([]);
-    setModelsList([]);
-    setSessionsList([]);
-    setModelId(null);
-    setGatewayTargetKey(`${profileId}:${profile.gatewayUrl}`);
-    clearMessages();
-    reconnect();
-  }, [gatewayProfiles, clearMessages, reconnect]);
+  const handleSelectProfile = useCallback(
+    async (profileId: string) => {
+      const profile = gatewayProfiles.find((p) => p.id === profileId);
+      if (!profile) return;
+      setActiveProfile(profile);
+      // Persist active profile + sync top-level fields so loadAuthAndUrl picks them up
+      const { updateConfig } = await import("@/lib/config");
+      await updateConfig({
+        activeGatewayProfileId: profileId,
+        gatewayUrl: profile.ssh?.enabled
+          ? `http://localhost:${profile.ssh.localPort}`
+          : profile.gatewayUrl,
+        gatewayPort: profile.ssh?.enabled
+          ? profile.ssh.localPort
+          : profile.gatewayPort,
+        gatewayToken: profile.gatewayToken,
+      });
+      // Reset session state for clean switch
+      setAgentId("main");
+      setMainSessionKey("main");
+      setSessionKey("agent:main:main");
+      setAgentsList([]);
+      setModelsList([]);
+      setSessionsList([]);
+      setModelId(null);
+      setGatewayTargetKey(`${profileId}:${profile.gatewayUrl}`);
+      clearMessages();
+      reconnect();
+    },
+    [gatewayProfiles, clearMessages, reconnect],
+  );
 
   // Message actions: retry, edit, delete
-  const handleRetryMessage = useCallback((messageIndex: number) => {
-    // Find the user message preceding this assistant message and re-send it
-    const msg = messages[messageIndex];
-    if (!msg || msg.role !== 'assistant') return;
-    for (let i = messageIndex - 1; i >= 0; i--) {
-      const prev = messages[i];
-      if (prev && prev.role === 'user') {
-        handleSendMessage(prev.content, { deliver: deliverEnabled });
-        break;
+  const handleRetryMessage = useCallback(
+    (messageIndex: number) => {
+      // Find the user message preceding this assistant message and re-send it
+      const msg = messages[messageIndex];
+      if (!msg || msg.role !== "assistant") return;
+      for (let i = messageIndex - 1; i >= 0; i--) {
+        const prev = messages[i];
+        if (prev && prev.role === "user") {
+          handleSendMessage(prev.content, { deliver: deliverEnabled });
+          break;
+        }
       }
-    }
-  }, [messages, handleSendMessage, deliverEnabled]);
+    },
+    [messages, handleSendMessage, deliverEnabled],
+  );
 
   const handleEditMessage = useCallback((content: string) => {
     // Focus the input bar and populate it with the message content
-    const textarea = document.querySelector('textarea');
+    const textarea = document.querySelector("textarea");
     if (textarea) {
       const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-        window.HTMLTextAreaElement.prototype, 'value'
+        window.HTMLTextAreaElement.prototype,
+        "value",
       )?.set;
       nativeInputValueSetter?.call(textarea, content);
-      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
       textarea.focus();
     }
   }, []);
 
-  const handleDeleteMessage = useCallback((messageIndex: number) => {
-    deleteMessage(messageIndex);
-  }, [deleteMessage]);
+  const handleDeleteMessage = useCallback(
+    (messageIndex: number) => {
+      deleteMessage(messageIndex);
+    },
+    [deleteMessage],
+  );
 
-  const handleSlashCommand = useCallback((command: string, args: string) => {
-    switch (command) {
-      case "/agent":
-        if (args) handleSelectAgent(args);
-        break;
-      case "/model":
-        if (args) handleSelectModel(args);
-        else handleSelectModel(null);
-        break;
-      case "/session":
-        if (args) handleSelectSession(args);
-        break;
-      case "/new":
-        handleNewSession();
-        break;
-      case "/reset":
-        handleResetSession();
-        break;
-      case "/think":
-        if (args) handleSelectThinkingLevel(args);
-        break;
-      case "/verbose":
-        if (args) handleSelectVerboseLevel(args);
-        break;
-      case "/reasoning":
-        if (args) handleSelectReasoningLevel(args);
-        break;
-      case "/abort":
-        handleAbortRun();
-        break;
-      case "/status":
-        // Send as a regular message — the agent will respond with status
-        handleSendMessage("/status", { deliver: deliverEnabled });
-        break;
-      case "/help":
-        handleSendMessage("/help", { deliver: deliverEnabled });
-        break;
-      default:
-        // Unknown slash command — send as regular message (may be a gateway-defined command)
-        handleSendMessage(`${command}${args ? ` ${args}` : ""}`, { deliver: deliverEnabled });
-        break;
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deliverEnabled]);
+  const handleSlashCommand = useCallback(
+    (command: string, args: string) => {
+      switch (command) {
+        case "/agent":
+          if (args) handleSelectAgent(args);
+          break;
+        case "/model":
+          if (args) handleSelectModel(args);
+          else handleSelectModel(null);
+          break;
+        case "/session":
+          if (args) handleSelectSession(args);
+          break;
+        case "/new":
+          handleNewSession();
+          break;
+        case "/reset":
+          handleResetSession();
+          break;
+        case "/think":
+          if (args) handleSelectThinkingLevel(args);
+          break;
+        case "/verbose":
+          if (args) handleSelectVerboseLevel(args);
+          break;
+        case "/reasoning":
+          if (args) handleSelectReasoningLevel(args);
+          break;
+        case "/abort":
+          handleAbortRun();
+          break;
+        case "/status":
+          // Send as a regular message — the agent will respond with status
+          handleSendMessage("/status", { deliver: deliverEnabled });
+          break;
+        case "/help":
+          handleSendMessage("/help", { deliver: deliverEnabled });
+          break;
+        default:
+          // Unknown slash command — send as regular message (may be a gateway-defined command)
+          handleSendMessage(`${command}${args ? ` ${args}` : ""}`, {
+            deliver: deliverEnabled,
+          });
+          break;
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [deliverEnabled],
+  );
 
   const handleSelectModel = async (nextModelId: string | null) => {
     setModelId(nextModelId);
@@ -549,10 +613,11 @@ function App() {
     async function initializeApp() {
       try {
         // Check app lock status (skip if already unlocked this session)
-        const sessionUnlocked = sessionStorage.getItem('edwinpai_unlocked') === 'true';
+        const sessionUnlocked =
+          sessionStorage.getItem("edwinpai_unlocked") === "true";
         if (!sessionUnlocked) {
           try {
-            const hasLock = await invoke<boolean>('has_app_lock');
+            const hasLock = await invoke<boolean>("has_app_lock");
             if (hasLock) {
               setIsLocked(true);
               setIsInitializing(false);
@@ -564,7 +629,8 @@ function App() {
         }
 
         // Check onboarding status from localStorage (desktop-only state)
-        const onboardingDone = localStorage.getItem("edwinpai_onboarding_complete") === "true";
+        const onboardingDone =
+          localStorage.getItem("edwinpai_onboarding_complete") === "true";
         if (!onboardingDone) {
           setNeedsOnboarding(true);
           setIsInitializing(false);
@@ -661,9 +727,21 @@ function App() {
 
     const findImage = (value: unknown): string | null => {
       if (typeof value === "string") {
-        if (value.startsWith("data:image/") || value.startsWith("http://") || value.startsWith("https://")) return value;
-        if (value.startsWith("MEDIA:")) return value.replace(/^MEDIA:\\s*/, "").trim();
-        if (value.endsWith(".png") || value.endsWith(".jpg") || value.endsWith(".jpeg") || value.endsWith(".webp")) return value;
+        if (
+          value.startsWith("data:image/") ||
+          value.startsWith("http://") ||
+          value.startsWith("https://")
+        )
+          return value;
+        if (value.startsWith("MEDIA:"))
+          return value.replace(/^MEDIA:\\s*/, "").trim();
+        if (
+          value.endsWith(".png") ||
+          value.endsWith(".jpg") ||
+          value.endsWith(".jpeg") ||
+          value.endsWith(".webp")
+        )
+          return value;
         return null;
       }
       if (Array.isArray(value)) {
@@ -675,7 +753,15 @@ function App() {
       }
       if (value && typeof value === "object") {
         const obj = value as Record<string, unknown>;
-        for (const k of ["output", "result", "image", "path", "url", "snapshot", "media"]) {
+        for (const k of [
+          "output",
+          "result",
+          "image",
+          "path",
+          "url",
+          "snapshot",
+          "media",
+        ]) {
           const found = findImage(obj[k]);
           if (found) return found;
         }
@@ -747,7 +833,7 @@ function App() {
     return (
       <LockScreen
         onUnlock={() => {
-          sessionStorage.setItem('edwinpai_unlocked', 'true');
+          sessionStorage.setItem("edwinpai_unlocked", "true");
           setIsLocked(false);
           setIsInitializing(true);
         }}
@@ -773,7 +859,9 @@ function App() {
         {currentView === "mode-select" && (
           <div className="flex h-full items-center justify-center p-8">
             <div className="max-w-4xl w-full">
-              <h1 className="text-3xl font-bold mb-2 text-center">Welcome to EdwinPAI Desktop</h1>
+              <h1 className="text-3xl font-bold mb-2 text-center">
+                Welcome to EdwinPAI Desktop
+              </h1>
               <p className="text-muted-foreground mb-8 text-center">
                 Choose how you want to use EdwinPAI
               </p>
@@ -807,10 +895,12 @@ function App() {
             />
             <div className="flex-1 overflow-y-auto p-6">
               <h2 className="text-2xl font-bold mb-6">Discover Gateways</h2>
-              <GatewayConnect onConnected={() => {
-                reconnect();
-                setCurrentView("chat");
-              }} />
+              <GatewayConnect
+                onConnected={() => {
+                  reconnect();
+                  setCurrentView("chat");
+                }}
+              />
             </div>
           </div>
         )}
@@ -932,10 +1022,15 @@ function App() {
             />
             <div className="flex-1 overflow-y-auto p-6">
               <h2 className="text-2xl font-bold mb-6">Access Control</h2>
-              <AccessControl
-                currentUserLevel={currentUserLevel}
-                currentMode={currentMode}
-              />
+              <ErrorBoundary
+                name="AccessControlTabErrorBoundary"
+                autoRetry={false}
+              >
+                <AccessControl
+                  currentUserLevel={currentUserLevel}
+                  currentMode={currentMode}
+                />
+              </ErrorBoundary>
             </div>
           </div>
         )}
@@ -953,7 +1048,10 @@ function App() {
             />
             <div className="flex-1 overflow-y-auto">
               <ErrorBoundary name="ChannelsTabErrorBoundary" autoRetry={false}>
-                <ChannelList currentUserLevel={currentUserLevel} mode={currentMode} />
+                <ChannelList
+                  currentUserLevel={currentUserLevel}
+                  mode={currentMode}
+                />
               </ErrorBoundary>
             </div>
           </div>
@@ -1093,7 +1191,6 @@ function App() {
           </div>
         )}
 
-
         {currentView === "sessions" && (
           <div className="flex h-full">
             <SidebarNav
@@ -1203,7 +1300,6 @@ function App() {
         )}
       </div>
 
-
       {/* Connection Status Footer */}
       <ConnectionStatusFooter
         mode={currentMode}
@@ -1247,13 +1343,16 @@ function SidebarNav({
           >
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name}{p.ssh?.enabled ? " (SSH)" : ""}
+                {p.name}
+                {p.ssh?.enabled ? " (SSH)" : ""}
               </option>
             ))}
           </StyledSelect>
         )}
         {tunnelStatus && (
-          <div className={`mt-1 text-xs ${tunnelStatus === "connected" ? "text-green-500" : tunnelStatus === "error" ? "text-destructive" : "text-yellow-500"}`}>
+          <div
+            className={`mt-1 text-xs ${tunnelStatus === "connected" ? "text-green-500" : tunnelStatus === "error" ? "text-destructive" : "text-yellow-500"}`}
+          >
             SSH: {tunnelStatus}
           </div>
         )}
@@ -1294,7 +1393,17 @@ function SidebarNav({
               }`}
               onClick={() => onNavigate("tasks")}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M9 11l3 3L22 4" />
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
               </svg>
@@ -1387,7 +1496,17 @@ function SidebarNav({
               }`}
               onClick={() => onNavigate("vault")}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
@@ -1549,7 +1668,9 @@ function SidebarNav({
             </button>
 
             <div className="mt-2 pt-2 border-t">
-              <p className="px-3 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Admin</p>
+              <p className="px-3 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                Admin
+              </p>
             </div>
 
             <button
@@ -1560,8 +1681,19 @@ function SidebarNav({
               }`}
               onClick={() => onNavigate("usage")}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 3v18h18" /><path d="m19 9-5 5-4-4-3 3" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 3v18h18" />
+                <path d="m19 9-5 5-4-4-3 3" />
               </svg>
               Usage
             </button>
@@ -1574,8 +1706,21 @@ function SidebarNav({
               }`}
               onClick={() => onNavigate("workspace")}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M10 13l-2 2 2 2" /><path d="M14 17l2-2-2-2" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                <path d="M10 13l-2 2 2 2" />
+                <path d="M14 17l2-2-2-2" />
               </svg>
               Workspace
             </button>
@@ -1588,8 +1733,20 @@ function SidebarNav({
               }`}
               onClick={() => onNavigate("sessions")}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect width="18" height="18" x="3" y="3" rx="2" /><path d="M3 9h18" /><path d="M9 21V9" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect width="18" height="18" x="3" y="3" rx="2" />
+                <path d="M3 9h18" />
+                <path d="M9 21V9" />
               </svg>
               Sessions
             </button>
@@ -1602,8 +1759,21 @@ function SidebarNav({
               }`}
               onClick={() => onNavigate("instances")}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect width="20" height="8" x="2" y="2" rx="2" ry="2" /><rect width="20" height="8" x="2" y="14" rx="2" ry="2" /><line x1="6" x2="6.01" y1="6" y2="6" /><line x1="6" x2="6.01" y1="18" y2="18" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect width="20" height="8" x="2" y="2" rx="2" ry="2" />
+                <rect width="20" height="8" x="2" y="14" rx="2" ry="2" />
+                <line x1="6" x2="6.01" y1="6" y2="6" />
+                <line x1="6" x2="6.01" y1="18" y2="18" />
               </svg>
               Instances
             </button>
@@ -1616,8 +1786,19 @@ function SidebarNav({
               }`}
               onClick={() => onNavigate("debug")}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="4 17 10 11 4 5" /><line x1="12" x2="20" y1="19" y2="19" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="4 17 10 11 4 5" />
+                <line x1="12" x2="20" y1="19" y2="19" />
               </svg>
               Debug
             </button>
@@ -1706,7 +1887,6 @@ function SidebarNav({
         </button>
       </nav>
 
-
       <div className="p-4 border-t">
         <p className="text-xs text-muted-foreground">Version {APP_VERSION}</p>
       </div>
@@ -1738,7 +1918,10 @@ function ConnectionStatusFooter({
     };
     check();
     const interval = setInterval(check, 5000);
-    return () => { cancelled = true; clearInterval(interval); };
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, []);
 
   const isGatewayRunning = isGatewayRunningProp || probeRunning;

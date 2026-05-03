@@ -13,7 +13,11 @@ export interface SshTunnelConfig {
   localPort: number;
 }
 
-export type TunnelStatus = "disconnected" | "connecting" | "connected" | "error";
+export type TunnelStatus =
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "error";
 
 export interface SshTunnelState {
   status: TunnelStatus;
@@ -26,7 +30,9 @@ type StatusListener = (state: SshTunnelState) => void;
 
 class SshTunnelManager {
   private config: SshTunnelConfig | null = null;
-  private childProcess: Awaited<ReturnType<typeof Command.prototype.spawn>> | null = null;
+  private childProcess: Awaited<
+    ReturnType<typeof Command.prototype.spawn>
+  > | null = null;
   private state: SshTunnelState = {
     status: "disconnected",
     error: null,
@@ -65,11 +71,15 @@ class SshTunnelManager {
 
     try {
       const cmd = Command.create("ssh", [
-        "-N",                    // No remote command
-        "-o", "ExitOnForwardFailure=yes",
-        "-o", "ServerAliveInterval=30",
-        "-o", "ServerAliveCountMax=3",
-        "-L", `${config.localPort}:localhost:${config.remotePort}`,
+        "-N", // No remote command
+        "-o",
+        "ExitOnForwardFailure=yes",
+        "-o",
+        "ServerAliveInterval=30",
+        "-o",
+        "ServerAliveCountMax=3",
+        "-L",
+        `${config.localPort}:localhost:${config.remotePort}`,
         config.host,
       ]);
 
@@ -91,7 +101,10 @@ class SshTunnelManager {
       cmd.stderr.on("data", (line) => {
         console.log("[SSH] stderr:", line);
         // Some SSH errors appear on stderr before the process exits
-        if (line.includes("Permission denied") || line.includes("Connection refused")) {
+        if (
+          line.includes("Permission denied") ||
+          line.includes("Connection refused")
+        ) {
           this.setState({ status: "error", error: line.trim() });
         }
       });
@@ -100,7 +113,7 @@ class SshTunnelManager {
       this.childProcess = child;
 
       console.log(
-        `[SSH] Tunnel spawned: localhost:${config.localPort} → ${config.host}:${config.remotePort} (PID ${child.pid})`
+        `[SSH] Tunnel spawned: localhost:${config.localPort} → ${config.host}:${config.remotePort} (PID ${child.pid})`,
       );
 
       // Wait briefly for the tunnel to establish before marking connected

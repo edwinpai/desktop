@@ -6,9 +6,9 @@
  * message accumulation, and error recovery.
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from "react";
 
-import { useGatewayConfig } from './useConfig';
+import { useGatewayConfig } from "./useConfig";
 
 import type {
   ChatMessageType as ChatMessage,
@@ -18,7 +18,7 @@ import type {
   MessageStopEvent,
   ErrorEvent,
   SSEStreamEvent,
-} from '@/types';
+} from "@/types";
 
 // ============================================================================
 // Hook State
@@ -67,7 +67,7 @@ interface UseChatReturn {
   loading: boolean;
 
   /** Send a message */
-  sendMessage: (content: string, role?: 'user' | 'system') => Promise<void>;
+  sendMessage: (content: string, role?: "user" | "system") => Promise<void>;
 
   /** Cancel current streaming request */
   cancelStream: () => void;
@@ -112,8 +112,8 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
   const baseUrl = options.baseUrl ?? `http://localhost:${gatewayPort}`;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [streamingState, setStreamingState] = useState<StreamingState>('idle');
-  const [currentResponse, setCurrentResponse] = useState('');
+  const [streamingState, setStreamingState] = useState<StreamingState>("idle");
+  const [currentResponse, setCurrentResponse] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -134,22 +134,22 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
   const parseSSEEvent = (eventText: string): SSEStreamEvent | null => {
     try {
       // SSE format: "data: {json}\n\n"
-      const lines = eventText.trim().split('\n');
-      const dataLine = lines.find((line) => line.startsWith('data: '));
+      const lines = eventText.trim().split("\n");
+      const dataLine = lines.find((line) => line.startsWith("data: "));
 
       if (!dataLine) return null;
 
       const jsonStr = dataLine.slice(6); // Remove "data: " prefix
 
       // Handle [DONE] signal
-      if (jsonStr === '[DONE]') {
-        return { type: 'message_stop' } as MessageStopEvent;
+      if (jsonStr === "[DONE]") {
+        return { type: "message_stop" } as MessageStopEvent;
       }
 
       const parsed = JSON.parse(jsonStr) as SSEStreamEvent;
       return parsed;
     } catch (err) {
-      console.error('Failed to parse SSE event:', err);
+      console.error("Failed to parse SSE event:", err);
       return null;
     }
   };
@@ -160,14 +160,14 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
   const handleStreamEvent = useCallback(
     (event: SSEStreamEvent) => {
       switch (event.type) {
-        case 'message_start':
-          setStreamingState('streaming');
-          setCurrentResponse('');
+        case "message_start":
+          setStreamingState("streaming");
+          setCurrentResponse("");
           break;
 
-        case 'content_block_delta': {
+        case "content_block_delta": {
           const deltaEvent = event as ContentBlockDeltaEvent;
-          if (deltaEvent.delta.type === 'text_delta') {
+          if (deltaEvent.delta.type === "text_delta") {
             const chunk = deltaEvent.delta.text;
             setCurrentResponse((prev) => {
               const accumulated = prev + chunk;
@@ -178,30 +178,30 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           break;
         }
 
-        case 'message_stop': {
-          setStreamingState('completed');
+        case "message_stop": {
+          setStreamingState("completed");
           setLoading(false);
 
           // Add assistant message to history
           const assistantMessage: ChatMessage = {
             id: crypto.randomUUID(),
-            role: 'assistant',
+            role: "assistant",
             content: currentResponse,
             timestamp: new Date().toISOString(),
             model: options.model,
-            finishReason: 'stop',
+            finishReason: "stop",
           };
 
           setMessages((prev) => [...prev, assistantMessage]);
           options.onStreamEnd?.(currentResponse);
-          setCurrentResponse('');
+          setCurrentResponse("");
           break;
         }
 
-        case 'error': {
+        case "error": {
           const errorEvent = event as ErrorEvent;
           const errorMessage = errorEvent.error.message;
-          setStreamingState('error');
+          setStreamingState("error");
           setError(errorMessage);
           setLoading(false);
           options.onStreamError?.(errorMessage);
@@ -213,20 +213,20 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           break;
       }
     },
-    [currentResponse, options]
+    [currentResponse, options],
   );
 
   /**
    * Send a chat message
    */
   const sendMessage = useCallback(
-    async (content: string, role: 'user' | 'system' = 'user') => {
+    async (content: string, role: "user" | "system" = "user") => {
       if (!content.trim()) return;
 
       try {
         setError(null);
         setLoading(true);
-        setStreamingState('connecting');
+        setStreamingState("connecting");
 
         // Add user message to history
         const userMessage: ChatMessage = {
@@ -242,7 +242,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         // Build request payload
         const requestPayload: ChatCompletionRequest = {
           messages: [...messages, userMessage],
-          model: options.model ?? 'claude-sonnet-4-5',
+          model: options.model ?? "claude-sonnet-4-5",
           stream: options.stream ?? true,
           temperature: options.temperature,
           maxTokens: options.maxTokens,
@@ -253,9 +253,9 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
         // Make streaming request
         const response = await fetch(`${baseUrl}/v1/chat/completions`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify(requestPayload),
           signal: abortControllerRef.current.signal,
@@ -266,19 +266,19 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         }
 
         if (!response.body) {
-          throw new Error('Response body is null');
+          throw new Error("Response body is null");
         }
 
         // Process SSE stream
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let buffer = '';
+        let buffer = "";
 
         while (true) {
           const { done, value } = await reader.read();
 
           if (done) {
-            setStreamingState('completed');
+            setStreamingState("completed");
             setLoading(false);
             break;
           }
@@ -287,10 +287,10 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           buffer += decoder.decode(value, { stream: true });
 
           // Split by double newline (SSE event boundary)
-          const events = buffer.split('\n\n');
+          const events = buffer.split("\n\n");
 
           // Keep incomplete event in buffer
-          buffer = events.pop() ?? '';
+          buffer = events.pop() ?? "";
 
           // Process complete events
           for (const eventText of events) {
@@ -303,21 +303,22 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           }
         }
       } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') {
-          setStreamingState('cancelled');
-          setError('Request cancelled');
+        if (err instanceof Error && err.name === "AbortError") {
+          setStreamingState("cancelled");
+          setError("Request cancelled");
         } else {
-          const message = err instanceof Error ? err.message : 'Failed to send message';
-          setStreamingState('error');
+          const message =
+            err instanceof Error ? err.message : "Failed to send message";
+          setStreamingState("error");
           setError(message);
-          console.error('Chat request failed:', err);
+          console.error("Chat request failed:", err);
         }
         setLoading(false);
       } finally {
         abortControllerRef.current = null;
       }
     },
-    [baseUrl, messages, options, handleStreamEvent]
+    [baseUrl, messages, options, handleStreamEvent],
   );
 
   /**
@@ -326,7 +327,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
   const cancelStream = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
-      setStreamingState('cancelled');
+      setStreamingState("cancelled");
       setLoading(false);
     }
   }, []);
@@ -336,9 +337,9 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
    */
   const clearMessages = useCallback(() => {
     setMessages([]);
-    setCurrentResponse('');
+    setCurrentResponse("");
     setError(null);
-    setStreamingState('idle');
+    setStreamingState("idle");
   }, []);
 
   /**
@@ -385,23 +386,26 @@ export function useConversations() {
     return id;
   }, []);
 
-  const deleteConversation = useCallback((id: string) => {
-    setConversations((prev) => {
-      const next = new Map(prev);
-      next.delete(id);
-      return next;
-    });
+  const deleteConversation = useCallback(
+    (id: string) => {
+      setConversations((prev) => {
+        const next = new Map(prev);
+        next.delete(id);
+        return next;
+      });
 
-    if (activeConversationId === id) {
-      setActiveConversationId(null);
-    }
-  }, [activeConversationId]);
+      if (activeConversationId === id) {
+        setActiveConversationId(null);
+      }
+    },
+    [activeConversationId],
+  );
 
   const getConversation = useCallback(
     (id: string) => {
       return conversations.get(id) ?? [];
     },
-    [conversations]
+    [conversations],
   );
 
   return {

@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import type { UpdateConfig } from '@/types/updater';
-import { UpdateStatus } from '@/types/updater';
+import { useState, useEffect, useCallback } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import type { UpdateConfig } from "@/types/updater";
+import { UpdateStatus } from "@/types/updater";
 
 export interface UseUpdateReturn {
   config: UpdateConfig | null;
@@ -23,10 +23,12 @@ export function useUpdate(): UseUpdateReturn {
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const cfg = await invoke<UpdateConfig>('get_update_config');
+        const cfg = await invoke<UpdateConfig>("get_update_config");
         setConfig(cfg);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load update config');
+        setError(
+          err instanceof Error ? err.message : "Failed to load update config",
+        );
       }
     };
     loadConfig();
@@ -36,10 +38,12 @@ export function useUpdate(): UseUpdateReturn {
     setIsLoading(true);
     setError(null);
     try {
-      const updateStatus = await invoke<UpdateStatus>('check_for_updates');
+      const updateStatus = await invoke<UpdateStatus>("check_for_updates");
       setStatus(updateStatus);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to check for updates');
+      setError(
+        err instanceof Error ? err.message : "Failed to check for updates",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -47,16 +51,16 @@ export function useUpdate(): UseUpdateReturn {
 
   const installUpdate = useCallback(async () => {
     if (status !== UpdateStatus.Available) {
-      setError('No update available to install');
+      setError("No update available to install");
       return;
     }
     setIsLoading(true);
     setError(null);
     try {
-      await invoke('install_update');
+      await invoke("install_update");
       // Update will restart the app
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to install update');
+      setError(err instanceof Error ? err.message : "Failed to install update");
       setIsLoading(false);
     }
   }, [status]);
@@ -65,10 +69,12 @@ export function useUpdate(): UseUpdateReturn {
     setIsLoading(true);
     setError(null);
     try {
-      const newConfig = await invoke<UpdateConfig>('update_update_config', { config: partial });
+      const newConfig = await invoke<UpdateConfig>("update_update_config", {
+        config: partial,
+      });
       setConfig(newConfig);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update config');
+      setError(err instanceof Error ? err.message : "Failed to update config");
     } finally {
       setIsLoading(false);
     }

@@ -5,27 +5,34 @@
  * Uses Tauri's filesystem API for cross-platform file access
  */
 
-import { BaseDirectory, readTextFile, writeTextFile, exists } from '@tauri-apps/plugin-fs';
+import {
+  BaseDirectory,
+  readTextFile,
+  writeTextFile,
+  exists,
+} from "@tauri-apps/plugin-fs";
 
-import type { DesktopConfig, PartialDesktopConfig } from '@/types';
+import type { DesktopConfig, PartialDesktopConfig } from "@/types";
 import {
   DEFAULT_DESKTOP_CONFIG,
   DEFAULT_GATEWAY_PROFILE,
   isValidDesktopConfig,
   sanitizeConfig,
   mergeWithDefaults,
-} from '@/types';
+} from "@/types";
 
 // ============================================================================
 // Config File Path
 // ============================================================================
 
-const CONFIG_FILE = 'desktop-config.json';
+const CONFIG_FILE = "desktop-config.json";
 
 function hasTauriFs(): boolean {
-  if (typeof window === 'undefined') return true;
-  const internals = (window as Window & { __TAURI_INTERNALS__?: { invoke?: unknown } }).__TAURI_INTERNALS__;
-  return typeof internals?.invoke === 'function';
+  if (typeof window === "undefined") return true;
+  const internals = (
+    window as Window & { __TAURI_INTERNALS__?: { invoke?: unknown } }
+  ).__TAURI_INTERNALS__;
+  return typeof internals?.invoke === "function";
 }
 
 // ============================================================================
@@ -49,8 +56,8 @@ async function ensureConfigExists(): Promise<void> {
       await writeConfig(DEFAULT_DESKTOP_CONFIG);
     }
   } catch (err) {
-    console.error('Failed to initialize config:', err);
-    throw new Error('Failed to initialize configuration');
+    console.error("Failed to initialize config:", err);
+    throw new Error("Failed to initialize configuration");
   }
 }
 
@@ -74,7 +81,7 @@ export async function readConfig(): Promise<DesktopConfig> {
 
     // Validate parsed config
     if (!isValidDesktopConfig(parsed)) {
-      console.warn('Invalid config format, using defaults');
+      console.warn("Invalid config format, using defaults");
       return DEFAULT_DESKTOP_CONFIG;
     }
 
@@ -93,19 +100,19 @@ export async function readConfig(): Promise<DesktopConfig> {
         gatewayProfiles: sanitized.gatewayProfiles.map((profile) =>
           profile.id === sanitized.activeGatewayProfileId
             ? { ...profile, gatewayUrl: migratedGatewayUrl }
-            : profile
+            : profile,
         ),
       };
       // Best-effort write: don't fail startup if disk write fails.
       writeConfig(migrated).catch((err) => {
-        console.warn('Failed to auto-migrate gatewayUrl:', err);
+        console.warn("Failed to auto-migrate gatewayUrl:", err);
       });
       return migrated;
     }
 
     return sanitized;
   } catch (err) {
-    console.error('Failed to read config:', err);
+    console.error("Failed to read config:", err);
     // Return defaults on error
     return DEFAULT_DESKTOP_CONFIG;
   }
@@ -113,11 +120,11 @@ export async function readConfig(): Promise<DesktopConfig> {
 
 function isLoopbackHost(hostname: string): boolean {
   // URL.hostname is never bracketed ("[::1]") — it will be "::1".
-  if (hostname === 'localhost') return true;
-  if (hostname === '::1') return true;
-  if (hostname === '0.0.0.0') return true;
+  if (hostname === "localhost") return true;
+  if (hostname === "::1") return true;
+  if (hostname === "0.0.0.0") return true;
   // Any IPv4 loopback in 127.0.0.0/8
-  if (hostname.startsWith('127.')) return true;
+  if (hostname.startsWith("127.")) return true;
   return false;
 }
 
@@ -126,7 +133,7 @@ function migrateLoopbackGatewayUrl(url?: string): string | undefined {
   try {
     const u = new URL(url);
     if (!isLoopbackHost(u.hostname)) return url;
-    u.hostname = 'localhost';
+    u.hostname = "localhost";
     return u.toString();
   } catch {
     return url;
@@ -146,8 +153,8 @@ export async function writeConfig(config: DesktopConfig): Promise<void> {
       baseDir: BaseDirectory.AppData,
     });
   } catch (err) {
-    console.error('Failed to write config:', err);
-    throw new Error('Failed to save configuration');
+    console.error("Failed to write config:", err);
+    throw new Error("Failed to save configuration");
   }
 }
 
@@ -155,7 +162,7 @@ export async function writeConfig(config: DesktopConfig): Promise<void> {
  * Update specific config fields
  */
 export async function updateConfig(
-  updates: PartialDesktopConfig
+  updates: PartialDesktopConfig,
 ): Promise<DesktopConfig> {
   const current = await readConfig();
   const updated: DesktopConfig = {
@@ -191,7 +198,11 @@ export async function updateConfig(
     updated.activeGatewayProfileId = DEFAULT_GATEWAY_PROFILE.id;
   }
 
-  if (updates.gatewayUrl !== undefined || updates.gatewayPort !== undefined || updates.gatewayToken !== undefined) {
+  if (
+    updates.gatewayUrl !== undefined ||
+    updates.gatewayPort !== undefined ||
+    updates.gatewayToken !== undefined
+  ) {
     updated.gatewayProfiles = updated.gatewayProfiles.map((profile) =>
       profile.id === updated.activeGatewayProfileId
         ? {
@@ -200,7 +211,7 @@ export async function updateConfig(
             gatewayPort: updates.gatewayPort ?? profile.gatewayPort,
             gatewayToken: updates.gatewayToken ?? profile.gatewayToken,
           }
-        : profile
+        : profile,
     );
   }
 

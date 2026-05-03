@@ -5,7 +5,7 @@
  * Every call is logged for audit.
  */
 
-import type { EdwinPAIConfig, ConfigValidationError } from './api';
+import type { EdwinPAIConfig, ConfigValidationError } from "./api";
 
 // --- AI Domain → Crypto Domain ---
 
@@ -214,7 +214,7 @@ export interface SubmitToArcadeRequest {
   /** Topics to submit to */
   topics: string[];
   /** Submission mode */
-  mode?: 'current-tx' | 'historical-tx' | 'historical-tx-no-spv';
+  mode?: "current-tx" | "historical-tx" | "historical-tx-no-spv";
 }
 
 export interface SubmitToArcadeResponse {

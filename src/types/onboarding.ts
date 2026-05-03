@@ -6,7 +6,7 @@
  * test chat, and channel configuration.
  */
 
-import type { EdwinPAIConfig } from './api';
+import type { EdwinPAIConfig } from "./api";
 
 // --- Onboarding Step Enumeration ---
 
@@ -14,13 +14,13 @@ import type { EdwinPAIConfig } from './api';
  * Onboarding wizard steps
  */
 export enum OnboardingStep {
-  Welcome = 'Welcome',
-  Gateway = 'Gateway',
-  ApiKey = 'ApiKey',
-  Identity = 'Identity',
-  TestChat = 'TestChat',
-  Channels = 'Channels',
-  Done = 'Done',
+  Welcome = "Welcome",
+  Gateway = "Gateway",
+  ApiKey = "ApiKey",
+  Identity = "Identity",
+  TestChat = "TestChat",
+  Channels = "Channels",
+  Done = "Done",
 }
 
 /**
@@ -101,7 +101,7 @@ export interface StepComponentProps {
  * @see SPEC §10 (Gateway REST API)
  */
 export interface ValidateApiKeyRequest {
-  type: 'ValidateApiKeyRequest';
+  type: "ValidateApiKeyRequest";
   /** API key to validate */
   apiKey: string;
   /** AI provider (e.g., 'anthropic', 'openai') */
@@ -112,7 +112,7 @@ export interface ValidateApiKeyRequest {
  * API key validation response
  */
 export interface ValidateApiKeyResponse {
-  type: 'ValidateApiKeyResponse';
+  type: "ValidateApiKeyResponse";
   /** Whether API key is valid */
   valid: boolean;
   /** Optional error message if validation failed */
@@ -127,7 +127,7 @@ export interface ValidateApiKeyResponse {
  * @see GetIdentityRequest from types/ipc.ts
  */
 export interface GenerateIdentityRequest {
-  type: 'GetIdentityRequest';
+  type: "GetIdentityRequest";
 }
 
 /**
@@ -138,7 +138,7 @@ export interface GenerateIdentityRequest {
  * @see GetIdentityResponse from types/ipc.ts
  */
 export interface GenerateIdentityResponse {
-  type: 'GetIdentityResponse';
+  type: "GetIdentityResponse";
   publicKey: string;
   petname: string;
   avatarSvg: string;
@@ -154,16 +154,16 @@ export interface GenerateIdentityResponse {
  * @see SPEC §8.2 (Gateway Process Management)
  */
 export interface StartGatewayRequest {
-  type: 'StartGatewayRequest';
+  type: "StartGatewayRequest";
   /** Gateway configuration options */
-  config?: Partial<EdwinPAIConfig['gateway']>;
+  config?: Partial<EdwinPAIConfig["gateway"]>;
 }
 
 /**
  * Gateway start response
  */
 export interface StartGatewayResponse {
-  type: 'StartGatewayResponse';
+  type: "StartGatewayResponse";
   /** Whether gateway started successfully */
   success: boolean;
   /** Gateway process PID (if started) */
@@ -181,7 +181,7 @@ export interface StartGatewayResponse {
  * @see SPEC §10.2 (Chat Completions)
  */
 export interface SendMessageRequest {
-  type: 'SendMessageRequest';
+  type: "SendMessageRequest";
   /** Message content */
   message: string;
   /** Optional conversation ID */
@@ -192,7 +192,7 @@ export interface SendMessageRequest {
  * Test chat message response
  */
 export interface SendMessageResponse {
-  type: 'SendMessageResponse';
+  type: "SendMessageResponse";
   /** AI response content */
   response: string;
   /** Whether message was sent successfully */
@@ -209,7 +209,7 @@ export interface SendMessageResponse {
  * @see UpdateEdwinPAIConfigRequest from types/ipc.ts
  */
 export interface UpdateConfigRequest {
-  type: 'UpdateEdwinPAIConfigRequest';
+  type: "UpdateEdwinPAIConfigRequest";
   /** Updated configuration (partial or complete) */
   config: EdwinPAIConfig;
 }
@@ -218,7 +218,7 @@ export interface UpdateConfigRequest {
  * Configuration update response
  */
 export interface UpdateConfigResponse {
-  type: 'UpdateEdwinPAIConfigResponse';
+  type: "UpdateEdwinPAIConfigResponse";
   /** Whether config update was successful */
   success: boolean;
   /** Optional error message if update failed */
@@ -233,7 +233,11 @@ export interface UpdateConfigResponse {
 export function isStepRequired(step: OnboardingStep): boolean {
   // Welcome, Identity, and Done are mandatory
   // ApiKey, Gateway, TestChat, and Channels can be configured later
-  return step === OnboardingStep.Welcome || step === OnboardingStep.Identity || step === OnboardingStep.Done;
+  return (
+    step === OnboardingStep.Welcome ||
+    step === OnboardingStep.Identity ||
+    step === OnboardingStep.Done
+  );
 }
 
 /**
@@ -258,7 +262,9 @@ export function getNextStep(current: OnboardingStep): OnboardingStep | null {
 /**
  * Get the previous onboarding step
  */
-export function getPreviousStep(current: OnboardingStep): OnboardingStep | null {
+export function getPreviousStep(
+  current: OnboardingStep,
+): OnboardingStep | null {
   const steps = Object.values(OnboardingStep);
   const currentIndex = steps.indexOf(current);
   if (currentIndex <= 0) {
@@ -270,7 +276,9 @@ export function getPreviousStep(current: OnboardingStep): OnboardingStep | null 
 /**
  * Calculate onboarding completion percentage (0-100)
  */
-export function calculateCompletionPercentage(progress: OnboardingProgress): number {
+export function calculateCompletionPercentage(
+  progress: OnboardingProgress,
+): number {
   const totalSteps = Object.values(OnboardingStep).length - 1; // Exclude "Done"
   const completedCount = progress.completedSteps.length;
   return Math.round((completedCount / totalSteps) * 100);

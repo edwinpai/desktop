@@ -10,7 +10,7 @@
  * Mirrors Rust types in src-tauri/src/client/types.rs
  */
 
-import type { AccessLevel } from './auth';
+import type { AccessLevel } from "./auth";
 
 // ============================================================================
 // Client Connection Types
@@ -20,11 +20,11 @@ import type { AccessLevel } from './auth';
  * Client connection states
  */
 export type ClientConnectionStatus =
-  | 'disconnected'
-  | 'connecting'
-  | 'connected'
-  | 'reconnecting'
-  | 'failed';
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "failed";
 
 /**
  * Client connection information
@@ -99,7 +99,7 @@ export interface PeerDiscoveryResult {
 /**
  * Peer discovery method
  */
-export type PeerDiscoveryMethod = 'mdns' | 'manual' | 'invitation';
+export type PeerDiscoveryMethod = "mdns" | "manual" | "invitation";
 
 // ============================================================================
 // Client Configuration

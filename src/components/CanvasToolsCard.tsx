@@ -1,10 +1,20 @@
 import { useMemo, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { buildGatewayTarget, invokeCanvasTool, type CanvasAction } from "@/lib/canvas";
+import {
+  buildGatewayTarget,
+  invokeCanvasTool,
+  type CanvasAction,
+} from "@/lib/canvas";
 import { StyledSelect } from "@/components/ui/styled-select";
 
 interface CanvasToolsCardProps {
@@ -12,7 +22,15 @@ interface CanvasToolsCardProps {
   gatewayToken?: string;
 }
 
-const ACTIONS: CanvasAction[] = ["present", "hide", "navigate", "eval", "snapshot", "a2ui_push", "a2ui_reset"];
+const ACTIONS: CanvasAction[] = [
+  "present",
+  "hide",
+  "navigate",
+  "eval",
+  "snapshot",
+  "a2ui_push",
+  "a2ui_reset",
+];
 
 function toUserFacingError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err);
@@ -22,7 +40,11 @@ function toUserFacingError(err: unknown): string {
   ) {
     return "Desktop integration is unavailable right now. Please reopen this screen inside the desktop app.";
   }
-  if (msg.includes("unknown method") || msg.includes("not found") || msg.includes("does not exist")) {
+  if (
+    msg.includes("unknown method") ||
+    msg.includes("not found") ||
+    msg.includes("does not exist")
+  ) {
     return "Canvas controls are not available from this gateway yet.";
   }
   return msg;
@@ -31,8 +53,10 @@ function toUserFacingError(err: unknown): string {
 function findImageCandidate(value: unknown): string | null {
   if (typeof value === "string") {
     if (value.startsWith("data:image/")) return value;
-    if (value.startsWith("http://") || value.startsWith("https://")) return value;
-    if (value.startsWith("MEDIA:")) return value.replace(/^MEDIA:\s*/, "").trim();
+    if (value.startsWith("http://") || value.startsWith("https://"))
+      return value;
+    if (value.startsWith("MEDIA:"))
+      return value.replace(/^MEDIA:\s*/, "").trim();
     return null;
   }
 
@@ -46,7 +70,15 @@ function findImageCandidate(value: unknown): string | null {
 
   if (value && typeof value === "object") {
     const obj = value as Record<string, unknown>;
-    for (const key of ["image", "imageUrl", "url", "path", "media", "screenshot", "snapshot"]) {
+    for (const key of [
+      "image",
+      "imageUrl",
+      "url",
+      "path",
+      "media",
+      "screenshot",
+      "snapshot",
+    ]) {
       const found = findImageCandidate(obj[key]);
       if (found) return found;
     }
@@ -59,7 +91,10 @@ function findImageCandidate(value: unknown): string | null {
   return null;
 }
 
-export function CanvasToolsCard({ gatewayUrl, gatewayToken }: CanvasToolsCardProps) {
+export function CanvasToolsCard({
+  gatewayUrl,
+  gatewayToken,
+}: CanvasToolsCardProps) {
   const [action, setAction] = useState<CanvasAction>("present");
   const [target, setTarget] = useState<"host" | "sandbox" | "node">("host");
   const [url, setUrl] = useState("https://example.com");
@@ -97,7 +132,8 @@ export function CanvasToolsCard({ gatewayUrl, gatewayToken }: CanvasToolsCardPro
       <CardHeader>
         <CardTitle>Canvas Tools</CardTitle>
         <CardDescription>
-          Cross-platform canvas controls (show/hide, navigate, eval JS, snapshot, A2UI).
+          Cross-platform canvas controls (show/hide, navigate, eval JS,
+          snapshot, A2UI).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -110,7 +146,9 @@ export function CanvasToolsCard({ gatewayUrl, gatewayToken }: CanvasToolsCardPro
               onChange={(e) => setAction(e.target.value as CanvasAction)}
             >
               {ACTIONS.map((a) => (
-                <option key={a} value={a}>{a}</option>
+                <option key={a} value={a}>
+                  {a}
+                </option>
               ))}
             </StyledSelect>
           </div>
@@ -120,7 +158,9 @@ export function CanvasToolsCard({ gatewayUrl, gatewayToken }: CanvasToolsCardPro
             <StyledSelect
               className="h-9 pr-8"
               value={target}
-              onChange={(e) => setTarget(e.target.value as "host" | "sandbox" | "node")}
+              onChange={(e) =>
+                setTarget(e.target.value as "host" | "sandbox" | "node")
+              }
             >
               <option value="host">host</option>
               <option value="sandbox">sandbox</option>
@@ -132,21 +172,33 @@ export function CanvasToolsCard({ gatewayUrl, gatewayToken }: CanvasToolsCardPro
         {action === "navigate" && (
           <div className="space-y-1">
             <Label>URL</Label>
-            <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
+            <Input
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://..."
+            />
           </div>
         )}
 
         {action === "eval" && (
           <div className="space-y-1">
             <Label>JavaScript</Label>
-            <Textarea value={javaScript} onChange={(e) => setJavaScript(e.target.value)} rows={4} />
+            <Textarea
+              value={javaScript}
+              onChange={(e) => setJavaScript(e.target.value)}
+              rows={4}
+            />
           </div>
         )}
 
         {action === "a2ui_push" && (
           <div className="space-y-1">
             <Label>A2UI JSONL</Label>
-            <Textarea value={jsonl} onChange={(e) => setJsonl(e.target.value)} rows={4} />
+            <Textarea
+              value={jsonl}
+              onChange={(e) => setJsonl(e.target.value)}
+              rows={4}
+            />
           </div>
         )}
 
@@ -160,7 +212,11 @@ export function CanvasToolsCard({ gatewayUrl, gatewayToken }: CanvasToolsCardPro
         {imageUrl && (
           <div className="space-y-2">
             <Label>Snapshot preview</Label>
-            <img src={imageUrl} alt="Canvas snapshot" className="max-h-72 rounded border" />
+            <img
+              src={imageUrl}
+              alt="Canvas snapshot"
+              className="max-h-72 rounded border"
+            />
           </div>
         )}
 

@@ -4,8 +4,11 @@
  * React hook for tracking online/offline status with graceful degradation.
  */
 
-import { useState, useEffect } from 'react';
-import { createOfflineHandler, type OfflineStatus } from '@/lib/offline-handler';
+import { useState, useEffect } from "react";
+import {
+  createOfflineHandler,
+  type OfflineStatus,
+} from "@/lib/offline-handler";
 
 export interface UseOfflineStatusOptions {
   onOnline?: () => void;
@@ -72,7 +75,12 @@ export function useOfflineStatus(options: UseOfflineStatusOptions = {}) {
       handler.destroy();
       clearInterval(updateInterval);
     };
-  }, [options.onOnline, options.onOffline, options.showToast, options.checkInterval]);
+  }, [
+    options.onOnline,
+    options.onOffline,
+    options.showToast,
+    options.checkInterval,
+  ]);
 
   return {
     isOnline: status.isOnline,

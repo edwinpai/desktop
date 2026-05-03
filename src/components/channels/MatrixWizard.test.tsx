@@ -68,7 +68,9 @@ describe("MatrixWizard", () => {
 
     // Without existingConfig, default is 'password'
     await waitFor(() => {
-      const passwordTab = screen.getByRole("tab", { name: /Username\/Password/i });
+      const passwordTab = screen.getByRole("tab", {
+        name: /Username\/Password/i,
+      });
       expect(passwordTab).toHaveAttribute("data-state", "active");
     });
   });
@@ -112,17 +114,22 @@ describe("MatrixWizard", () => {
     await user.click(screen.getByText("Next"));
 
     await waitFor(() => {
-      expect(screen.getByText(/Testing your Matrix credentials/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Testing your Matrix credentials/i),
+      ).toBeInTheDocument();
     });
 
     // Trigger validation
     await user.click(screen.getByText("Next"));
 
     await waitFor(() => {
-      expect(mockValidateCredentials).toHaveBeenCalledWith("matrix", expect.objectContaining({
-        homeserver: "https://matrix.org",
-        accessToken: "syt_test_token_12345",
-      }));
+      expect(mockValidateCredentials).toHaveBeenCalledWith(
+        "matrix",
+        expect.objectContaining({
+          homeserver: "https://matrix.org",
+          accessToken: "syt_test_token_12345",
+        }),
+      );
     });
   });
 
@@ -187,7 +194,9 @@ describe("MatrixWizard", () => {
     await user.click(screen.getByText("Next"));
 
     await waitFor(() => {
-      expect(screen.getByText(/Testing your Matrix credentials/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Testing your Matrix credentials/i),
+      ).toBeInTheDocument();
     });
 
     // Validation → confirmation
@@ -200,9 +209,12 @@ describe("MatrixWizard", () => {
     // Save & Enable → triggers confirmation onValidate which uses invoke
     await user.click(screen.getByText("Save & Enable"));
 
-    await waitFor(() => {
-      expect(onComplete).toHaveBeenCalled();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(onComplete).toHaveBeenCalled();
+      },
+      { timeout: 3000 },
+    );
   });
 
   it("loads existing configuration in edit mode", () => {
@@ -227,14 +239,16 @@ describe("MatrixWizard", () => {
         existingConfig={existingConfig}
         onComplete={vi.fn()}
         onCancel={vi.fn()}
-      />
+      />,
     );
 
     const nextButton = screen.getByText("Next");
     userEvent.click(nextButton);
 
     waitFor(() => {
-      const homeserverInput = screen.getByLabelText(/Homeserver URL/i) as HTMLInputElement;
+      const homeserverInput = screen.getByLabelText(
+        /Homeserver URL/i,
+      ) as HTMLInputElement;
       expect(homeserverInput.value).toBe("https://custom.matrix.org");
     });
   });

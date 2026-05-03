@@ -83,7 +83,9 @@ describe("Skeleton", () => {
     });
 
     it("allows className override in variants", () => {
-      render(<SkeletonVariants.Avatar className="size-16" data-testid="skeleton" />);
+      render(
+        <SkeletonVariants.Avatar className="size-16" data-testid="skeleton" />,
+      );
       const skeleton = screen.getByTestId("skeleton");
       expect(skeleton).toHaveClass("size-16", "rounded-full");
     });

@@ -19,9 +19,11 @@ describe("EmptyState", () => {
       <EmptyState
         title="No messages"
         description="Start a conversation to see messages here"
-      />
+      />,
     );
-    expect(screen.getByText("Start a conversation to see messages here")).toBeInTheDocument();
+    expect(
+      screen.getByText("Start a conversation to see messages here"),
+    ).toBeInTheDocument();
   });
 
   it("renders icon", () => {
@@ -45,9 +47,11 @@ describe("EmptyState", () => {
           label: "New Message",
           onClick,
         }}
-      />
+      />,
     );
-    expect(screen.getByRole("button", { name: "New Message" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "New Message" }),
+    ).toBeInTheDocument();
   });
 
   it("calls action onClick when clicked", async () => {
@@ -61,7 +65,7 @@ describe("EmptyState", () => {
           label: "New Message",
           onClick,
         }}
-      />
+      />,
     );
 
     const button = screen.getByRole("button", { name: "New Message" });
@@ -89,7 +93,7 @@ describe("EmptyState", () => {
           label: "New Message",
           onClick: () => {},
         }}
-      />
+      />,
     );
     const button = screen.getByRole("button");
     expect(button).toHaveClass("bg-primary"); // Default variant class
@@ -104,7 +108,7 @@ describe("EmptyState", () => {
           onClick: () => {},
           variant: "outline",
         }}
-      />
+      />,
     );
     const button = screen.getByRole("button");
     expect(button).toHaveClass("bg-background"); // Outline variant class
@@ -123,7 +127,9 @@ describe("EmptyState", () => {
   });
 
   it("applies destructive icon color", () => {
-    render(<EmptyState title="No messages" icon={Inbox} iconColor="destructive" />);
+    render(
+      <EmptyState title="No messages" icon={Inbox} iconColor="destructive" />,
+    );
     const iconContainer = screen.getByRole("status").querySelector("div");
     expect(iconContainer).toHaveClass("text-destructive");
   });
@@ -147,11 +153,15 @@ describe("EmptyState", () => {
           onClick,
           variant: "default",
         }}
-      />
+      />,
     );
 
     expect(screen.getByText("No conversations")).toBeInTheDocument();
-    expect(screen.getByText("Create your first conversation to get started")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Start Conversation" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Create your first conversation to get started"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Start Conversation" }),
+    ).toBeInTheDocument();
   });
 });

@@ -5,7 +5,12 @@
  * Stored in ~/.edwinpai/vault/vault.policy.json via Tauri FS.
  */
 
-import { BaseDirectory, readTextFile, writeTextFile, exists } from "@tauri-apps/plugin-fs";
+import {
+  BaseDirectory,
+  readTextFile,
+  writeTextFile,
+  exists,
+} from "@tauri-apps/plugin-fs";
 
 export type AskMode = "always" | "first-time" | "auto-grant" | "deny";
 
@@ -45,7 +50,10 @@ export async function loadPolicy(profileId: string): Promise<VaultPolicy> {
   }
 }
 
-export async function savePolicy(profileId: string, policy: VaultPolicy): Promise<void> {
+export async function savePolicy(
+  profileId: string,
+  policy: VaultPolicy,
+): Promise<void> {
   await writeTextFile(policyPath(profileId), JSON.stringify(policy, null, 2), {
     baseDir: BaseDirectory.Home,
   });
@@ -53,7 +61,7 @@ export async function savePolicy(profileId: string, policy: VaultPolicy): Promis
 
 export function getRuleForCredential(
   policy: VaultPolicy,
-  credentialId: string
+  credentialId: string,
 ): { ask: AskMode; maxLeaseMs?: number } {
   const rule = policy.rules.find((r) => r.credentialId === credentialId);
   if (rule) return { ask: rule.ask, maxLeaseMs: rule.maxLeaseMs };
@@ -65,9 +73,11 @@ export function setRuleForCredential(
   credentialId: string,
   ask: AskMode,
   maxLeaseMs?: number,
-  comment?: string
+  comment?: string,
 ): VaultPolicy {
-  const existing = policy.rules.findIndex((r) => r.credentialId === credentialId);
+  const existing = policy.rules.findIndex(
+    (r) => r.credentialId === credentialId,
+  );
   const rule: PolicyRule = { credentialId, ask, maxLeaseMs, comment };
   const rules = [...policy.rules];
   if (existing >= 0) {

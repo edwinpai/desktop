@@ -6,16 +6,41 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, RefreshCw, Save, AlertCircle, Play, Square, RotateCw } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Loader2,
+  RefreshCw,
+  Save,
+  AlertCircle,
+  Play,
+  Square,
+  RotateCw,
+} from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
-import { fetchGatewayConfig, patchGatewayConfig, inferGatewayKind, type GatewayTarget } from "@/lib/gateway-context";
+import {
+  fetchGatewayConfig,
+  patchGatewayConfig,
+  inferGatewayKind,
+  type GatewayTarget,
+} from "@/lib/gateway-context";
 
 interface GatewayConfigCardProps {
   gatewayUrl: string;
@@ -24,7 +49,7 @@ interface GatewayConfigCardProps {
 
 interface GatewayState {
   port: number;
-  bind: string;  // "loopback" | "lan" | "tailnet" | "auto" | "custom"
+  bind: string; // "loopback" | "lan" | "tailnet" | "auto" | "custom"
   authToken: string;
   isLoading: boolean;
   error: string | null;
@@ -40,7 +65,10 @@ function normalizeBindForUi(bind: string | undefined): string {
   return bind;
 }
 
-export function GatewayConfigCard({ gatewayUrl, gatewayToken }: GatewayConfigCardProps) {
+export function GatewayConfigCard({
+  gatewayUrl,
+  gatewayToken,
+}: GatewayConfigCardProps) {
   const [state, setState] = useState<GatewayState>({
     port: 18789,
     bind: "loopback",
@@ -62,13 +90,13 @@ export function GatewayConfigCard({ gatewayUrl, gatewayToken }: GatewayConfigCar
   };
 
   const fetchConfig = useCallback(async () => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
     try {
       const config = await fetchGatewayConfig(target);
       const gw = (config.gateway ?? {}) as Record<string, unknown>;
       const auth = (gw.auth ?? {}) as Record<string, unknown>;
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         port: (gw.port as number) ?? 18789,
         bind: normalizeBindForUi(gw.bind as string | undefined),
@@ -78,7 +106,7 @@ export function GatewayConfigCard({ gatewayUrl, gatewayToken }: GatewayConfigCar
       }));
       setGatewayRunning(true);
     } catch (err) {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isLoading: false,
         error: err instanceof Error ? err.message : "Failed to fetch config",
@@ -92,25 +120,30 @@ export function GatewayConfigCard({ gatewayUrl, gatewayToken }: GatewayConfigCar
   }, [fetchConfig]);
 
   const handleSave = async () => {
-    setState(prev => ({ ...prev, isSaving: true, saveResult: null }));
+    setState((prev) => ({ ...prev, isSaving: true, saveResult: null }));
     try {
       const patch: Record<string, unknown> = {
         gateway: {
           port: state.port,
           bind: state.bind,
-          auth: state.authToken ? { mode: "token", token: state.authToken } : undefined,
+          auth: state.authToken
+            ? { mode: "token", token: state.authToken }
+            : undefined,
         },
       };
 
       await patchGatewayConfig(target, patch);
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isSaving: false,
         hasChanges: false,
-        saveResult: { ok: true, message: "Saved! Gateway will restart to apply changes." },
+        saveResult: {
+          ok: true,
+          message: "Saved! Gateway will restart to apply changes.",
+        },
       }));
     } catch (err) {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isSaving: false,
         saveResult: {
@@ -139,9 +172,10 @@ export function GatewayConfigCard({ gatewayUrl, gatewayToken }: GatewayConfigCar
         setTimeout(fetchConfig, 3000);
       }
     } catch (err) {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        error: err instanceof Error ? err.message : `Failed to ${action} gateway`,
+        error:
+          err instanceof Error ? err.message : `Failed to ${action} gateway`,
       }));
     }
     setLifecycleAction(null);
@@ -250,7 +284,7 @@ export function GatewayConfigCard({ gatewayUrl, gatewayToken }: GatewayConfigCar
             onChange={(e) => {
               const val = parseInt(e.target.value, 10);
               if (!isNaN(val)) {
-                setState(prev => ({ ...prev, port: val, hasChanges: true }));
+                setState((prev) => ({ ...prev, port: val, hasChanges: true }));
               }
             }}
           />
@@ -265,7 +299,7 @@ export function GatewayConfigCard({ gatewayUrl, gatewayToken }: GatewayConfigCar
           <Select
             value={state.bind}
             onValueChange={(value) => {
-              setState(prev => ({ ...prev, bind: value, hasChanges: true }));
+              setState((prev) => ({ ...prev, bind: value, hasChanges: true }));
             }}
           >
             <SelectTrigger id="gw-bind">
@@ -279,8 +313,10 @@ export function GatewayConfigCard({ gatewayUrl, gatewayToken }: GatewayConfigCar
           </Select>
           <p className="text-xs text-muted-foreground">
             {state.bind === "loopback" && "Only accessible from this machine."}
-            {state.bind === "lan" && "Accessible from any device on your local network."}
-            {state.bind === "tailnet" && "Accessible via Tailscale mesh network."}
+            {state.bind === "lan" &&
+              "Accessible from any device on your local network."}
+            {state.bind === "tailnet" &&
+              "Accessible via Tailscale mesh network."}
           </p>
         </div>
 
@@ -292,12 +328,17 @@ export function GatewayConfigCard({ gatewayUrl, gatewayToken }: GatewayConfigCar
             type="password"
             value={state.authToken}
             onChange={(e) => {
-              setState(prev => ({ ...prev, authToken: e.target.value, hasChanges: true }));
+              setState((prev) => ({
+                ...prev,
+                authToken: e.target.value,
+                hasChanges: true,
+              }));
             }}
             placeholder="No token (open access)"
           />
           <p className="text-xs text-muted-foreground">
-            Token required for all gateway connections. Leave empty for no authentication.
+            Token required for all gateway connections. Leave empty for no
+            authentication.
           </p>
         </div>
 
@@ -315,11 +356,7 @@ export function GatewayConfigCard({ gatewayUrl, gatewayToken }: GatewayConfigCar
             )}
             Apply to Gateway
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchConfig}
-          >
+          <Button variant="outline" size="sm" onClick={fetchConfig}>
             <RefreshCw className="size-4 mr-1" />
             Refresh
           </Button>

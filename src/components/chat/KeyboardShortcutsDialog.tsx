@@ -22,7 +22,9 @@ interface ShortcutCategory {
   shortcuts: Shortcut[];
 }
 
-const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent);
+const isMac =
+  typeof navigator !== "undefined" &&
+  /Mac|iPhone|iPad/.test(navigator.userAgent);
 const mod = isMac ? "Cmd" : "Ctrl";
 
 const categories: ShortcutCategory[] = [
@@ -45,9 +47,7 @@ const categories: ShortcutCategory[] = [
   },
   {
     name: "Sessions",
-    shortcuts: [
-      { keys: `${mod}+N`, description: "New session" },
-    ],
+    shortcuts: [{ keys: `${mod}+N`, description: "New session" }],
   },
 ];
 

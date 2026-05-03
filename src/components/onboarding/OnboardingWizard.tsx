@@ -18,7 +18,23 @@
 
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Check, ChevronRight, AlertCircle, Loader2, Play, MessageSquare, Key, Radio, Wifi, Package, RefreshCw, Shield, Globe, CheckCircle2, XCircle } from "lucide-react";
+import {
+  Check,
+  ChevronRight,
+  AlertCircle,
+  Loader2,
+  Play,
+  MessageSquare,
+  Key,
+  Radio,
+  Wifi,
+  Package,
+  RefreshCw,
+  Shield,
+  Globe,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 
 import { GatewayDetection } from "./GatewayDetection";
 
@@ -27,7 +43,14 @@ import { getIdentity as getCryptoIdentity } from "@/lib/crypto-domain";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { IdentityBadge } from "@/components/shared/IdentityBadge";
@@ -37,7 +60,7 @@ import {
   getNextStep,
   getPreviousStep,
   calculateCompletionPercentage,
-  type OnboardingProgress
+  type OnboardingProgress,
 } from "@/types/onboarding";
 // Chat test uses WebSocket protocol directly (no HTTP SSE)
 
@@ -112,8 +135,12 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         <div className="px-8 lg:px-16 py-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold">{getStepTitle(currentStepEnum)}</h1>
-              <p className="text-sm text-muted-foreground">{getStepDescription(currentStepEnum)}</p>
+              <h1 className="text-2xl font-bold">
+                {getStepTitle(currentStepEnum)}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {getStepDescription(currentStepEnum)}
+              </p>
             </div>
           </div>
 
@@ -131,7 +158,14 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       {/* Step content */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-8 lg:px-16 py-8">
-          {renderStep(currentStepEnum, progress, handleStepComplete, updateStepData, data, () => onComplete?.())}
+          {renderStep(
+            currentStepEnum,
+            progress,
+            handleStepComplete,
+            updateStepData,
+            data,
+            () => onComplete?.(),
+          )}
         </div>
       </div>
 
@@ -194,7 +228,12 @@ function renderStep(
       return <WelcomeStep onNext={onComplete} onSkipToEnd={onSkipToEnd} />;
 
     case OnboardingStep.ApiKey:
-      return <ApiKeyStep onComplete={onComplete} initialKey={data.apiKey as string | undefined} />;
+      return (
+        <ApiKeyStep
+          onComplete={onComplete}
+          initialKey={data.apiKey as string | undefined}
+        />
+      );
 
     case OnboardingStep.Identity:
       return <IdentityStep onComplete={onComplete} />;
@@ -219,18 +258,28 @@ function renderStep(
 /**
  * Step 1: Welcome
  */
-function WelcomeStep({ onNext, onSkipToEnd }: { onNext: () => void; onSkipToEnd?: () => void }) {
+function WelcomeStep({
+  onNext,
+  onSkipToEnd,
+}: {
+  onNext: () => void;
+  onSkipToEnd?: () => void;
+}) {
   // Keep test harness deterministic: skip async gateway probing in unit tests.
-  const [showDetection, setShowDetection] = useState(import.meta.env.MODE !== "test");
+  const [showDetection, setShowDetection] = useState(
+    import.meta.env.MODE !== "test",
+  );
 
   if (showDetection) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center space-y-8">
         <div className="space-y-4 max-w-4xl mx-auto">
-          <h2 className="text-4xl font-bold tracking-tight">Welcome to EdwinPAI</h2>
+          <h2 className="text-4xl font-bold tracking-tight">
+            Welcome to EdwinPAI
+          </h2>
           <p className="text-lg text-muted-foreground">
-            EdwinPAI is your personal AI assistant powered by BSV blockchain technology.
-            Secure, private, and completely under your control.
+            EdwinPAI is your personal AI assistant powered by BSV blockchain
+            technology. Secure, private, and completely under your control.
           </p>
         </div>
 
@@ -248,17 +297,31 @@ function WelcomeStep({ onNext, onSkipToEnd }: { onNext: () => void; onSkipToEnd?
   return (
     <div className="flex flex-col items-center justify-center h-full text-center space-y-8">
       <div className="space-y-4 max-w-4xl mx-auto">
-        <h2 className="text-4xl font-bold tracking-tight">Welcome to EdwinPAI</h2>
+        <h2 className="text-4xl font-bold tracking-tight">
+          Welcome to EdwinPAI
+        </h2>
         <p className="text-lg text-muted-foreground">
-          EdwinPAI is your personal AI assistant powered by BSV blockchain technology.
-          Secure, private, and completely under your control.
+          EdwinPAI is your personal AI assistant powered by BSV blockchain
+          technology. Secure, private, and completely under your control.
         </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3 w-full">
-        <FeatureCard icon={<Shield className="h-8 w-8 text-primary" />} title="Secure" description="Your keys, your data. Everything stays on your device." />
-        <FeatureCard icon={<Globe className="h-8 w-8 text-primary" />} title="Decentralized" description="No central authority. Connect peer-to-peer over LAN." />
-        <FeatureCard icon={<MessageSquare className="h-8 w-8 text-primary" />} title="Multi-Channel" description="Use EdwinPAI across WhatsApp, Telegram, Discord, and more." />
+        <FeatureCard
+          icon={<Shield className="h-8 w-8 text-primary" />}
+          title="Secure"
+          description="Your keys, your data. Everything stays on your device."
+        />
+        <FeatureCard
+          icon={<Globe className="h-8 w-8 text-primary" />}
+          title="Decentralized"
+          description="No central authority. Connect peer-to-peer over LAN."
+        />
+        <FeatureCard
+          icon={<MessageSquare className="h-8 w-8 text-primary" />}
+          title="Multi-Channel"
+          description="Use EdwinPAI across WhatsApp, Telegram, Discord, and more."
+        />
       </div>
 
       <Button size="lg" onClick={onNext}>
@@ -271,7 +334,13 @@ function WelcomeStep({ onNext, onSkipToEnd }: { onNext: () => void; onSkipToEnd?
 /**
  * Step 2: API Key Validation
  */
-function ApiKeyStep({ onComplete, initialKey }: { onComplete: (data?: unknown) => void; initialKey?: string }) {
+function ApiKeyStep({
+  onComplete,
+  initialKey,
+}: {
+  onComplete: (data?: unknown) => void;
+  initialKey?: string;
+}) {
   const [apiKey, setApiKey] = useState(initialKey || "");
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -326,16 +395,29 @@ function ApiKeyStep({ onComplete, initialKey }: { onComplete: (data?: unknown) =
           AI Provider API Key
         </CardTitle>
         <CardDescription>
-          EdwinPAI needs an API key from an AI provider to work. We recommend Anthropic (Claude).
+          EdwinPAI needs an API key from an AI provider to work. We recommend
+          Anthropic (Claude).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="rounded-lg bg-muted/50 p-4 space-y-2 text-sm">
           <p className="font-medium">How to get an API key:</p>
           <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-            <li>Go to <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" className="text-primary underline underline-offset-2">console.anthropic.com</a></li>
+            <li>
+              Go to{" "}
+              <a
+                href="https://console.anthropic.com/settings/keys"
+                target="_blank"
+                rel="noopener"
+                className="text-primary underline underline-offset-2"
+              >
+                console.anthropic.com
+              </a>
+            </li>
             <li>Sign in or create an account</li>
-            <li>Click <strong>"Create Key"</strong></li>
+            <li>
+              Click <strong>"Create Key"</strong>
+            </li>
             <li>Copy the key and paste it below</li>
           </ol>
         </div>
@@ -350,8 +432,10 @@ function ApiKeyStep({ onComplete, initialKey }: { onComplete: (data?: unknown) =
             disabled={isValidating || isValid}
           />
           <p className="text-xs text-muted-foreground">
-            Starts with <code className="px-1 py-0.5 bg-muted rounded">sk-ant-</code> for Anthropic
-            or <code className="px-1 py-0.5 bg-muted rounded">sk-</code> for OpenAI
+            Starts with{" "}
+            <code className="px-1 py-0.5 bg-muted rounded">sk-ant-</code> for
+            Anthropic or{" "}
+            <code className="px-1 py-0.5 bg-muted rounded">sk-</code> for OpenAI
           </p>
         </div>
 
@@ -370,7 +454,11 @@ function ApiKeyStep({ onComplete, initialKey }: { onComplete: (data?: unknown) =
         )}
       </CardContent>
       <CardFooter>
-        <Button onClick={handleValidate} disabled={isValidating || isValid} className="w-full">
+        <Button
+          onClick={handleValidate}
+          disabled={isValidating || isValid}
+          className="w-full"
+        >
           {isValidating ? (
             <>
               <Loader2 className="mr-2 size-4 animate-spin" />
@@ -397,7 +485,9 @@ interface WizardIdentity {
   shortId: string;
 }
 
-function mapCryptoIdentityToWizardIdentity(identity: Awaited<ReturnType<typeof getCryptoIdentity>>): WizardIdentity {
+function mapCryptoIdentityToWizardIdentity(
+  identity: Awaited<ReturnType<typeof getCryptoIdentity>>,
+): WizardIdentity {
   return {
     publicKey: identity.public_key,
     petname: identity.petname,
@@ -409,7 +499,11 @@ function mapCryptoIdentityToWizardIdentity(identity: Awaited<ReturnType<typeof g
 /**
  * Step 3: Identity Generation
  */
-function IdentityStep({ onComplete }: { onComplete: (data?: unknown) => void }) {
+function IdentityStep({
+  onComplete,
+}: {
+  onComplete: (data?: unknown) => void;
+}) {
   const [identity, setIdentity] = useState<WizardIdentity | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -435,7 +529,9 @@ function IdentityStep({ onComplete }: { onComplete: (data?: unknown) => void }) 
         }
       }
 
-      const response = mapCryptoIdentityToWizardIdentity(await getCryptoIdentity());
+      const response = mapCryptoIdentityToWizardIdentity(
+        await getCryptoIdentity(),
+      );
       setIdentity(response);
       // Cache the identity so re-navigation doesn't regenerate
       localStorage.setItem("edwinpai_identity_cache", JSON.stringify(response));
@@ -462,11 +558,15 @@ function IdentityStep({ onComplete }: { onComplete: (data?: unknown) => void }) 
     setError(null);
 
     try {
-      const response = mapCryptoIdentityToWizardIdentity(await getCryptoIdentity());
+      const response = mapCryptoIdentityToWizardIdentity(
+        await getCryptoIdentity(),
+      );
       setIdentity(response);
       setIsGenerating(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate identity");
+      setError(
+        err instanceof Error ? err.message : "Failed to generate identity",
+      );
       setIsGenerating(false);
     }
   };
@@ -517,7 +617,11 @@ function IdentityStep({ onComplete }: { onComplete: (data?: unknown) => void }) 
             Retry
           </Button>
         )}
-        <Button onClick={handleContinue} disabled={!identity} className="flex-1">
+        <Button
+          onClick={handleContinue}
+          disabled={!identity}
+          className="flex-1"
+        >
           Continue
         </Button>
       </CardFooter>
@@ -548,7 +652,10 @@ function GatewayStep({ onComplete }: { onComplete: (data?: unknown) => void }) {
   const [startToken, setStartToken] = useState("");
   const [runtimeReady, setRuntimeReady] = useState(false);
   const [runtimeChecked, setRuntimeChecked] = useState(false);
-  const [runtimeInfo, setRuntimeInfo] = useState<{ nodeAvailable: boolean; edwinpaiAvailable: boolean } | null>(null);
+  const [runtimeInfo, setRuntimeInfo] = useState<{
+    nodeAvailable: boolean;
+    edwinpaiAvailable: boolean;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tokenInput, setTokenInput] = useState("");
 
@@ -556,10 +663,17 @@ function GatewayStep({ onComplete }: { onComplete: (data?: unknown) => void }) {
   useEffect(() => {
     (async () => {
       // Check runtime availability in parallel with gateway scan
-      invoke<{ nodeAvailable: boolean; edwinpaiAvailable: boolean; ready: boolean }>("check_runtime")
+      invoke<{
+        nodeAvailable: boolean;
+        edwinpaiAvailable: boolean;
+        ready: boolean;
+      }>("check_runtime")
         .then((status) => {
           setRuntimeReady(status.ready);
-          setRuntimeInfo({ nodeAvailable: status.nodeAvailable, edwinpaiAvailable: status.edwinpaiAvailable });
+          setRuntimeInfo({
+            nodeAvailable: status.nodeAvailable,
+            edwinpaiAvailable: status.edwinpaiAvailable,
+          });
           setRuntimeChecked(true);
         })
         .catch(() => setRuntimeChecked(true));
@@ -609,7 +723,7 @@ function GatewayStep({ onComplete }: { onComplete: (data?: unknown) => void }) {
       await invoke("start_gateway_real", { port: startPort });
 
       // Wait a moment for gateway to initialize
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Rescan to find the newly started gateway
       const found = await invoke<DiscoveredGateway[]>("scan_gateways");
@@ -617,7 +731,8 @@ function GatewayStep({ onComplete }: { onComplete: (data?: unknown) => void }) {
 
       if (found.length > 0) {
         // Auto-select the local gateway on the port we started
-        const local = found.find(g => g.url.includes(String(startPort))) ?? found[0];
+        const local =
+          found.find((g) => g.url.includes(String(startPort))) ?? found[0];
         if (local) {
           setSelectedUrl(local.url);
         }
@@ -706,163 +821,228 @@ function GatewayStep({ onComplete }: { onComplete: (data?: unknown) => void }) {
                       : "border-border hover:border-primary/50"
                   }`}
                 >
-                  <Radio className={`size-4 ${selectedUrl === gw.url ? "text-primary" : "text-muted-foreground"}`} />
+                  <Radio
+                    className={`size-4 ${selectedUrl === gw.url ? "text-primary" : "text-muted-foreground"}`}
+                  />
                   <div className="flex-1">
-                    <div className="text-sm font-medium">{formatUrl(gw.url)}</div>
-                    <div className="text-xs text-muted-foreground">{gw.url}</div>
+                    <div className="text-sm font-medium">
+                      {formatUrl(gw.url)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {gw.url}
+                    </div>
                   </div>
-                  {selectedUrl === gw.url && <Check className="size-4 text-primary" />}
+                  {selectedUrl === gw.url && (
+                    <Check className="size-4 text-primary" />
+                  )}
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {!isScanning && gateways.length === 0 && !showManual && !isStarting && !isConnected && (
-          <div className="space-y-4">
-            <Alert>
-              <AlertCircle className="size-4" />
-              <AlertDescription>
-                No running gateways found on your network.
-              </AlertDescription>
-            </Alert>
+        {!isScanning &&
+          gateways.length === 0 &&
+          !showManual &&
+          !isStarting &&
+          !isConnected && (
+            <div className="space-y-4">
+              <Alert>
+                <AlertCircle className="size-4" />
+                <AlertDescription>
+                  No running gateways found on your network.
+                </AlertDescription>
+              </Alert>
 
-            {!runtimeReady && runtimeChecked && (
-              <div className="rounded-lg border border-border p-4 space-y-4">
-                <div className="flex items-center gap-2">
-                  <Package className="size-5 text-primary" />
-                  <h4 className="font-medium">Install EdwinPAI Runtime</h4>
-                </div>
+              {!runtimeReady && runtimeChecked && (
+                <div className="rounded-lg border border-border p-4 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Package className="size-5 text-primary" />
+                    <h4 className="font-medium">Install EdwinPAI Runtime</h4>
+                  </div>
 
-                {!runtimeInfo?.nodeAvailable ? (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      EdwinPAI requires Node.js to run. Follow these steps:
-                    </p>
+                  {!runtimeInfo?.nodeAvailable ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        EdwinPAI requires Node.js to run. Follow these steps:
+                      </p>
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-3">
+                          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
+                            1
+                          </span>
+                          <div>
+                            <p className="text-sm font-medium">
+                              Install Node.js
+                            </p>
+                            <p className="text-xs text-muted-foreground mb-1">
+                              Download from nodejs.org (v22+ recommended)
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                window.open?.("https://nodejs.org", "_blank")
+                              }
+                              className="text-xs text-primary hover:underline"
+                            >
+                              Open nodejs.org →
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
+                            2
+                          </span>
+                          <div>
+                            <p className="text-sm font-medium">
+                              Install EdwinPAI
+                            </p>
+                            <p className="text-xs text-muted-foreground mb-1">
+                              Open a terminal and run:
+                            </p>
+                            <code className="block text-xs bg-muted px-3 py-2 rounded font-mono select-all">
+                              npm install -g edwinpai
+                            </code>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
                     <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        Node.js is installed (
+                        {runtimeInfo?.nodeAvailable ? (
+                          <CheckCircle2 className="h-4 w-4 inline text-green-500" />
+                        ) : (
+                          <XCircle className="h-4 w-4 inline text-red-500" />
+                        )}
+                        ), but EdwinPAI gateway is missing.
+                      </p>
                       <div className="flex items-start gap-3">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">1</span>
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
+                          1
+                        </span>
                         <div>
-                          <p className="text-sm font-medium">Install Node.js</p>
-                          <p className="text-xs text-muted-foreground mb-1">Download from nodejs.org (v22+ recommended)</p>
-                          <button
-                            type="button"
-                            onClick={() => window.open?.('https://nodejs.org', '_blank')}
-                            className="text-xs text-primary hover:underline"
-                          >
-                            Open nodejs.org →
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">2</span>
-                        <div>
-                          <p className="text-sm font-medium">Install EdwinPAI</p>
-                          <p className="text-xs text-muted-foreground mb-1">Open a terminal and run:</p>
-                          <code className="block text-xs bg-muted px-3 py-2 rounded font-mono select-all">npm install -g edwinpai</code>
+                          <p className="text-sm font-medium">
+                            Install EdwinPAI
+                          </p>
+                          <p className="text-xs text-muted-foreground mb-1">
+                            Open a terminal and run:
+                          </p>
+                          <code className="block text-xs bg-muted px-3 py-2 rounded font-mono select-all">
+                            npm install -g edwinpai
+                          </code>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      Node.js is installed ({runtimeInfo?.nodeAvailable ? <CheckCircle2 className="h-4 w-4 inline text-green-500" /> : <XCircle className="h-4 w-4 inline text-red-500" />}), but EdwinPAI gateway is missing.
-                    </p>
-                    <div className="flex items-start gap-3">
-                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">1</span>
-                      <div>
-                        <p className="text-sm font-medium">Install EdwinPAI</p>
-                        <p className="text-xs text-muted-foreground mb-1">Open a terminal and run:</p>
-                        <code className="block text-xs bg-muted px-3 py-2 rounded font-mono select-all">npm install -g edwinpai</code>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                  )}
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    setRuntimeChecked(false);
-                    try {
-                      const status = await invoke<{ nodeAvailable: boolean; edwinpaiAvailable: boolean; ready: boolean }>("check_runtime");
-                      setRuntimeReady(status.ready);
-                      setRuntimeInfo({ nodeAvailable: status.nodeAvailable, edwinpaiAvailable: status.edwinpaiAvailable });
-                    } catch { /* ignore */ }
-                    setRuntimeChecked(true);
-                  }}
-                  className="w-full"
-                >
-                  <RefreshCw className={`size-4 mr-2 ${!runtimeChecked ? 'animate-spin' : ''}`} />
-                  Check Again
-                </Button>
-              </div>
-            )}
-
-            {!showStartConfig ? (
-              <div className="space-y-2">
-                <div className="grid grid-cols-1 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowStartConfig(true)}
-                    disabled={!runtimeReady && runtimeChecked}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/50 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      setRuntimeChecked(false);
+                      try {
+                        const status = await invoke<{
+                          nodeAvailable: boolean;
+                          edwinpaiAvailable: boolean;
+                          ready: boolean;
+                        }>("check_runtime");
+                        setRuntimeReady(status.ready);
+                        setRuntimeInfo({
+                          nodeAvailable: status.nodeAvailable,
+                          edwinpaiAvailable: status.edwinpaiAvailable,
+                        });
+                      } catch {
+                        /* ignore */
+                      }
+                      setRuntimeChecked(true);
+                    }}
+                    className="w-full"
                   >
-                    <Play className="size-5 text-primary" />
-                    <div>
-                      <div className="text-sm font-medium">Start Local Gateway</div>
-                      <div className="text-xs text-muted-foreground">
-                        {runtimeReady || !runtimeChecked
-                          ? 'Launch an EdwinPAI gateway on this machine'
-                          : 'Install EdwinPAI runtime first (see above)'}
+                    <RefreshCw
+                      className={`size-4 mr-2 ${!runtimeChecked ? "animate-spin" : ""}`}
+                    />
+                    Check Again
+                  </Button>
+                </div>
+              )}
+
+              {!showStartConfig ? (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-1 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowStartConfig(true)}
+                      disabled={!runtimeReady && runtimeChecked}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/50 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Play className="size-5 text-primary" />
+                      <div>
+                        <div className="text-sm font-medium">
+                          Start Local Gateway
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {runtimeReady || !runtimeChecked
+                            ? "Launch an EdwinPAI gateway on this machine"
+                            : "Install EdwinPAI runtime first (see above)"}
+                        </div>
                       </div>
-                    </div>
-                  </button>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="space-y-3 p-4 rounded-lg border border-border">
-                <h4 className="text-sm font-medium">Gateway Configuration</h4>
+              ) : (
+                <div className="space-y-3 p-4 rounded-lg border border-border">
+                  <h4 className="text-sm font-medium">Gateway Configuration</h4>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground">Port</label>
-                  <Input
-                    type="number"
-                    min={1024}
-                    max={65535}
-                    value={startPort}
-                    onChange={(e) => setStartPort(parseInt(e.target.value, 10) || 18789)}
-                    placeholder="18789"
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Port
+                    </label>
+                    <Input
+                      type="number"
+                      min={1024}
+                      max={65535}
+                      value={startPort}
+                      onChange={(e) =>
+                        setStartPort(parseInt(e.target.value, 10) || 18789)
+                      }
+                      placeholder="18789"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground">Auth Token (optional)</label>
-                  <Input
-                    type="password"
-                    value={startToken}
-                    onChange={(e) => setStartToken(e.target.value)}
-                    placeholder="Leave empty for no auth"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Set a token to require authentication for all connections.
-                  </p>
-                </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Auth Token (optional)
+                    </label>
+                    <Input
+                      type="password"
+                      value={startToken}
+                      onChange={(e) => setStartToken(e.target.value)}
+                      placeholder="Leave empty for no auth"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Set a token to require authentication for all connections.
+                    </p>
+                  </div>
 
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={handleStartLocal}>
-                    <Play className="size-4 mr-1" />
-                    Start Gateway
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setShowStartConfig(false)}>
-                    Cancel
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleStartLocal}>
+                      <Play className="size-4 mr-1" />
+                      Start Gateway
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowStartConfig(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
 
         {isStarting && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -918,7 +1098,12 @@ function GatewayStep({ onComplete }: { onComplete: (data?: unknown) => void }) {
           <>
             <Button
               onClick={handleConnect}
-              disabled={isConnecting || isScanning || (!selectedUrl && !showManual) || (showManual && !manualUrl.trim())}
+              disabled={
+                isConnecting ||
+                isScanning ||
+                (!selectedUrl && !showManual) ||
+                (showManual && !manualUrl.trim())
+              }
               className="flex-1"
             >
               {isConnecting ? (
@@ -930,7 +1115,11 @@ function GatewayStep({ onComplete }: { onComplete: (data?: unknown) => void }) {
                 "Connect"
               )}
             </Button>
-            <Button variant="outline" onClick={handleRescan} disabled={isScanning}>
+            <Button
+              variant="outline"
+              onClick={handleRescan}
+              disabled={isScanning}
+            >
               Rescan
             </Button>
             <Button variant="ghost" onClick={() => setShowManual(!showManual)}>
@@ -939,7 +1128,12 @@ function GatewayStep({ onComplete }: { onComplete: (data?: unknown) => void }) {
           </>
         )}
         {isConnected && (
-          <Button onClick={() => onComplete({ gatewayUrl: showManual ? manualUrl : selectedUrl })} className="flex-1">
+          <Button
+            onClick={() =>
+              onComplete({ gatewayUrl: showManual ? manualUrl : selectedUrl })
+            }
+            className="flex-1"
+          >
             Continue
           </Button>
         )}
@@ -951,8 +1145,14 @@ function GatewayStep({ onComplete }: { onComplete: (data?: unknown) => void }) {
 /**
  * Step 5: Test Chat via WebSocket protocol
  */
-function TestChatStep({ onComplete }: { onComplete: (data?: unknown) => void }) {
-  const [message, setMessage] = useState("Hello! Can you tell me about EdwinPAI?");
+function TestChatStep({
+  onComplete,
+}: {
+  onComplete: (data?: unknown) => void;
+}) {
+  const [message, setMessage] = useState(
+    "Hello! Can you tell me about EdwinPAI?",
+  );
   const [response, setResponse] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -970,18 +1170,25 @@ function TestChatStep({ onComplete }: { onComplete: (data?: unknown) => void }) 
       // Read config for URL and token
       const { readConfig } = await import("@/lib/config");
       const config = await readConfig();
-      const httpUrl = config.gatewayUrl || `http://localhost:${config.gatewayPort || 18789}`;
+      const httpUrl =
+        config.gatewayUrl || `http://localhost:${config.gatewayPort || 18789}`;
       const wsUrl = httpUrl.replace(/^http/, "ws");
 
       // Get auth token
       let token: string | null = config.gatewayToken || null;
       if (!token) {
         try {
-          const result = await invoke<{ config: Record<string, unknown> }>("get_edwinpai_config");
-          const gw = result.config.gateway as Record<string, unknown> | undefined;
+          const result = await invoke<{ config: Record<string, unknown> }>(
+            "get_edwinpai_config",
+          );
+          const gw = result.config.gateway as
+            | Record<string, unknown>
+            | undefined;
           const auth = gw?.auth as Record<string, unknown> | undefined;
           token = (auth?.token as string) ?? null;
-        } catch { /* no shared config */ }
+        } catch {
+          /* no shared config */
+        }
       }
 
       // Open WebSocket and perform handshake + chat
@@ -997,23 +1204,25 @@ function TestChatStep({ onComplete }: { onComplete: (data?: unknown) => void }) 
 
         ws.addEventListener("open", () => {
           // Handshake
-          ws.send(JSON.stringify({
-            type: "req",
-            id: nextId(),
-            method: "connect",
-            params: {
-              minProtocol: 3,
-              maxProtocol: 3,
-              client: {
-                id: "edwinpai-macos",
-                displayName: "EdwinPAI Desktop (onboarding)",
-                version: APP_VERSION,
-                platform: navigator.platform || "desktop",
-                mode: "ui",
+          ws.send(
+            JSON.stringify({
+              type: "req",
+              id: nextId(),
+              method: "connect",
+              params: {
+                minProtocol: 3,
+                maxProtocol: 3,
+                client: {
+                  id: "edwinpai-macos",
+                  displayName: "EdwinPAI Desktop (onboarding)",
+                  version: APP_VERSION,
+                  platform: navigator.platform || "desktop",
+                  mode: "ui",
+                },
+                auth: token ? { token } : undefined,
               },
-              auth: token ? { token } : undefined,
-            },
-          }));
+            }),
+          );
         });
 
         ws.addEventListener("message", (event) => {
@@ -1023,27 +1232,32 @@ function TestChatStep({ onComplete }: { onComplete: (data?: unknown) => void }) 
             if (frame.type === "res") {
               if (frame.payload?.type === "hello-ok") {
                 // Handshake complete — send chat message
-                ws.send(JSON.stringify({
-                  type: "req",
-                  id: nextId(),
-                  method: "chat.send",
-                  params: {
-                    sessionKey: "main",
-                    message: message.trim(),
-                    idempotencyKey: crypto.randomUUID(),
-                  },
-                }));
+                ws.send(
+                  JSON.stringify({
+                    type: "req",
+                    id: nextId(),
+                    method: "chat.send",
+                    params: {
+                      sessionKey: "main",
+                      message: message.trim(),
+                      idempotencyKey: crypto.randomUUID(),
+                    },
+                  }),
+                );
               } else if (!frame.ok) {
                 clearTimeout(timeout);
                 ws.close();
-                reject(new Error(frame.error?.message ?? "Gateway request failed"));
+                reject(
+                  new Error(frame.error?.message ?? "Gateway request failed"),
+                );
               }
             } else if (frame.type === "event" && frame.event === "chat") {
               const chat = frame.payload;
-              const text = chat.message?.content
-                ?.filter((c: { type: string }) => c.type === "text")
-                .map((c: { text: string }) => c.text)
-                .join("") ?? "";
+              const text =
+                chat.message?.content
+                  ?.filter((c: { type: string }) => c.type === "text")
+                  .map((c: { text: string }) => c.text)
+                  .join("") ?? "";
 
               if (chat.state === "delta" && text) {
                 setResponse(text);
@@ -1067,14 +1281,22 @@ function TestChatStep({ onComplete }: { onComplete: (data?: unknown) => void }) 
 
         ws.addEventListener("error", () => {
           clearTimeout(timeout);
-          reject(new Error("WebSocket connection failed — check gateway URL in Settings"));
+          reject(
+            new Error(
+              "WebSocket connection failed — check gateway URL in Settings",
+            ),
+          );
         });
 
         ws.addEventListener("close", (event) => {
           if (!isComplete) {
             clearTimeout(timeout);
             if (event.code !== 1000) {
-              reject(new Error(`Connection closed: ${event.reason || `code ${event.code}`}`));
+              reject(
+                new Error(
+                  `Connection closed: ${event.reason || `code ${event.code}`}`,
+                ),
+              );
             }
           }
         });
@@ -1096,7 +1318,9 @@ function TestChatStep({ onComplete }: { onComplete: (data?: unknown) => void }) 
           <MessageSquare className="size-5" />
           Test Chat
         </CardTitle>
-        <CardDescription>Send a test message to verify your gateway is working</CardDescription>
+        <CardDescription>
+          Send a test message to verify your gateway is working
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
@@ -1112,7 +1336,9 @@ function TestChatStep({ onComplete }: { onComplete: (data?: unknown) => void }) 
         {response && (
           <div className="p-4 border rounded-lg bg-muted/50">
             <p className="text-sm whitespace-pre-wrap">{response}</p>
-            {isStreaming && <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />}
+            {isStreaming && (
+              <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
+            )}
           </div>
         )}
 
@@ -1124,7 +1350,11 @@ function TestChatStep({ onComplete }: { onComplete: (data?: unknown) => void }) 
         )}
       </CardContent>
       <CardFooter className="flex gap-2">
-        <Button onClick={handleSendMessage} disabled={isStreaming || !message.trim()} className="flex-1">
+        <Button
+          onClick={handleSendMessage}
+          disabled={isStreaming || !message.trim()}
+          className="flex-1"
+        >
           {isStreaming ? (
             <>
               <Loader2 className="mr-2 size-4 animate-spin" />
@@ -1149,7 +1379,7 @@ function TestChatStep({ onComplete }: { onComplete: (data?: unknown) => void }) 
  */
 function ChannelsStep({
   onComplete,
-  updateData
+  updateData,
 }: {
   onComplete: (data?: unknown) => void;
   updateData: (stepType: string, data: unknown) => void;
@@ -1171,8 +1401,8 @@ function ChannelsStep({
       <CardHeader>
         <CardTitle>Connect Channels</CardTitle>
         <CardDescription>
-          Connect messaging platforms to use EdwinPAI across all your conversations.
-          You can always add channels later.
+          Connect messaging platforms to use EdwinPAI across all your
+          conversations. You can always add channels later.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -1196,7 +1426,13 @@ function ChannelsStep({
  * Step 7: Done
  */
 function DoneStep({ data }: { data: Record<string, unknown> }) {
-  const [checks, setChecks] = useState<Array<{ label: string; status: "pass" | "fail" | "checking" | "skip"; detail?: string }>>([]);
+  const [checks, setChecks] = useState<
+    Array<{
+      label: string;
+      status: "pass" | "fail" | "checking" | "skip";
+      detail?: string;
+    }>
+  >([]);
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
@@ -1210,17 +1446,27 @@ function DoneStep({ data }: { data: Record<string, unknown> }) {
         const { readConfig: rc } = await import("@/lib/config");
         const cfg = await rc();
         if (cfg.gatewayUrl) {
-          const probe = await invoke<{ found: boolean }>("probe_gateway", { url: cfg.gatewayUrl });
+          const probe = await invoke<{ found: boolean }>("probe_gateway", {
+            url: cfg.gatewayUrl,
+          });
           results[results.length - 1] = {
             label: "Gateway connection",
             status: probe.found ? "pass" : "fail",
             detail: probe.found ? cfg.gatewayUrl : "Not reachable",
           };
         } else {
-          results[results.length - 1] = { label: "Gateway connection", status: "skip", detail: "No URL configured" };
+          results[results.length - 1] = {
+            label: "Gateway connection",
+            status: "skip",
+            detail: "No URL configured",
+          };
         }
       } catch {
-        results[results.length - 1] = { label: "Gateway connection", status: "fail", detail: "Probe failed" };
+        results[results.length - 1] = {
+          label: "Gateway connection",
+          status: "fail",
+          detail: "Probe failed",
+        };
       }
       setChecks([...results]);
 
@@ -1234,13 +1480,19 @@ function DoneStep({ data }: { data: Record<string, unknown> }) {
           detail: cfg.gatewayToken ? "Configured" : "Not set (public gateway)",
         });
       } catch {
-        results.push({ label: "Auth token", status: "skip", detail: "Could not check" });
+        results.push({
+          label: "Auth token",
+          status: "skip",
+          detail: "Could not check",
+        });
       }
       setChecks([...results]);
 
       // 3. API provider
       try {
-        const providers = await invoke<{ providers: Array<{ name: string }> }>("list_providers");
+        const providers = await invoke<{ providers: Array<{ name: string }> }>(
+          "list_providers",
+        );
         const count = providers.providers?.length ?? 0;
         results.push({
           label: "AI provider",
@@ -1248,7 +1500,11 @@ function DoneStep({ data }: { data: Record<string, unknown> }) {
           detail: count > 0 ? `${count} provider(s) configured` : "No API keys",
         });
       } catch {
-        results.push({ label: "AI provider", status: "skip", detail: "Could not check" });
+        results.push({
+          label: "AI provider",
+          status: "skip",
+          detail: "Could not check",
+        });
       }
       setChecks([...results]);
 
@@ -1258,14 +1514,25 @@ function DoneStep({ data }: { data: Record<string, unknown> }) {
           | { identity?: { publicKey?: string; petname?: string } }
           | { publicKey?: string; petname?: string }
           | undefined;
-        const stepIdentity = (identityData as { identity?: { publicKey?: string; petname?: string } } | undefined)?.identity
-          ?? (identityData as { publicKey?: string; petname?: string } | undefined);
+        const stepIdentity =
+          (
+            identityData as
+              | { identity?: { publicKey?: string; petname?: string } }
+              | undefined
+          )?.identity ??
+          (identityData as
+            | { publicKey?: string; petname?: string }
+            | undefined);
 
-        let cachedIdentity: { publicKey?: string; petname?: string } | null = null;
+        let cachedIdentity: { publicKey?: string; petname?: string } | null =
+          null;
         if (!stepIdentity) {
           const cached = localStorage.getItem("edwinpai_identity_cache");
           if (cached) {
-            cachedIdentity = JSON.parse(cached) as { publicKey?: string; petname?: string };
+            cachedIdentity = JSON.parse(cached) as {
+              publicKey?: string;
+              petname?: string;
+            };
           }
         }
 
@@ -1273,10 +1540,17 @@ function DoneStep({ data }: { data: Record<string, unknown> }) {
         results.push({
           label: "Identity",
           status: identity?.publicKey ? "pass" : "skip",
-          detail: identity?.petname || identity?.publicKey?.slice(0, 12) || "Not generated",
+          detail:
+            identity?.petname ||
+            identity?.publicKey?.slice(0, 12) ||
+            "Not generated",
         });
       } catch {
-        results.push({ label: "Identity", status: "skip", detail: "Not generated yet" });
+        results.push({
+          label: "Identity",
+          status: "skip",
+          detail: "Not generated yet",
+        });
       }
       setChecks([...results]);
 
@@ -1284,7 +1558,9 @@ function DoneStep({ data }: { data: Record<string, unknown> }) {
     })();
   }, [data]);
 
-  const allPassed = !isChecking && checks.every(c => c.status === "pass" || c.status === "skip");
+  const allPassed =
+    !isChecking &&
+    checks.every((c) => c.status === "pass" || c.status === "skip");
 
   return (
     <div className="flex flex-col items-center justify-center h-full text-center space-y-8">
@@ -1304,7 +1580,11 @@ function DoneStep({ data }: { data: Record<string, unknown> }) {
 
       <div className="space-y-4 max-w-4xl mx-auto">
         <h2 className="text-4xl font-bold">
-          {isChecking ? "Running Health Check..." : allPassed ? "You're All Set!" : "Almost There"}
+          {isChecking
+            ? "Running Health Check..."
+            : allPassed
+              ? "You're All Set!"
+              : "Almost There"}
         </h2>
         <p className="text-lg text-muted-foreground">
           {isChecking
@@ -1317,15 +1597,28 @@ function DoneStep({ data }: { data: Record<string, unknown> }) {
 
       <div className="w-full max-w-md space-y-2">
         {checks.map((check, i) => (
-          <div key={i} className="flex items-center gap-3 p-3 rounded-lg border text-left">
-            {check.status === "checking" && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
-            {check.status === "pass" && <Check className="size-4 text-green-500" />}
-            {check.status === "fail" && <AlertCircle className="size-4 text-red-500" />}
-            {check.status === "skip" && <Check className="size-4 text-muted-foreground" />}
+          <div
+            key={i}
+            className="flex items-center gap-3 p-3 rounded-lg border text-left"
+          >
+            {check.status === "checking" && (
+              <Loader2 className="size-4 animate-spin text-muted-foreground" />
+            )}
+            {check.status === "pass" && (
+              <Check className="size-4 text-green-500" />
+            )}
+            {check.status === "fail" && (
+              <AlertCircle className="size-4 text-red-500" />
+            )}
+            {check.status === "skip" && (
+              <Check className="size-4 text-muted-foreground" />
+            )}
             <div className="flex-1">
               <div className="text-sm font-medium">{check.label}</div>
               {check.detail && (
-                <div className="text-xs text-muted-foreground">{check.detail}</div>
+                <div className="text-xs text-muted-foreground">
+                  {check.detail}
+                </div>
               )}
             </div>
           </div>
@@ -1338,7 +1631,15 @@ function DoneStep({ data }: { data: Record<string, unknown> }) {
 /**
  * Feature Card Component
  */
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
   return (
     <div className="flex flex-col items-center space-y-2 p-6 rounded-lg border bg-card">
       <span aria-hidden="true">{icon}</span>

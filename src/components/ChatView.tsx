@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { AlertCircle, Loader2, Maximize2, Minimize2, Settings, WifiOff, Zap } from "lucide-react";
+import {
+  AlertCircle,
+  Loader2,
+  Maximize2,
+  Minimize2,
+  Settings,
+  WifiOff,
+  Zap,
+} from "lucide-react";
 import { MessageBubble, type GroupPosition } from "@/components/MessageBubble";
 import { SearchDialog } from "@/components/chat/SearchDialog";
 import { KeyboardShortcutsDialog } from "@/components/chat/KeyboardShortcutsDialog";
@@ -64,7 +72,18 @@ interface CompactionStatusInfo {
 
 interface ChatViewProps {
   messages: ChatMessage[];
-  onSendMessage: (message: string, opts?: { deliver?: boolean; attachments?: Array<{ type?: string; mimeType: string; fileName: string; content: string }> }) => void;
+  onSendMessage: (
+    message: string,
+    opts?: {
+      deliver?: boolean;
+      attachments?: Array<{
+        type?: string;
+        mimeType: string;
+        fileName: string;
+        content: string;
+      }>;
+    },
+  ) => void;
   onAbortRun?: () => void;
   isLoading?: boolean;
   runStatus?: "idle" | "streaming" | "aborted" | "error";
@@ -142,7 +161,7 @@ export function ChatView({
   onSelectReasoningLevel,
   deliverEnabled = false,
   onToggleDeliver,
-  talkPhase = 'idle',
+  talkPhase = "idle",
   talkError = null,
   onTalkToggle,
   onTalkCancel,
@@ -171,7 +190,9 @@ export function ChatView({
       const next = !prev;
       try {
         localStorage.setItem("edwinpai:focusMode", String(next));
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       return next;
     });
   }, []);
@@ -184,20 +205,23 @@ export function ChatView({
         setSearchOpen(true);
         return;
       }
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "f") {
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        e.shiftKey &&
+        e.key.toLowerCase() === "f"
+      ) {
         e.preventDefault();
         toggleFocusMode();
         return;
       }
       // "?" to open shortcuts help — only when not typing in an input/textarea
-      if (
-        e.key === "?" &&
-        !e.metaKey &&
-        !e.ctrlKey &&
-        !e.altKey
-      ) {
+      if (e.key === "?" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         const tag = (e.target as HTMLElement)?.tagName;
-        if (tag !== "INPUT" && tag !== "TEXTAREA" && !(e.target as HTMLElement)?.isContentEditable) {
+        if (
+          tag !== "INPUT" &&
+          tag !== "TEXTAREA" &&
+          !(e.target as HTMLElement)?.isContentEditable
+        ) {
           e.preventDefault();
           setShortcutsOpen(true);
         }
@@ -224,20 +248,26 @@ export function ChatView({
   const handleScrollToMessage = useCallback((index: number) => {
     const container = scrollRef.current;
     if (!container) return;
-    const el = container.querySelector<HTMLElement>(`[data-message-index="${index}"]`);
+    const el = container.querySelector<HTMLElement>(
+      `[data-message-index="${index}"]`,
+    );
     el?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, []);
 
   // Trigger TTS playback when a final assistant reply arrives during talk mode
   const prevMessageCountRef = useRef(messages.length);
   useEffect(() => {
-    if (!onReplyReceived || talkPhase !== 'processing') {
+    if (!onReplyReceived || talkPhase !== "processing") {
       prevMessageCountRef.current = messages.length;
       return;
     }
     if (messages.length > prevMessageCountRef.current) {
       const lastMsg = messages[messages.length - 1];
-      if (lastMsg && lastMsg.role === 'assistant' && typeof lastMsg.content === 'string') {
+      if (
+        lastMsg &&
+        lastMsg.role === "assistant" &&
+        typeof lastMsg.content === "string"
+      ) {
         onReplyReceived(lastMsg.content);
       }
     }
@@ -265,12 +295,12 @@ export function ChatView({
     }).format(date);
   };
 
-  const isApiKeyError = error && (
-    error.includes("No API key") ||
-    error.includes("api key") ||
-    error.includes("auth") ||
-    error.includes("provider")
-  );
+  const isApiKeyError =
+    error &&
+    (error.includes("No API key") ||
+      error.includes("api key") ||
+      error.includes("auth") ||
+      error.includes("provider"));
   const [showToolEvents, setShowToolEvents] = useState(false);
 
   const sessionOptions: SessionOption[] = (() => {
@@ -281,7 +311,9 @@ export function ChatView({
     return Array.from(existing.values());
   })();
 
-  const currentSession = sessionOptions.find((session) => session.key === sessionKey);
+  const currentSession = sessionOptions.find(
+    (session) => session.key === sessionKey,
+  );
   const runnableTaskCount = currentSession?.taskQueue?.runnable ?? 0;
 
   const agentOptions: AgentOption[] = (() => {
@@ -307,42 +339,66 @@ export function ChatView({
   const supportsThinking = selectedModel?.reasoning ?? true;
   const supportsReasoningVisibility = selectedModel?.reasoning ?? true;
 
-  const tokensUsed = currentSession?.totalTokens
-    ?? (currentSession?.inputTokens != null || currentSession?.outputTokens != null
+  const tokensUsed =
+    currentSession?.totalTokens ??
+    (currentSession?.inputTokens != null || currentSession?.outputTokens != null
       ? (currentSession?.inputTokens ?? 0) + (currentSession?.outputTokens ?? 0)
       : null);
-  const contextWindow = currentSession?.contextTokens ?? selectedModel?.contextWindow ?? memoryConfig?.contextWindowSize ?? null;
-  const compactionThresholdFraction = memoryConfig?.autoSummarize === false
-    ? null
-    : Math.max(0, Math.min(1, memoryConfig?.summarizationThreshold ?? 0.8));
-  const compactionThresholdTokens = contextWindow != null && compactionThresholdFraction != null
-    ? Math.round(contextWindow * compactionThresholdFraction)
-    : null;
-  const usagePercent = tokensUsed != null && contextWindow
-    ? clampPercent((tokensUsed / contextWindow) * 100)
-    : null;
-  const headroomToCompaction = tokensUsed != null && compactionThresholdTokens != null
-    ? compactionThresholdTokens - tokensUsed
-    : null;
-  const headroomToWindow = tokensUsed != null && contextWindow != null
-    ? contextWindow - tokensUsed
-    : null;
-  const showCompactedRecently = !compactionStatus?.active && compactionStatus?.completedAt != null;
-  const tokenSummary = tokensUsed == null
-    ? "tokens —"
-    : contextWindow != null && usagePercent != null
-      ? `tokens ${formatTokenCount(tokensUsed)}/${formatTokenCount(contextWindow)} (${Math.round(usagePercent)}%)`
-      : `tokens ${formatTokenCount(tokensUsed)}`;
+  const contextWindow =
+    currentSession?.contextTokens ??
+    selectedModel?.contextWindow ??
+    memoryConfig?.contextWindowSize ??
+    null;
+  const compactionThresholdFraction =
+    memoryConfig?.autoSummarize === false
+      ? null
+      : Math.max(0, Math.min(1, memoryConfig?.summarizationThreshold ?? 0.8));
+  const compactionThresholdTokens =
+    contextWindow != null && compactionThresholdFraction != null
+      ? Math.round(contextWindow * compactionThresholdFraction)
+      : null;
+  const usagePercent =
+    tokensUsed != null && contextWindow
+      ? clampPercent((tokensUsed / contextWindow) * 100)
+      : null;
+  const headroomToCompaction =
+    tokensUsed != null && compactionThresholdTokens != null
+      ? compactionThresholdTokens - tokensUsed
+      : null;
+  const headroomToWindow =
+    tokensUsed != null && contextWindow != null
+      ? contextWindow - tokensUsed
+      : null;
+  const showCompactedRecently =
+    !compactionStatus?.active && compactionStatus?.completedAt != null;
+  const tokenSummary =
+    tokensUsed == null
+      ? "tokens —"
+      : contextWindow != null && usagePercent != null
+        ? `tokens ${formatTokenCount(tokensUsed)}/${formatTokenCount(contextWindow)} (${Math.round(usagePercent)}%)`
+        : `tokens ${formatTokenCount(tokensUsed)}`;
   const tokenSummaryTitle = [
-    contextWindow != null ? `Context window: ${formatTokenCount(contextWindow)} tokens` : null,
-    compactionThresholdTokens != null ? `Next compaction around ${formatTokenCount(compactionThresholdTokens)} tokens` : null,
-    headroomToCompaction != null ? `${headroomToCompaction >= 0 ? formatTokenCount(headroomToCompaction) + ' left until compaction' : formatTokenCount(Math.abs(headroomToCompaction)) + ' over compaction threshold'}` : null,
-    headroomToWindow != null ? `${headroomToWindow >= 0 ? formatTokenCount(headroomToWindow) + ' left in window' : formatTokenCount(Math.abs(headroomToWindow)) + ' over context window'}` : null,
-    currentSession?.responseUsage ? `Usage reporting: ${currentSession.responseUsage}` : null,
+    contextWindow != null
+      ? `Context window: ${formatTokenCount(contextWindow)} tokens`
+      : null,
+    compactionThresholdTokens != null
+      ? `Next compaction around ${formatTokenCount(compactionThresholdTokens)} tokens`
+      : null,
+    headroomToCompaction != null
+      ? `${headroomToCompaction >= 0 ? formatTokenCount(headroomToCompaction) + " left until compaction" : formatTokenCount(Math.abs(headroomToCompaction)) + " over compaction threshold"}`
+      : null,
+    headroomToWindow != null
+      ? `${headroomToWindow >= 0 ? formatTokenCount(headroomToWindow) + " left in window" : formatTokenCount(Math.abs(headroomToWindow)) + " over context window"}`
+      : null,
+    currentSession?.responseUsage
+      ? `Usage reporting: ${currentSession.responseUsage}`
+      : null,
     currentSession?.inputTokens != null || currentSession?.outputTokens != null
       ? `Session I/O: ${formatTokenCount(currentSession?.inputTokens ?? 0)} in / ${formatTokenCount(currentSession?.outputTokens ?? 0)} out`
       : null,
-  ].filter(Boolean).join('\n');
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   return (
     <div className="flex-1 flex flex-col relative">
@@ -359,139 +415,142 @@ export function ChatView({
 
       {/* Session header */}
       {!focusMode && (
-      <div className="flex items-center justify-between px-4 py-2 border-b bg-background">
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-muted-foreground">Session</label>
-          <StyledSelect
-            value={sessionKey}
-            onChange={(e) => onSelectSession?.(e.target.value)}
-          >
-            {sessionOptions.map((session) => (
-              <option key={session.key} value={session.key}>
-                {formatSessionLabel(session)}
-              </option>
-            ))}
-          </StyledSelect>
+        <div className="flex items-center justify-between px-4 py-2 border-b bg-background">
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-muted-foreground">Session</label>
+            <StyledSelect
+              value={sessionKey}
+              onChange={(e) => onSelectSession?.(e.target.value)}
+            >
+              {sessionOptions.map((session) => (
+                <option key={session.key} value={session.key}>
+                  {formatSessionLabel(session)}
+                </option>
+              ))}
+            </StyledSelect>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              className="px-2 py-1 text-xs rounded-md border border-input hover:bg-muted"
+              onClick={() => onNewSession?.()}
+            >
+              New
+            </button>
+            <button
+              className="px-2 py-1 text-xs rounded-md border border-input hover:bg-muted"
+              onClick={() => onResetSession?.()}
+            >
+              Reset
+            </button>
+            <button
+              className="px-2 py-1 text-xs rounded-md border border-input hover:bg-muted"
+              onClick={() => onDeleteSession?.()}
+            >
+              Delete
+            </button>
+            <button
+              className="p-1 rounded-md border border-input hover:bg-muted text-muted-foreground hover:text-foreground"
+              onClick={toggleFocusMode}
+              title="Focus mode (Ctrl+Shift+F)"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            className="px-2 py-1 text-xs rounded-md border border-input hover:bg-muted"
-            onClick={() => onNewSession?.()}
-          >
-            New
-          </button>
-          <button
-            className="px-2 py-1 text-xs rounded-md border border-input hover:bg-muted"
-            onClick={() => onResetSession?.()}
-          >
-            Reset
-          </button>
-          <button
-            className="px-2 py-1 text-xs rounded-md border border-input hover:bg-muted"
-            onClick={() => onDeleteSession?.()}
-          >
-            Delete
-          </button>
-          <button
-            className="p-1 rounded-md border border-input hover:bg-muted text-muted-foreground hover:text-foreground"
-            onClick={toggleFocusMode}
-            title="Focus mode (Ctrl+Shift+F)"
-          >
-            <Maximize2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </div>
       )}
 
       {/* Agent + model header */}
       {!focusMode && (
-      <div className="flex flex-wrap items-center gap-4 px-4 py-2 border-b bg-background">
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-muted-foreground">Agent</label>
-          <StyledSelect
-            value={agentId}
-            onChange={(e) => onSelectAgent?.(e.target.value)}
-          >
-            {agentOptions.map((agent) => (
-              <option key={agent.id} value={agent.id}>
-                {agent.name ? `${agent.name} (${agent.id})` : agent.id}
-              </option>
-            ))}
-          </StyledSelect>
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-muted-foreground">Model</label>
-          <StyledSelect
-            value={modelId ?? ""}
-            onChange={(e) => onSelectModel?.(e.target.value || null)}
-          >
-            <option value="">Default</option>
-            {models.map((model, i) => (
-              <option key={`${model.provider}:${model.id}:${i}`} value={model.id}>
-                {model.name} ({model.provider})
-              </option>
-            ))}
-          </StyledSelect>
-        </div>
-        {supportsThinking && (
+        <div className="flex flex-wrap items-center gap-4 px-4 py-2 border-b bg-background">
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-muted-foreground">Agent</label>
+            <StyledSelect
+              value={agentId}
+              onChange={(e) => onSelectAgent?.(e.target.value)}
+            >
+              {agentOptions.map((agent) => (
+                <option key={agent.id} value={agent.id}>
+                  {agent.name ? `${agent.name} (${agent.id})` : agent.id}
+                </option>
+              ))}
+            </StyledSelect>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-muted-foreground">Model</label>
+            <StyledSelect
+              value={modelId ?? ""}
+              onChange={(e) => onSelectModel?.(e.target.value || null)}
+            >
+              <option value="">Default</option>
+              {models.map((model, i) => (
+                <option
+                  key={`${model.provider}:${model.id}:${i}`}
+                  value={model.id}
+                >
+                  {model.name} ({model.provider})
+                </option>
+              ))}
+            </StyledSelect>
+          </div>
+          {supportsThinking && (
+            <div className="flex items-center gap-2">
+              <label
+                className="text-xs text-muted-foreground"
+                title="Controls model thinking budget (more thinking can improve complex answers at higher latency/cost)."
+              >
+                Think
+              </label>
+              <StyledSelect
+                value={thinkingLevel}
+                onChange={(e) => onSelectThinkingLevel?.(e.target.value)}
+              >
+                {["off", "low", "medium", "high"].map((level) => (
+                  <option key={level} value={level}>
+                    {level}
+                  </option>
+                ))}
+              </StyledSelect>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <label
               className="text-xs text-muted-foreground"
-              title="Controls model thinking budget (more thinking can improve complex answers at higher latency/cost)."
+              title="Shows extra tool/debug detail in chat output."
             >
-              Think
+              Verbose
             </label>
             <StyledSelect
-              value={thinkingLevel}
-              onChange={(e) => onSelectThinkingLevel?.(e.target.value)}
+              value={verboseLevel}
+              onChange={(e) => onSelectVerboseLevel?.(e.target.value)}
             >
-              {['off', 'low', 'medium', 'high'].map((level) => (
+              {["off", "on", "full"].map((level) => (
                 <option key={level} value={level}>
                   {level}
                 </option>
               ))}
             </StyledSelect>
           </div>
-        )}
-        <div className="flex items-center gap-2">
-          <label
-            className="text-xs text-muted-foreground"
-            title="Shows extra tool/debug detail in chat output."
-          >
-            Verbose
-          </label>
-          <StyledSelect
-            value={verboseLevel}
-            onChange={(e) => onSelectVerboseLevel?.(e.target.value)}
-          >
-            {['off', 'on', 'full'].map((level) => (
-              <option key={level} value={level}>
-                {level}
-              </option>
-            ))}
-          </StyledSelect>
+          {supportsReasoningVisibility && (
+            <div className="flex items-center gap-2">
+              <label
+                className="text-xs text-muted-foreground"
+                title="Shows model reasoning as a separate message when available."
+              >
+                Reasoning
+              </label>
+              <StyledSelect
+                value={reasoningLevel === "stream" ? "on" : reasoningLevel}
+                onChange={(e) => onSelectReasoningLevel?.(e.target.value)}
+              >
+                {["off", "on"].map((level) => (
+                  <option key={level} value={level}>
+                    {level}
+                  </option>
+                ))}
+              </StyledSelect>
+            </div>
+          )}
         </div>
-        {supportsReasoningVisibility && (
-          <div className="flex items-center gap-2">
-            <label
-              className="text-xs text-muted-foreground"
-              title="Shows model reasoning as a separate message when available."
-            >
-              Reasoning
-            </label>
-            <StyledSelect
-              value={reasoningLevel === 'stream' ? 'on' : reasoningLevel}
-              onChange={(e) => onSelectReasoningLevel?.(e.target.value)}
-            >
-              {['off', 'on'].map((level) => (
-                <option key={level} value={level}>
-                  {level}
-                </option>
-              ))}
-            </StyledSelect>
-          </div>
-        )}
-      </div>
       )}
 
       {/* Connection/Error banner */}
@@ -499,8 +558,12 @@ export function ChatView({
         <div className="mx-4 mt-4 p-3 rounded-lg border border-yellow-500/50 bg-yellow-500/10 flex items-center gap-3">
           <WifiOff className="h-5 w-5 text-yellow-500 shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-yellow-500">Not connected to gateway</p>
-            <p className="text-xs text-muted-foreground">Check your gateway URL and token in Settings</p>
+            <p className="text-sm font-medium text-yellow-500">
+              Not connected to gateway
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Check your gateway URL and token in Settings
+            </p>
           </div>
           {onNavigateToSettings && (
             <button
@@ -541,170 +604,202 @@ export function ChatView({
 
       {/* Messages area */}
       <div
-          ref={scrollRef}
-          className="flex-1 overflow-auto"
-          style={{ contain: "strict" }}
-        >
-          {messages.length === 0 ? (
-            <div className="flex items-center justify-center h-full min-h-[400px]">
-              <div className="text-center space-y-4 max-w-md">
-                <div className="flex items-center justify-center">
-                  <Zap className="h-12 w-12 text-primary" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold mb-1">EdwinPAI</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Your personal AI assistant. Ask me anything — I can search the web, recall from memory, and help you get things done.
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2 justify-center pt-2">
-                  {['What can you do?', 'Search the web for...', 'Remember this...'].map((hint) => (
-                    <button
-                      key={hint}
-                      onClick={() => {
-                        const textarea = document.querySelector('textarea');
-                        if (textarea) {
-                          const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-                            window.HTMLTextAreaElement.prototype, 'value'
+        ref={scrollRef}
+        className="flex-1 overflow-auto"
+        style={{ contain: "strict" }}
+      >
+        {messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full min-h-[400px]">
+            <div className="text-center space-y-4 max-w-md">
+              <div className="flex items-center justify-center">
+                <Zap className="h-12 w-12 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold mb-1">EdwinPAI</h2>
+                <p className="text-sm text-muted-foreground">
+                  Your personal AI assistant. Ask me anything — I can search the
+                  web, recall from memory, and help you get things done.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 justify-center pt-2">
+                {[
+                  "What can you do?",
+                  "Search the web for...",
+                  "Remember this...",
+                ].map((hint) => (
+                  <button
+                    key={hint}
+                    onClick={() => {
+                      const textarea = document.querySelector("textarea");
+                      if (textarea) {
+                        const nativeInputValueSetter =
+                          Object.getOwnPropertyDescriptor(
+                            window.HTMLTextAreaElement.prototype,
+                            "value",
                           )?.set;
-                          nativeInputValueSetter?.call(textarea, hint);
-                          textarea.dispatchEvent(new Event('input', { bubbles: true }));
-                          textarea.focus();
-                        }
-                      }}
-                      className="px-3 py-1.5 text-xs rounded-full border border-border hover:border-primary/50 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {hint}
-                    </button>
-                  ))}
-                </div>
+                        nativeInputValueSetter?.call(textarea, hint);
+                        textarea.dispatchEvent(
+                          new Event("input", { bubbles: true }),
+                        );
+                        textarea.focus();
+                      }
+                    }}
+                    className="px-3 py-1.5 text-xs rounded-full border border-border hover:border-primary/50 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {hint}
+                  </button>
+                ))}
               </div>
             </div>
-          ) : (
-            <div className="flex flex-col py-2">
-              {messages.map((message, index) => (
-                <div key={`message-${index}`} data-message-index={index}>
-                  <MessageBubble
-                    message={message}
-                    timestamp={formatTimestamp(new Date())}
-                    isStreaming={isLoading && index === messages.length - 1}
-                    onRetry={onRetryMessage ? () => onRetryMessage(index) : undefined}
-                    onEdit={onEditMessage}
-                    onDelete={onDeleteMessage ? () => onDeleteMessage(index) : undefined}
-                    groupPosition={getGroupPosition(index)}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Thinking indicator */}
-        <div
-          className="flex items-center gap-2 px-6 py-3 text-sm text-muted-foreground transition-opacity duration-150"
-          style={{ opacity: isLoading ? 1 : 0, height: isLoading ? 'auto' : 0, overflow: 'hidden', padding: isLoading ? undefined : 0 }}
-        >
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>
-            {currentToolUses.length > 0
-              ? `Working (${currentToolUses.length} tool${currentToolUses.length > 1 ? "s" : ""})…`
-              : "Thinking…"}
-          </span>
-        </div>
-
-        {/* Input area */}
-        <div className="border-t bg-background">
-          <div className="flex items-center justify-between px-4 pt-3 text-xs text-muted-foreground">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span>
-                Status: {isLoading ? "Running" : runStatus === "error" ? "Error" : "Idle"}
-              </span>
-              <span className="font-mono" title={tokenSummaryTitle || undefined}>
-                {tokenSummary}
-              </span>
-              {compactionStatus?.active && (
-                <span className="text-emerald-600 dark:text-emerald-400">compacting…</span>
-              )}
-              {!compactionStatus?.active && showCompactedRecently && (
-                <span className="text-primary">compacted</span>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              {runnableTaskCount > 0 && onExecuteTasks && (
-                <button
-                  className="text-xs px-2 py-1 rounded-md border border-input hover:bg-muted"
-                  onClick={onExecuteTasks}
-                  disabled={isLoading}
-                >
-                  Execute Tasks ({runnableTaskCount})
-                </button>
-              )}
-              <button
-                className="text-xs underline"
-                onClick={() => onToggleDeliver?.(!deliverEnabled)}
-              >
-                Deliver: {deliverEnabled ? "On" : "Off"}
-              </button>
-              <button
-                className="text-xs underline"
-                onClick={() => setShowToolEvents((prev: boolean) => !prev)}
-              >
-                {showToolEvents ? "Hide tool events" : "Show tool events"}
-              </button>
-            </div>
           </div>
-          {showToolEvents && (
-            <div className="px-4 py-2 text-xs font-mono whitespace-pre-wrap border-t bg-muted/40 max-h-48 overflow-auto">
-              {toolEvents.length === 0 ? "No tool events yet." : JSON.stringify(toolEvents, null, 2)}
-            </div>
-          )}
-          <div
-            className="border-t transition-all duration-150"
-            style={{
-              opacity: isLoading && currentToolUses.length > 0 ? 1 : 0,
-              maxHeight: isLoading && currentToolUses.length > 0 ? '500px' : '0px',
-              overflow: 'hidden',
-              padding: isLoading && currentToolUses.length > 0 ? undefined : 0,
-            }}
-          >
-            <div className="px-4 py-3">
-              <div className="text-xs text-muted-foreground mb-2">Live tool calls</div>
-              <ToolUseList toolUses={currentToolUses} />
-            </div>
-          </div>
-          <div className="flex items-end gap-2 px-4 pb-4">
-            <div className="flex-1">
-              <InputBar
-                sessionKey={sessionKey}
-                draft={draft}
-                onDraftChange={onDraftChange}
-                onSendMessage={(message, opts) =>
-                  onSendMessage(message, { deliver: deliverEnabled, attachments: opts?.attachments })
-                }
-                onAbortRun={onAbortRun}
-                onSlashCommand={onSlashCommand}
-                isStreaming={isLoading}
-                disabled={false}
-                placeholder={
-                  talkPhase === 'listening' ? "Listening... click mic to send"
-                    : talkPhase === 'processing' ? "Processing voice..."
-                    : isLoading ? "Type to queue message... (Esc to stop)"
-                    : "Type a message... (Shift+Enter for new line)"
-                }
-              />
-            </div>
-            {onTalkToggle && onTalkCancel && (
-              <div className="pb-4">
-                <TalkModeButton
-                  phase={talkPhase}
-                  error={talkError}
-                  onToggle={onTalkToggle}
-                  onCancel={onTalkCancel}
+        ) : (
+          <div className="flex flex-col py-2">
+            {messages.map((message, index) => (
+              <div key={`message-${index}`} data-message-index={index}>
+                <MessageBubble
+                  message={message}
+                  timestamp={formatTimestamp(new Date())}
+                  isStreaming={isLoading && index === messages.length - 1}
+                  onRetry={
+                    onRetryMessage ? () => onRetryMessage(index) : undefined
+                  }
+                  onEdit={onEditMessage}
+                  onDelete={
+                    onDeleteMessage ? () => onDeleteMessage(index) : undefined
+                  }
+                  groupPosition={getGroupPosition(index)}
                 />
               </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Thinking indicator */}
+      <div
+        className="flex items-center gap-2 px-6 py-3 text-sm text-muted-foreground transition-opacity duration-150"
+        style={{
+          opacity: isLoading ? 1 : 0,
+          height: isLoading ? "auto" : 0,
+          overflow: "hidden",
+          padding: isLoading ? undefined : 0,
+        }}
+      >
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span>
+          {currentToolUses.length > 0
+            ? `Working (${currentToolUses.length} tool${currentToolUses.length > 1 ? "s" : ""})…`
+            : "Thinking…"}
+        </span>
+      </div>
+
+      {/* Input area */}
+      <div className="border-t bg-background">
+        <div className="flex items-center justify-between px-4 pt-3 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>
+              Status:{" "}
+              {isLoading ? "Running" : runStatus === "error" ? "Error" : "Idle"}
+            </span>
+            <span className="font-mono" title={tokenSummaryTitle || undefined}>
+              {tokenSummary}
+            </span>
+            {compactionStatus?.active && (
+              <span className="text-emerald-600 dark:text-emerald-400">
+                compacting…
+              </span>
+            )}
+            {!compactionStatus?.active && showCompactedRecently && (
+              <span className="text-primary">compacted</span>
             )}
           </div>
+          <div className="flex items-center gap-3">
+            {runnableTaskCount > 0 && onExecuteTasks && (
+              <button
+                className="text-xs px-2 py-1 rounded-md border border-input hover:bg-muted"
+                onClick={onExecuteTasks}
+                disabled={isLoading}
+              >
+                Execute Tasks ({runnableTaskCount})
+              </button>
+            )}
+            <button
+              className="text-xs underline"
+              onClick={() => onToggleDeliver?.(!deliverEnabled)}
+            >
+              Deliver: {deliverEnabled ? "On" : "Off"}
+            </button>
+            <button
+              className="text-xs underline"
+              onClick={() => setShowToolEvents((prev: boolean) => !prev)}
+            >
+              {showToolEvents ? "Hide tool events" : "Show tool events"}
+            </button>
+          </div>
         </div>
+        {showToolEvents && (
+          <div className="px-4 py-2 text-xs font-mono whitespace-pre-wrap border-t bg-muted/40 max-h-48 overflow-auto">
+            {toolEvents.length === 0
+              ? "No tool events yet."
+              : JSON.stringify(toolEvents, null, 2)}
+          </div>
+        )}
+        <div
+          className="border-t transition-all duration-150"
+          style={{
+            opacity: isLoading && currentToolUses.length > 0 ? 1 : 0,
+            maxHeight:
+              isLoading && currentToolUses.length > 0 ? "500px" : "0px",
+            overflow: "hidden",
+            padding: isLoading && currentToolUses.length > 0 ? undefined : 0,
+          }}
+        >
+          <div className="px-4 py-3">
+            <div className="text-xs text-muted-foreground mb-2">
+              Live tool calls
+            </div>
+            <ToolUseList toolUses={currentToolUses} />
+          </div>
+        </div>
+        <div className="flex items-end gap-2 px-4 pb-4">
+          <div className="flex-1">
+            <InputBar
+              sessionKey={sessionKey}
+              draft={draft}
+              onDraftChange={onDraftChange}
+              onSendMessage={(message, opts) =>
+                onSendMessage(message, {
+                  deliver: deliverEnabled,
+                  attachments: opts?.attachments,
+                })
+              }
+              onAbortRun={onAbortRun}
+              onSlashCommand={onSlashCommand}
+              isStreaming={isLoading}
+              disabled={false}
+              placeholder={
+                talkPhase === "listening"
+                  ? "Listening... click mic to send"
+                  : talkPhase === "processing"
+                    ? "Processing voice..."
+                    : isLoading
+                      ? "Type to queue message... (Esc to stop)"
+                      : "Type a message... (Shift+Enter for new line)"
+              }
+            />
+          </div>
+          {onTalkToggle && onTalkCancel && (
+            <div className="pb-4">
+              <TalkModeButton
+                phase={talkPhase}
+                error={talkError}
+                onToggle={onTalkToggle}
+                onCancel={onTalkCancel}
+              />
+            </div>
+          )}
+        </div>
+      </div>
       <SearchDialog
         open={searchOpen}
         onOpenChange={setSearchOpen}

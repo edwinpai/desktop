@@ -44,7 +44,7 @@ export interface GatewayConfig {
   port: number;
 
   /** Log level (default: "info") */
-  logLevel: 'trace' | 'debug' | 'info' | 'warn' | 'error';
+  logLevel: "trace" | "debug" | "info" | "warn" | "error";
 
   /** Identity configuration */
   identity: {
@@ -112,7 +112,7 @@ export interface GatewayConfig {
  */
 export interface GatewayStatus {
   /** Gateway health status */
-  status: 'ok' | 'degraded' | 'error';
+  status: "ok" | "degraded" | "error";
 
   /** Gateway uptime in seconds */
   uptime: number;
@@ -121,7 +121,7 @@ export interface GatewayStatus {
   version: string;
 
   /** Operating mode */
-  mode: 'gateway' | 'client';
+  mode: "gateway" | "client";
 
   /** Identity information */
   identity: {
@@ -141,13 +141,13 @@ export interface GatewayStatus {
     active: boolean;
 
     /** Verification method (SPV or cached) */
-    method: 'spv' | 'cached' | 'offline';
+    method: "spv" | "cached" | "offline";
 
     /** Last verification timestamp (ISO 8601) */
     verifiedAt: string | null;
 
     /** Subscription state */
-    state: 'active' | 'cached' | 'expired' | 'grace_exceeded' | 'not_found';
+    state: "active" | "cached" | "expired" | "grace_exceeded" | "not_found";
   };
 
   /** Configured channel names */
@@ -176,13 +176,13 @@ export interface GatewayStatus {
 /**
  * Chat message role.
  */
-export type ChatRole = 'system' | 'user' | 'assistant';
+export type ChatRole = "system" | "user" | "assistant";
 
 /**
  * Text content block.
  */
 export interface TextContent {
-  type: 'text';
+  type: "text";
   text: string;
 }
 
@@ -190,9 +190,9 @@ export interface TextContent {
  * Image content block (future use).
  */
 export interface ImageContent {
-  type: 'image';
+  type: "image";
   source: {
-    type: 'url';
+    type: "url";
     url: string;
   };
 }
@@ -201,7 +201,7 @@ export interface ImageContent {
  * Tool use content block (function calling).
  */
 export interface ToolUseContent {
-  type: 'tool_use';
+  type: "tool_use";
   id: string;
   name: string;
   input: Record<string, unknown>;
@@ -211,7 +211,7 @@ export interface ToolUseContent {
  * Tool result content block (function response).
  */
 export interface ToolResultContent {
-  type: 'tool_result';
+  type: "tool_result";
   tool_use_id: string;
   content: string | TextContent[];
   is_error?: boolean;
@@ -264,7 +264,7 @@ export interface ToolDefinition {
 
   /** JSON Schema for tool input parameters */
   input_schema: {
-    type: 'object';
+    type: "object";
     properties: Record<string, unknown>;
     required?: string[];
   };
@@ -313,7 +313,7 @@ export interface ChatCompletionRequest {
   tools?: ToolDefinition[];
 
   /** Tool choice strategy */
-  tool_choice?: 'auto' | 'any' | { type: 'tool'; name: string };
+  tool_choice?: "auto" | "any" | { type: "tool"; name: string };
 
   /** Stop sequences */
   stop_sequences?: string[];
@@ -330,10 +330,10 @@ export interface ChatCompletionResponse {
   id: string;
 
   /** Response type (always "message") */
-  type: 'message';
+  type: "message";
 
   /** Message role (always "assistant") */
-  role: 'assistant';
+  role: "assistant";
 
   /** Message content blocks */
   content: ContentBlock[];
@@ -342,7 +342,7 @@ export interface ChatCompletionResponse {
   model: string;
 
   /** Stop reason */
-  stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use' | null;
+  stop_reason: "end_turn" | "max_tokens" | "stop_sequence" | "tool_use" | null;
 
   /** Token usage statistics */
   usage: {
@@ -370,14 +370,14 @@ export interface ChatCompletionResponse {
  * 6. message_stop
  */
 export type SSEEventType =
-  | 'message_start'
-  | 'content_block_start'
-  | 'content_block_delta'
-  | 'content_block_stop'
-  | 'message_delta'
-  | 'message_stop'
-  | 'ping'
-  | 'error';
+  | "message_start"
+  | "content_block_start"
+  | "content_block_delta"
+  | "content_block_stop"
+  | "message_delta"
+  | "message_stop"
+  | "ping"
+  | "error";
 
 /**
  * SSE message format (data field of SSE event).
@@ -402,11 +402,11 @@ export type SSEMessage =
  * Message start event (first event in stream).
  */
 export interface MessageStartEvent {
-  type: 'message_start';
+  type: "message_start";
   message: {
     id: string;
-    type: 'message';
-    role: 'assistant';
+    type: "message";
+    role: "assistant";
     content: [];
     model: string;
     stop_reason: null;
@@ -421,7 +421,7 @@ export interface MessageStartEvent {
  * Content block start event.
  */
 export interface ContentBlockStartEvent {
-  type: 'content_block_start';
+  type: "content_block_start";
   index: number;
   content_block: ContentBlock;
 }
@@ -430,18 +430,18 @@ export interface ContentBlockStartEvent {
  * Content block delta event (streaming text/tool input).
  */
 export interface ContentBlockDeltaEvent {
-  type: 'content_block_delta';
+  type: "content_block_delta";
   index: number;
   delta:
-    | { type: 'text_delta'; text: string }
-    | { type: 'input_json_delta'; partial_json: string };
+    | { type: "text_delta"; text: string }
+    | { type: "input_json_delta"; partial_json: string };
 }
 
 /**
  * Content block stop event.
  */
 export interface ContentBlockStopEvent {
-  type: 'content_block_stop';
+  type: "content_block_stop";
   index: number;
 }
 
@@ -449,9 +449,9 @@ export interface ContentBlockStopEvent {
  * Message delta event (metadata updates).
  */
 export interface MessageDeltaEvent {
-  type: 'message_delta';
+  type: "message_delta";
   delta: {
-    stop_reason?: 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use';
+    stop_reason?: "end_turn" | "max_tokens" | "stop_sequence" | "tool_use";
     stop_sequence?: string;
   };
   usage: {
@@ -463,21 +463,21 @@ export interface MessageDeltaEvent {
  * Message stop event (final event in stream).
  */
 export interface MessageStopEvent {
-  type: 'message_stop';
+  type: "message_stop";
 }
 
 /**
  * Ping event (keepalive).
  */
 export interface PingEvent {
-  type: 'ping';
+  type: "ping";
 }
 
 /**
  * Error event.
  */
 export interface ErrorEvent {
-  type: 'error';
+  type: "error";
   error: {
     type: string;
     message: string;
@@ -494,7 +494,7 @@ export interface ErrorEvent {
  * Appears in `content` array of assistant messages.
  */
 export interface ToolUseBlock {
-  type: 'tool_use';
+  type: "tool_use";
   id: string;
   name: string;
   input: Record<string, unknown>;
@@ -506,7 +506,7 @@ export interface ToolUseBlock {
  * Sent in next user message after tool use.
  */
 export interface ToolResultBlock {
-  type: 'tool_result';
+  type: "tool_result";
   tool_use_id: string;
   content: string | TextContent[];
   is_error?: boolean;
@@ -520,14 +520,14 @@ export interface ToolResultBlock {
  * Extract text content from content blocks.
  */
 export function extractText(content: string | ContentBlock[]): string {
-  if (typeof content === 'string') {
+  if (typeof content === "string") {
     return content;
   }
 
   return content
-    .filter((block): block is TextContent => block.type === 'text')
+    .filter((block): block is TextContent => block.type === "text")
     .map((block) => block.text)
-    .join('');
+    .join("");
 }
 
 /**
@@ -536,12 +536,12 @@ export function extractText(content: string | ContentBlock[]): string {
 export function extractToolUses(
   content: string | ContentBlock[],
 ): ToolUseBlock[] {
-  if (typeof content === 'string') {
+  if (typeof content === "string") {
     return [];
   }
 
   return content.filter(
-    (block): block is ToolUseBlock => block.type === 'tool_use',
+    (block): block is ToolUseBlock => block.type === "tool_use",
   );
 }
 
@@ -549,9 +549,9 @@ export function extractToolUses(
  * Check if subscription is active (not expired or grace exceeded).
  */
 export function isSubscriptionActive(
-  state: GatewayStatus['subscription']['state'],
+  state: GatewayStatus["subscription"]["state"],
 ): boolean {
-  return state === 'active' || state === 'cached';
+  return state === "active" || state === "cached";
 }
 
 /**
@@ -559,7 +559,7 @@ export function isSubscriptionActive(
  */
 export function isGatewayHealthy(status: GatewayStatus): boolean {
   return (
-    status.status === 'ok' &&
+    status.status === "ok" &&
     status.services.chat &&
     status.services.identity &&
     status.subscription.active

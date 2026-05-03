@@ -8,10 +8,10 @@
  * - Character limit indicator
  */
 
-import { useState, useRef, useEffect, KeyboardEvent } from 'react';
-import { Send } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import { Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -23,10 +23,10 @@ interface ChatInputProps {
 export function ChatInput({
   onSend,
   disabled = false,
-  placeholder = 'Type a message...',
+  placeholder = "Type a message...",
   maxLength = 4000,
 }: ChatInputProps) {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-resize textarea
@@ -35,7 +35,7 @@ export function ChatInput({
     if (!textarea) return;
 
     // Reset height to auto to get the correct scrollHeight
-    textarea.style.height = 'auto';
+    textarea.style.height = "auto";
     // Set height to scrollHeight (capped at max height)
     const maxHeight = 200; // ~10 lines
     const newHeight = Math.min(textarea.scrollHeight, maxHeight);
@@ -47,17 +47,17 @@ export function ChatInput({
     if (!trimmed || disabled) return;
 
     onSend(trimmed);
-    setValue('');
+    setValue("");
 
     // Reset textarea height
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = "auto";
     }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     // Enter to send (Shift+Enter for newline)
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -72,8 +72,8 @@ export function ChatInput({
       {showCounter && (
         <div
           className={cn(
-            'text-xs text-right',
-            isOverLimit ? 'text-destructive' : 'text-muted-foreground'
+            "text-xs text-right",
+            isOverLimit ? "text-destructive" : "text-muted-foreground",
           )}
         >
           {value.length} / {maxLength}
@@ -91,15 +91,15 @@ export function ChatInput({
           disabled={disabled}
           rows={1}
           className={cn(
-            'flex-1 resize-none rounded-md border border-input bg-background px-3 py-2',
-            'text-sm placeholder:text-muted-foreground',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-            'transition-colors'
+            "flex-1 resize-none rounded-md border border-input bg-background px-3 py-2",
+            "text-sm placeholder:text-muted-foreground",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "disabled:cursor-not-allowed disabled:opacity-50",
+            "transition-colors",
           )}
           style={{
-            minHeight: '40px',
-            maxHeight: '200px',
+            minHeight: "40px",
+            maxHeight: "200px",
           }}
         />
 
@@ -116,8 +116,8 @@ export function ChatInput({
 
       {/* Hint text */}
       <div className="text-xs text-muted-foreground">
-        Press <kbd className="rounded border px-1">Enter</kbd> to send,{' '}
-        <kbd className="rounded border px-1">Shift</kbd> +{' '}
+        Press <kbd className="rounded border px-1">Enter</kbd> to send,{" "}
+        <kbd className="rounded border px-1">Shift</kbd> +{" "}
         <kbd className="rounded border px-1">Enter</kbd> for new line
       </div>
     </div>

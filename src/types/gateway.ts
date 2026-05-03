@@ -18,12 +18,12 @@
  * Gateway process states
  */
 export type GatewayStatus =
-  | 'stopped'      // Not running
-  | 'starting'     // Launch initiated, awaiting health check
-  | 'running'      // Healthy and responding
-  | 'unhealthy'    // Process exists but health check failing
-  | 'stopping'     // Shutdown initiated
-  | 'crashed';     // Unexpected termination detected
+  | "stopped" // Not running
+  | "starting" // Launch initiated, awaiting health check
+  | "running" // Healthy and responding
+  | "unhealthy" // Process exists but health check failing
+  | "stopping" // Shutdown initiated
+  | "crashed"; // Unexpected termination detected
 
 /**
  * Gateway process information
@@ -92,7 +92,7 @@ export interface GetGatewayStatusResponse {
  * Health check endpoint response format (from gateway HTTP endpoint)
  */
 export interface HealthCheckResponse {
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   timestamp: string; // ISO 8601
   uptime: number; // seconds
   version: string;
@@ -226,9 +226,9 @@ export const DEFAULT_GATEWAY_CONFIG: GatewayConfig = {
   healthCheckTimeout: 5000, // 5 seconds
   mdns: {
     enabled: true,
-    serviceName: 'EdwinPAI Gateway',
-    serviceType: '_edwinpai._tcp',
-    domain: 'local.',
+    serviceName: "EdwinPAI Gateway",
+    serviceType: "_edwinpai._tcp",
+    domain: "local.",
     port: 18789,
   },
 };
@@ -241,12 +241,12 @@ export const DEFAULT_GATEWAY_CONFIG: GatewayConfig = {
  * Gateway process event types (for IPC event listeners)
  */
 export type GatewayProcessEvent =
-  | 'gateway:started'
-  | 'gateway:stopped'
-  | 'gateway:crashed'
-  | 'gateway:healthy'
-  | 'gateway:unhealthy'
-  | 'gateway:restarting';
+  | "gateway:started"
+  | "gateway:stopped"
+  | "gateway:crashed"
+  | "gateway:healthy"
+  | "gateway:unhealthy"
+  | "gateway:restarting";
 
 /**
  * Gateway process event payload

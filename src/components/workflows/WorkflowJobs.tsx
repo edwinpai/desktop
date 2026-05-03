@@ -1,10 +1,22 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   approveWorkflow,
   createWorkflowFile,
@@ -27,7 +39,10 @@ import { parse as parseYaml } from "yaml";
 
 function toUserFacingError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err);
-  if (msg.includes("Cannot read properties of undefined (reading 'invoke')") || msg.includes("Desktop integration is unavailable")) {
+  if (
+    msg.includes("Cannot read properties of undefined (reading 'invoke')") ||
+    msg.includes("Desktop integration is unavailable")
+  ) {
     return "Desktop integration is unavailable right now. Please reopen this screen inside the desktop app.";
   }
   return msg;
@@ -38,14 +53,18 @@ export function WorkflowJobs() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [statusMap, setStatusMap] = useState<Record<string, WorkflowStatusResult>>({});
+  const [statusMap, setStatusMap] = useState<
+    Record<string, WorkflowStatusResult>
+  >({});
   const [runningWorkflow, setRunningWorkflow] = useState<string | null>(null);
 
   const [historyWorkflow, setHistoryWorkflow] = useState<string | null>(null);
   const [historyRuns, setHistoryRuns] = useState<WorkflowHistoryRun[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  const [pendingApprovals, setPendingApprovals] = useState<WorkflowPendingApproval[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<
+    WorkflowPendingApproval[]
+  >([]);
   const [approvalsLoading, setApprovalsLoading] = useState(false);
 
   const [logWorkflow, setLogWorkflow] = useState<string | null>(null);
@@ -147,7 +166,10 @@ export function WorkflowJobs() {
     }
   };
 
-  const handleApprovalAction = async (approvalId: string, action: "approve" | "deny") => {
+  const handleApprovalAction = async (
+    approvalId: string,
+    action: "approve" | "deny",
+  ) => {
     setError(null);
     setNotice(null);
     try {
@@ -202,7 +224,9 @@ export function WorkflowJobs() {
       try {
         parseYaml(fileContent);
       } catch (err) {
-        throw new Error(`YAML parse error: ${err instanceof Error ? err.message : String(err)}`);
+        throw new Error(
+          `YAML parse error: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
       await saveWorkflowFile(selectedFile, fileContent);
       setNotice(`Saved ${selectedFile}`);
@@ -240,13 +264,19 @@ export function WorkflowJobs() {
         <div>
           <h2 className="text-2xl font-bold">Workflows</h2>
           <p className="text-sm text-muted-foreground">
-            Local host automations backed by <code>~/.edwinpai/workspace/workflows</code> and system crontab.
+            Local host automations backed by{" "}
+            <code>~/.edwinpai/workspace/workflows</code> and system crontab.
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Heartbeat-style checks, reminders, and reliable scheduled jobs should live here as workflows.
+            Heartbeat-style checks, reminders, and reliable scheduled jobs
+            should live here as workflows.
           </p>
         </div>
-        <Button variant="outline" onClick={() => void refreshAll()} disabled={loading || fileLoading || fileSaving}>
+        <Button
+          variant="outline"
+          onClick={() => void refreshAll()}
+          disabled={loading || fileLoading || fileSaving}
+        >
           {loading ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
@@ -269,7 +299,8 @@ export function WorkflowJobs() {
               <CardHeader>
                 <CardTitle>No workflows found</CardTitle>
                 <CardDescription>
-                  Add YAML files to ~/.edwinpai/workspace/workflows to get started.
+                  Add YAML files to ~/.edwinpai/workspace/workflows to get
+                  started.
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -284,19 +315,37 @@ export function WorkflowJobs() {
                         <div className="space-y-2">
                           <CardTitle className="flex flex-wrap items-center gap-2">
                             {wf.name}
-                            <Badge variant="outline">{wf.stepCount} steps</Badge>
-                            {wf.schedule ? <Badge variant="secondary">{wf.schedule}</Badge> : <Badge variant="outline">manual only</Badge>}
+                            <Badge variant="outline">
+                              {wf.stepCount} steps
+                            </Badge>
+                            {wf.schedule ? (
+                              <Badge variant="secondary">{wf.schedule}</Badge>
+                            ) : (
+                              <Badge variant="outline">manual only</Badge>
+                            )}
                           </CardTitle>
-                          {wf.description && <CardDescription>{wf.description}</CardDescription>}
+                          {wf.description && (
+                            <CardDescription>{wf.description}</CardDescription>
+                          )}
                           {wf.parseError && (
-                            <div className="text-xs text-destructive">Failed to parse YAML: {wf.parseError}</div>
+                            <div className="text-xs text-destructive">
+                              Failed to parse YAML: {wf.parseError}
+                            </div>
                           )}
                         </div>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm" onClick={() => void handleStatus(wf.id)}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => void handleStatus(wf.id)}
+                          >
                             Status
                           </Button>
-                          <Button size="sm" onClick={() => void handleRun(wf.id)} disabled={runningWorkflow === wf.id}>
+                          <Button
+                            size="sm"
+                            onClick={() => void handleRun(wf.id)}
+                            disabled={runningWorkflow === wf.id}
+                          >
                             {runningWorkflow === wf.id ? "Starting..." : "Run"}
                           </Button>
                         </div>
@@ -304,13 +353,18 @@ export function WorkflowJobs() {
                     </CardHeader>
                     <CardContent className="space-y-2">
                       <div className="text-sm text-muted-foreground">
-                        {wf.lastRun ? `Last run: ${new Date(wf.lastRun).toLocaleString()}` : "Never run"}
+                        {wf.lastRun
+                          ? `Last run: ${new Date(wf.lastRun).toLocaleString()}`
+                          : "Never run"}
                       </div>
                       {status?.lastRun && (
                         <div className="text-sm">
-                          Status: {status.lastRun.success ? "✅ Success" : "❌ Failed"}
+                          Status:{" "}
+                          {status.lastRun.success ? "✅ Success" : "❌ Failed"}
                           {status.lastRun.error && (
-                            <div className="text-xs text-destructive mt-1">{status.lastRun.error}</div>
+                            <div className="text-xs text-destructive mt-1">
+                              {status.lastRun.error}
+                            </div>
                           )}
                         </div>
                       )}
@@ -326,11 +380,16 @@ export function WorkflowJobs() {
           <Card>
             <CardHeader>
               <CardTitle>Run history</CardTitle>
-              <CardDescription>Select a workflow to view recent runs.</CardDescription>
+              <CardDescription>
+                Select a workflow to view recent runs.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex gap-2 items-center">
-                <Select value={historyWorkflow ?? undefined} onValueChange={setHistoryWorkflow}>
+                <Select
+                  value={historyWorkflow ?? undefined}
+                  onValueChange={setHistoryWorkflow}
+                >
                   <SelectTrigger className="w-64">
                     <SelectValue placeholder="Select workflow" />
                   </SelectTrigger>
@@ -342,26 +401,40 @@ export function WorkflowJobs() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button variant="outline" onClick={() => void handleHistory()} disabled={!historyWorkflow || historyLoading}>
+                <Button
+                  variant="outline"
+                  onClick={() => void handleHistory()}
+                  disabled={!historyWorkflow || historyLoading}
+                >
                   {historyLoading ? "Loading..." : "Load"}
                 </Button>
               </div>
 
               {historyRuns.length === 0 ? (
-                <div className="text-sm text-muted-foreground">No history loaded.</div>
+                <div className="text-sm text-muted-foreground">
+                  No history loaded.
+                </div>
               ) : (
                 <div className="space-y-3">
                   {historyRuns.map((run, idx) => (
                     <Card key={`${run.timestamp ?? "unknown"}-${idx}`}>
                       <CardContent className="pt-4 space-y-1">
                         <div className="text-sm">
-                          {run.timestamp ? new Date(run.timestamp).toLocaleString() : "Unknown time"}
+                          {run.timestamp
+                            ? new Date(run.timestamp).toLocaleString()
+                            : "Unknown time"}
                         </div>
                         <div className="text-sm">
                           {run.success ? "✅ Success" : "❌ Failed"}
-                          {typeof run.duration === "number" ? ` — ${Math.round(run.duration / 1000)}s` : ""}
+                          {typeof run.duration === "number"
+                            ? ` — ${Math.round(run.duration / 1000)}s`
+                            : ""}
                         </div>
-                        {run.error && <div className="text-xs text-destructive">{run.error}</div>}
+                        {run.error && (
+                          <div className="text-xs text-destructive">
+                            {run.error}
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
@@ -378,23 +451,50 @@ export function WorkflowJobs() {
               <CardDescription>Approve or deny workflow gates.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button variant="outline" onClick={() => void handleApprovals()} disabled={approvalsLoading}>
+              <Button
+                variant="outline"
+                onClick={() => void handleApprovals()}
+                disabled={approvalsLoading}
+              >
                 {approvalsLoading ? "Refreshing..." : "Refresh"}
               </Button>
 
               {pendingApprovals.length === 0 ? (
-                <div className="text-sm text-muted-foreground">No pending approvals.</div>
+                <div className="text-sm text-muted-foreground">
+                  No pending approvals.
+                </div>
               ) : (
                 <div className="space-y-3">
                   {pendingApprovals.map((approval) => (
                     <Card key={approval.id}>
                       <CardContent className="pt-4 space-y-2">
-                        <div className="text-sm font-medium">{approval.workflow} → {approval.step}</div>
-                        <div className="text-xs text-muted-foreground">{approval.message}</div>
-                        <div className="text-xs text-muted-foreground">{new Date(approval.timestamp).toLocaleString()}</div>
+                        <div className="text-sm font-medium">
+                          {approval.workflow} → {approval.step}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {approval.message}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(approval.timestamp).toLocaleString()}
+                        </div>
                         <div className="flex gap-2">
-                          <Button size="sm" onClick={() => void handleApprovalAction(approval.id, "approve")}>Approve</Button>
-                          <Button size="sm" variant="outline" onClick={() => void handleApprovalAction(approval.id, "deny")}>Deny</Button>
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              void handleApprovalAction(approval.id, "approve")
+                            }
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              void handleApprovalAction(approval.id, "deny")
+                            }
+                          >
+                            Deny
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -409,11 +509,16 @@ export function WorkflowJobs() {
           <Card>
             <CardHeader>
               <CardTitle>Workflow logs</CardTitle>
-              <CardDescription>Tail the last 200 lines from workflow logs.</CardDescription>
+              <CardDescription>
+                Tail the last 200 lines from workflow logs.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex gap-2 items-center">
-                <Select value={logWorkflow ?? undefined} onValueChange={setLogWorkflow}>
+                <Select
+                  value={logWorkflow ?? undefined}
+                  onValueChange={setLogWorkflow}
+                >
                   <SelectTrigger className="w-64">
                     <SelectValue placeholder="Select workflow" />
                   </SelectTrigger>
@@ -425,17 +530,29 @@ export function WorkflowJobs() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button variant="outline" onClick={() => logWorkflow && void handleLogs(logWorkflow)} disabled={!logWorkflow || logLoading}>
+                <Button
+                  variant="outline"
+                  onClick={() => logWorkflow && void handleLogs(logWorkflow)}
+                  disabled={!logWorkflow || logLoading}
+                >
                   {logLoading ? "Loading..." : "Load logs"}
                 </Button>
               </div>
 
-              {logError && <div className="text-sm text-destructive">{logError}</div>}
+              {logError && (
+                <div className="text-sm text-destructive">{logError}</div>
+              )}
 
               {logContent ? (
-                <pre className="text-xs bg-muted p-3 rounded-md whitespace-pre-wrap max-h-96 overflow-auto">{logContent}</pre>
+                <pre className="text-xs bg-muted p-3 rounded-md whitespace-pre-wrap max-h-96 overflow-auto">
+                  {logContent}
+                </pre>
               ) : (
-                <div className="text-sm text-muted-foreground">{logLoading ? "Loading log content..." : "No log content loaded."}</div>
+                <div className="text-sm text-muted-foreground">
+                  {logLoading
+                    ? "Loading log content..."
+                    : "No log content loaded."}
+                </div>
               )}
             </CardContent>
           </Card>
@@ -445,14 +562,22 @@ export function WorkflowJobs() {
           <Card>
             <CardHeader>
               <CardTitle>Workflow YAML editor</CardTitle>
-              <CardDescription>Edit files in ~/.edwinpai/workspace/workflows</CardDescription>
+              <CardDescription>
+                Edit files in ~/.edwinpai/workspace/workflows
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-2 items-center">
-                <Button variant="outline" onClick={() => void loadWorkflowFiles()}>
+                <Button
+                  variant="outline"
+                  onClick={() => void loadWorkflowFiles()}
+                >
                   Refresh files
                 </Button>
-                <Select value={selectedFile ?? undefined} onValueChange={(val) => void handleLoadWorkflowFile(val)}>
+                <Select
+                  value={selectedFile ?? undefined}
+                  onValueChange={(val) => void handleLoadWorkflowFile(val)}
+                >
                   <SelectTrigger className="w-64">
                     <SelectValue placeholder="Select file" />
                   </SelectTrigger>
@@ -470,12 +595,18 @@ export function WorkflowJobs() {
                   value={newFileName}
                   onChange={(e) => setNewFileName(e.target.value)}
                 />
-                <Button variant="outline" onClick={() => void handleCreateWorkflowFile()} disabled={fileSaving || !newFileName.trim()}>
+                <Button
+                  variant="outline"
+                  onClick={() => void handleCreateWorkflowFile()}
+                  disabled={fileSaving || !newFileName.trim()}
+                >
                   Create
                 </Button>
               </div>
 
-              {fileError && <div className="text-sm text-destructive">{fileError}</div>}
+              {fileError && (
+                <div className="text-sm text-destructive">{fileError}</div>
+              )}
 
               <textarea
                 className="w-full min-h-[400px] rounded-md border border-border bg-background p-3 text-sm font-mono"
@@ -486,10 +617,19 @@ export function WorkflowJobs() {
               />
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => selectedFile && void handleLoadWorkflowFile(selectedFile)} disabled={!selectedFile || fileLoading}>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    selectedFile && void handleLoadWorkflowFile(selectedFile)
+                  }
+                  disabled={!selectedFile || fileLoading}
+                >
                   {fileLoading ? "Loading..." : "Reload"}
                 </Button>
-                <Button onClick={() => void handleSaveWorkflowFile()} disabled={!selectedFile || fileSaving}>
+                <Button
+                  onClick={() => void handleSaveWorkflowFile()}
+                  disabled={!selectedFile || fileSaving}
+                >
                   {fileSaving ? "Saving..." : "Save"}
                 </Button>
               </div>

@@ -10,15 +10,21 @@
  * - Permission checks (Phase 4 integration)
  */
 
-import { useEffect, useState, useCallback, Suspense, lazy } from 'react';
-import { useChannelStore } from '@/stores/channelStore';
-import type { ChannelName, ChannelConfig } from '@/types/channels';
-import type { AccessLevel } from '@/types/auth';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
+import { useEffect, useState, useCallback, Suspense, lazy } from "react";
+import { useChannelStore } from "@/stores/channelStore";
+import type { ChannelName, ChannelConfig } from "@/types/channels";
+import type { AccessLevel } from "@/types/auth";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   MessageSquare,
   Send,
@@ -36,19 +42,39 @@ import {
   CheckCircle2,
   AlertTriangle,
   RefreshCw,
-} from 'lucide-react';
-import { fetchChannelStatus, inferGatewayKind, resolveToken, webLoginStart, webLoginWait, type ChannelAccountStatus, type ChannelStatusResult } from '@/lib/gateway-context';
-import { readConfig } from '@/lib/config';
-import { MatrixRoomManager } from './MatrixRoomManager';
-import { ChannelConfigEditor } from './ChannelConfigEditor';
+} from "lucide-react";
+import {
+  fetchChannelStatus,
+  inferGatewayKind,
+  resolveToken,
+  webLoginStart,
+  webLoginWait,
+  type ChannelAccountStatus,
+  type ChannelStatusResult,
+} from "@/lib/gateway-context";
+import { readConfig } from "@/lib/config";
+import { MatrixRoomManager } from "./MatrixRoomManager";
+import { ChannelConfigEditor } from "./ChannelConfigEditor";
 
 // Lazy load platform wizards for better performance
-const TelegramWizard = lazy(() => import('./TelegramWizard').then(m => ({ default: m.TelegramWizard })));
-const MatrixWizard = lazy(() => import('./MatrixWizard').then(m => ({ default: m.MatrixWizard })));
-const DiscordWizard = lazy(() => import('./DiscordWizard').then(m => ({ default: m.DiscordWizard })));
-const SlackWizard = lazy(() => import('./SlackWizard').then(m => ({ default: m.SlackWizard })));
-const WhatsAppWizard = lazy(() => import('./WhatsAppWizard').then(m => ({ default: m.WhatsAppWizard })));
-const SignalWizard = lazy(() => import('./SignalWizard').then(m => ({ default: m.SignalWizard })));
+const TelegramWizard = lazy(() =>
+  import("./TelegramWizard").then((m) => ({ default: m.TelegramWizard })),
+);
+const MatrixWizard = lazy(() =>
+  import("./MatrixWizard").then((m) => ({ default: m.MatrixWizard })),
+);
+const DiscordWizard = lazy(() =>
+  import("./DiscordWizard").then((m) => ({ default: m.DiscordWizard })),
+);
+const SlackWizard = lazy(() =>
+  import("./SlackWizard").then((m) => ({ default: m.SlackWizard })),
+);
+const WhatsAppWizard = lazy(() =>
+  import("./WhatsAppWizard").then((m) => ({ default: m.WhatsAppWizard })),
+);
+const SignalWizard = lazy(() =>
+  import("./SignalWizard").then((m) => ({ default: m.SignalWizard })),
+);
 
 const CHANNEL_ICONS: Record<ChannelName, React.ReactNode> = {
   whatsapp: <MessageSquare className="w-5 h-5 text-green-500" />,
@@ -60,14 +86,13 @@ const CHANNEL_ICONS: Record<ChannelName, React.ReactNode> = {
 };
 
 const CHANNEL_NAMES: Record<ChannelName, string> = {
-  whatsapp: 'WhatsApp',
-  telegram: 'Telegram',
-  matrix: 'Matrix',
-  discord: 'Discord',
-  slack: 'Slack',
-  signal: 'Signal',
+  whatsapp: "WhatsApp",
+  telegram: "Telegram",
+  matrix: "Matrix",
+  discord: "Discord",
+  slack: "Slack",
+  signal: "Signal",
 };
-
 
 function getPrimaryAccountStatus(
   liveStatus: ChannelStatusResult | null,
@@ -76,12 +101,17 @@ function getPrimaryAccountStatus(
   const channelStatus = liveStatus?.channels?.[channelName];
   if (!channelStatus) return undefined;
 
-  const accounts = Array.isArray(channelStatus.accounts) ? channelStatus.accounts : [];
+  const accounts = Array.isArray(channelStatus.accounts)
+    ? channelStatus.accounts
+    : [];
   if (accounts.length === 0) return undefined;
 
   if (channelStatus.defaultAccountId) {
-    return accounts.find((account) => account.accountId === channelStatus.defaultAccountId)
-      ?? accounts[0];
+    return (
+      accounts.find(
+        (account) => account.accountId === channelStatus.defaultAccountId,
+      ) ?? accounts[0]
+    );
   }
 
   return accounts[0];
@@ -91,10 +121,13 @@ export interface ChannelListProps {
   /** Current user's access level (Phase 4 integration) */
   currentUserLevel?: AccessLevel;
   /** Current app mode — determines data source for channels */
-  mode?: 'gateway' | 'client';
+  mode?: "gateway" | "client";
 }
 
-export function ChannelList({ currentUserLevel = 'owner', mode = 'gateway' }: ChannelListProps) {
+export function ChannelList({
+  currentUserLevel = "owner",
+  mode = "gateway",
+}: ChannelListProps) {
   // Use store exclusively for state + CRUD + polling
   const {
     channels,
@@ -114,23 +147,40 @@ export function ChannelList({ currentUserLevel = 'owner', mode = 'gateway' }: Ch
 
   const [deleteConfirm, setDeleteConfirm] = useState<ChannelName | null>(null);
   const [toggleLoading, setToggleLoading] = useState<ChannelName | null>(null);
-  const [liveStatus, setLiveStatus] = useState<ChannelStatusResult | null>(null);
+  const [liveStatus, setLiveStatus] = useState<ChannelStatusResult | null>(
+    null,
+  );
   const [liveStatusError, setLiveStatusError] = useState<string | null>(null);
-  const [liveStatusUpdatedAt, setLiveStatusUpdatedAt] = useState<Date | null>(null);
-  const [gatewayLabel, setGatewayLabel] = useState<string>('localhost:18789');
+  const [liveStatusUpdatedAt, setLiveStatusUpdatedAt] = useState<Date | null>(
+    null,
+  );
+  const [gatewayLabel, setGatewayLabel] = useState<string>("localhost:18789");
   const [refreshing, setRefreshing] = useState(false);
-  const [qrState, setQrState] = useState<Record<string, { qrDataUrl?: string; message?: string; loading?: boolean; waiting?: boolean; error?: string }>>({});
+  const [qrState, setQrState] = useState<
+    Record<
+      string,
+      {
+        qrDataUrl?: string;
+        message?: string;
+        loading?: boolean;
+        waiting?: boolean;
+        error?: string;
+      }
+    >
+  >({});
 
   const buildGatewayTarget = useCallback(async () => {
     const desktopConfig = await readConfig();
-    const gwUrl = desktopConfig?.gatewayUrl || 'http://localhost:18789';
-    const token = desktopConfig?.gatewayToken || await resolveToken();
+    const gwUrl = desktopConfig?.gatewayUrl || "http://localhost:18789";
+    const token = desktopConfig?.gatewayToken || (await resolveToken());
 
     try {
       const url = new URL(gwUrl);
-      setGatewayLabel(`${url.hostname}:${url.port || (url.protocol === 'https:' ? '443' : '80')}`);
+      setGatewayLabel(
+        `${url.hostname}:${url.port || (url.protocol === "https:" ? "443" : "80")}`,
+      );
     } catch {
-      setGatewayLabel(gwUrl.replace(/^https?:\/\//, ''));
+      setGatewayLabel(gwUrl.replace(/^https?:\/\//, ""));
     }
 
     return {
@@ -191,7 +241,8 @@ export function ChannelList({ currentUserLevel = 'owner', mode = 'gateway' }: Ch
   }, [startPolling, stopPolling]);
 
   // Permission check
-  const hasManagePermission = currentUserLevel === 'owner' || currentUserLevel === 'member';
+  const hasManagePermission =
+    currentUserLevel === "owner" || currentUserLevel === "member";
 
   const handleToggle = async (channel: ChannelName, enabled: boolean) => {
     if (!hasManagePermission) return;
@@ -200,7 +251,7 @@ export function ChannelList({ currentUserLevel = 'owner', mode = 'gateway' }: Ch
     try {
       await toggleChannel(channel, enabled);
     } catch (err) {
-      console.error('Failed to toggle channel:', err);
+      console.error("Failed to toggle channel:", err);
     } finally {
       setToggleLoading(null);
     }
@@ -213,11 +264,13 @@ export function ChannelList({ currentUserLevel = 'owner', mode = 'gateway' }: Ch
       await deleteChannel(channel);
       setDeleteConfirm(null);
     } catch (err) {
-      console.error('Failed to delete channel:', err);
+      console.error("Failed to delete channel:", err);
     }
   };
 
-  const [editingChannel, setEditingChannel] = useState<ChannelName | null>(null);
+  const [editingChannel, setEditingChannel] = useState<ChannelName | null>(
+    null,
+  );
 
   const handleAddChannel = (channel: ChannelName) => {
     if (!hasManagePermission) return;
@@ -229,11 +282,21 @@ export function ChannelList({ currentUserLevel = 'owner', mode = 'gateway' }: Ch
     setEditingChannel(channel);
   };
 
-  const [verifying, setVerifying] = useState<{ channel: string; status: 'waiting' | 'connected' | 'failed' } | null>(null);
+  const [verifying, setVerifying] = useState<{
+    channel: string;
+    status: "waiting" | "connected" | "failed";
+  } | null>(null);
 
-  const availableChannels = (['telegram', 'matrix', 'discord', 'slack', 'whatsapp', 'signal'] as ChannelName[])
-    .filter((name) => !channels.find((c) => c.channel === name));
-
+  const availableChannels = (
+    [
+      "telegram",
+      "matrix",
+      "discord",
+      "slack",
+      "whatsapp",
+      "signal",
+    ] as ChannelName[]
+  ).filter((name) => !channels.find((c) => c.channel === name));
 
   const handleWizardComplete = async () => {
     const completedChannel = wizard.channel;
@@ -242,24 +305,24 @@ export function ChannelList({ currentUserLevel = 'owner', mode = 'gateway' }: Ch
     if (!completedChannel) return;
 
     // Wait for gateway restart and channel connection
-    setVerifying({ channel: completedChannel, status: 'waiting' });
+    setVerifying({ channel: completedChannel, status: "waiting" });
 
     // Poll channels.status for up to 15 seconds
     const maxAttempts = 5;
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      await new Promise(r => setTimeout(r, 3000));
+      await new Promise((r) => setTimeout(r, 3000));
       const status = await fetchLiveStatus();
 
       const defaultAccount = getPrimaryAccountStatus(status, completedChannel);
       if (defaultAccount?.connected) {
-        setVerifying({ channel: completedChannel, status: 'connected' });
+        setVerifying({ channel: completedChannel, status: "connected" });
         setTimeout(() => setVerifying(null), 5000);
         return;
       }
     }
 
     // Didn't connect within timeout
-    setVerifying({ channel: completedChannel, status: 'failed' });
+    setVerifying({ channel: completedChannel, status: "failed" });
     setTimeout(() => setVerifying(null), 8000);
   };
 
@@ -328,7 +391,7 @@ export function ChannelList({ currentUserLevel = 'owner', mode = 'gateway' }: Ch
           channel={editingChannel}
           onClose={() => setEditingChannel(null)}
         />
-        {editingChannel === 'matrix' && (
+        {editingChannel === "matrix" && (
           <>
             <div className="border-t pt-4" />
             <MatrixRoomManager />
@@ -358,7 +421,10 @@ export function ChannelList({ currentUserLevel = 'owner', mode = 'gateway' }: Ch
             </div>
           }
         >
-          <WizardComponent onComplete={handleWizardComplete} onCancel={closeWizard} />
+          <WizardComponent
+            onComplete={handleWizardComplete}
+            onCancel={closeWizard}
+          />
         </Suspense>
       </div>
     );
@@ -371,20 +437,33 @@ export function ChannelList({ currentUserLevel = 'owner', mode = 'gateway' }: Ch
         <div>
           <h1 className="text-3xl font-bold mb-2">Channel Integrations</h1>
           <p className="text-muted-foreground">
-            Connect EdwinPAI to your messaging platforms to enable AI-powered conversations across channels.
+            Connect EdwinPAI to your messaging platforms to enable AI-powered
+            conversations across channels.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant="outline" className="font-mono">gateway {gatewayLabel}</Badge>
+            <Badge variant="outline" className="font-mono">
+              gateway {gatewayLabel}
+            </Badge>
             {liveStatusUpdatedAt && (
-              <span>live status refreshed {liveStatusUpdatedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+              <span>
+                live status refreshed{" "}
+                {liveStatusUpdatedAt.toLocaleTimeString([], {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </span>
             )}
             {liveStatusError && (
-              <span className="text-amber-600 dark:text-amber-400">live status unavailable</span>
+              <span className="text-amber-600 dark:text-amber-400">
+                live status unavailable
+              </span>
             )}
           </div>
         </div>
         <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw
+            className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
+          />
           Refresh
         </Button>
       </div>
@@ -394,38 +473,53 @@ export function ChannelList({ currentUserLevel = 'owner', mode = 'gateway' }: Ch
         <Alert className="mb-6">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            You have read-only access to channel integrations. Contact the gateway owner to manage channels.
+            You have read-only access to channel integrations. Contact the
+            gateway owner to manage channels.
           </AlertDescription>
         </Alert>
       )}
 
       {/* Channel verification status */}
       {verifying && (
-        <Alert className={`mb-6 ${
-          verifying.status === 'connected' ? 'border-green-500 bg-green-50 dark:bg-green-950' :
-          verifying.status === 'failed' ? 'border-destructive' : ''
-        }`}>
-          {verifying.status === 'waiting' && (
+        <Alert
+          className={`mb-6 ${
+            verifying.status === "connected"
+              ? "border-green-500 bg-green-50 dark:bg-green-950"
+              : verifying.status === "failed"
+                ? "border-destructive"
+                : ""
+          }`}
+        >
+          {verifying.status === "waiting" && (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
               <AlertDescription>
-                Verifying {CHANNEL_NAMES[verifying.channel as ChannelName] || verifying.channel} connection... Gateway is restarting with new config.
+                Verifying{" "}
+                {CHANNEL_NAMES[verifying.channel as ChannelName] ||
+                  verifying.channel}{" "}
+                connection... Gateway is restarting with new config.
               </AlertDescription>
             </>
           )}
-          {verifying.status === 'connected' && (
+          {verifying.status === "connected" && (
             <>
               <Wifi className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-700 dark:text-green-300">
-                <CheckCircle2 className="h-4 w-4 inline text-green-500 mr-1" />{CHANNEL_NAMES[verifying.channel as ChannelName] || verifying.channel} connected successfully!
+                <CheckCircle2 className="h-4 w-4 inline text-green-500 mr-1" />
+                {CHANNEL_NAMES[verifying.channel as ChannelName] ||
+                  verifying.channel}{" "}
+                connected successfully!
               </AlertDescription>
             </>
           )}
-          {verifying.status === 'failed' && (
+          {verifying.status === "failed" && (
             <>
               <WifiOff className="h-4 w-4" />
               <AlertDescription>
-                <AlertTriangle className="h-4 w-4 inline text-amber-500 mr-1" /> {CHANNEL_NAMES[verifying.channel as ChannelName] || verifying.channel} hasn't connected yet. Check credentials and gateway logs.
+                <AlertTriangle className="h-4 w-4 inline text-amber-500 mr-1" />{" "}
+                {CHANNEL_NAMES[verifying.channel as ChannelName] ||
+                  verifying.channel}{" "}
+                hasn't connected yet. Check credentials and gateway logs.
               </AlertDescription>
             </>
           )}
@@ -444,7 +538,8 @@ export function ChannelList({ currentUserLevel = 'owner', mode = 'gateway' }: Ch
         <Alert className="mb-6 border-amber-500/40">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Live channel connection status is temporarily unavailable. You can still edit configuration, but connected/offline badges may be stale.
+            Live channel connection status is temporarily unavailable. You can
+            still edit configuration, but connected/offline badges may be stale.
           </AlertDescription>
         </Alert>
       )}
@@ -466,17 +561,28 @@ export function ChannelList({ currentUserLevel = 'owner', mode = 'gateway' }: Ch
               <ChannelCard
                 key={channel.channel}
                 channel={channel}
-                onToggle={(enabled) => handleToggle(channel.channel as ChannelName, enabled)}
-                onDelete={() => setDeleteConfirm(channel.channel as ChannelName)}
+                onToggle={(enabled) =>
+                  handleToggle(channel.channel as ChannelName, enabled)
+                }
+                onDelete={() =>
+                  setDeleteConfirm(channel.channel as ChannelName)
+                }
                 onEdit={() => handleEditChannel(channel.channel as ChannelName)}
                 deleteConfirm={deleteConfirm === channel.channel}
                 onCancelDelete={() => setDeleteConfirm(null)}
-                onConfirmDelete={() => handleDelete(channel.channel as ChannelName)}
+                onConfirmDelete={() =>
+                  handleDelete(channel.channel as ChannelName)
+                }
                 isToggling={toggleLoading === channel.channel}
                 canManage={hasManagePermission}
-                accountStatus={getPrimaryAccountStatus(liveStatus, channel.channel)}
+                accountStatus={getPrimaryAccountStatus(
+                  liveStatus,
+                  channel.channel,
+                )}
                 qrState={qrState[channel.channel]}
-                onQrStart={(force) => handleQrStart(channel.channel as ChannelName, force)}
+                onQrStart={(force) =>
+                  handleQrStart(channel.channel as ChannelName, force)
+                }
                 onQrWait={() => handleQrWait(channel.channel as ChannelName)}
               />
             ))}
@@ -486,21 +592,28 @@ export function ChannelList({ currentUserLevel = 'owner', mode = 'gateway' }: Ch
 
       {/* Available channels to add */}
       <div>
-        <h2 className="text-xl font-semibold mb-2">{channels.length > 0 ? 'Add New Channel' : 'Get Started'}</h2>
+        <h2 className="text-xl font-semibold mb-2">
+          {channels.length > 0 ? "Add New Channel" : "Get Started"}
+        </h2>
         <p className="text-sm text-muted-foreground mb-4">
           {channels.length > 0
-            ? 'Connect another messaging platform.'
-            : 'Choose a platform to connect first. You can edit details later without re-running the setup wizard.'}
+            ? "Connect another messaging platform."
+            : "Choose a platform to connect first. You can edit details later without re-running the setup wizard."}
         </p>
         {availableChannels.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {availableChannels.map((name) => (
-              <Card key={name} className="hover:border-primary transition-colors">
+              <Card
+                key={name}
+                className="hover:border-primary transition-colors"
+              >
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       {CHANNEL_ICONS[name]}
-                      <CardTitle className="text-lg">{CHANNEL_NAMES[name]}</CardTitle>
+                      <CardTitle className="text-lg">
+                        {CHANNEL_NAMES[name]}
+                      </CardTitle>
                     </div>
                   </div>
                 </CardHeader>
@@ -541,7 +654,13 @@ interface ChannelCardProps {
   isToggling: boolean;
   canManage: boolean;
   accountStatus?: ChannelAccountStatus;
-  qrState?: { qrDataUrl?: string; message?: string; loading?: boolean; waiting?: boolean; error?: string };
+  qrState?: {
+    qrDataUrl?: string;
+    message?: string;
+    loading?: boolean;
+    waiting?: boolean;
+    error?: string;
+  };
   onQrStart?: (force: boolean) => void;
   onQrWait?: () => void;
 }
@@ -570,7 +689,9 @@ function ChannelCard({
           <div className="flex items-center gap-3">
             {CHANNEL_ICONS[channelName]}
             <div>
-              <CardTitle className="text-lg">{CHANNEL_NAMES[channelName]}</CardTitle>
+              <CardTitle className="text-lg">
+                {CHANNEL_NAMES[channelName]}
+              </CardTitle>
               <CardDescription className="text-xs">
                 {new Date(channel.configuredAt).toLocaleDateString()}
               </CardDescription>
@@ -578,23 +699,34 @@ function ChannelCard({
           </div>
           <div className="flex items-center gap-2">
             {accountStatus?.connected && (
-              <Badge variant="default" className="bg-green-600 text-white gap-1">
+              <Badge
+                variant="default"
+                className="bg-green-600 text-white gap-1"
+              >
                 <Wifi className="h-3 w-3" /> Connected
               </Badge>
             )}
-            {accountStatus && !accountStatus.connected && accountStatus.running && (
-              <Badge variant="default" className="bg-yellow-600 text-white gap-1">
-                <Loader2 className="h-3 w-3 animate-spin" /> Connecting
-              </Badge>
-            )}
-            {accountStatus && !accountStatus.connected && !accountStatus.running && channel.enabled && (
-              <Badge variant="destructive" className="gap-1">
-                <WifiOff className="h-3 w-3" /> Offline
-              </Badge>
-            )}
+            {accountStatus &&
+              !accountStatus.connected &&
+              accountStatus.running && (
+                <Badge
+                  variant="default"
+                  className="bg-yellow-600 text-white gap-1"
+                >
+                  <Loader2 className="h-3 w-3 animate-spin" /> Connecting
+                </Badge>
+              )}
+            {accountStatus &&
+              !accountStatus.connected &&
+              !accountStatus.running &&
+              channel.enabled && (
+                <Badge variant="destructive" className="gap-1">
+                  <WifiOff className="h-3 w-3" /> Offline
+                </Badge>
+              )}
             {!accountStatus && (
-              <Badge variant={channel.enabled ? 'default' : 'secondary'}>
-                {channel.enabled ? 'Active' : 'Disabled'}
+              <Badge variant={channel.enabled ? "default" : "secondary"}>
+                {channel.enabled ? "Active" : "Disabled"}
               </Badge>
             )}
           </div>
@@ -606,13 +738,13 @@ function ChannelCard({
           <div className="text-sm text-muted-foreground space-y-1">
             <div className="flex justify-between">
               <span>Auto-reply:</span>
-              <span>{channel.settings.autoReply ? 'On' : 'Off'}</span>
+              <span>{channel.settings.autoReply ? "On" : "Off"}</span>
             </div>
             <div className="flex justify-between">
               <span>Allowed chats:</span>
               <span>
                 {channel.settings.allowedChatIds.length === 0
-                  ? 'All'
+                  ? "All"
                   : `${channel.settings.allowedChatIds.length} chat(s)`}
               </span>
             </div>
@@ -649,7 +781,7 @@ function ChannelCard({
             </div>
           </div>
 
-          {channelName === 'whatsapp' && onQrStart && onQrWait && (
+          {channelName === "whatsapp" && onQrStart && onQrWait && (
             <div className="pt-2 border-t space-y-2">
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -658,7 +790,7 @@ function ChannelCard({
                   onClick={() => onQrStart(false)}
                   disabled={!canManage || qrState?.loading}
                 >
-                  {qrState?.loading ? 'Loading...' : 'Get QR'}
+                  {qrState?.loading ? "Loading..." : "Get QR"}
                 </Button>
                 <Button
                   variant="outline"
@@ -666,7 +798,7 @@ function ChannelCard({
                   onClick={() => onQrWait()}
                   disabled={!canManage || qrState?.waiting}
                 >
-                  {qrState?.waiting ? 'Checking...' : 'Check login'}
+                  {qrState?.waiting ? "Checking..." : "Check login"}
                 </Button>
                 <Button
                   variant="ghost"
@@ -678,7 +810,9 @@ function ChannelCard({
                 </Button>
               </div>
               {qrState?.message && (
-                <div className="text-xs text-muted-foreground">{qrState.message}</div>
+                <div className="text-xs text-muted-foreground">
+                  {qrState.message}
+                </div>
               )}
               {qrState?.error && (
                 <div className="text-xs text-destructive">{qrState.error}</div>
@@ -699,7 +833,9 @@ function ChannelCard({
           {deleteConfirm && (
             <Alert variant="destructive">
               <AlertDescription className="space-y-2">
-                <p className="text-sm">Delete this channel? This cannot be undone.</p>
+                <p className="text-sm">
+                  Delete this channel? This cannot be undone.
+                </p>
                 <div className="flex gap-2">
                   <Button
                     variant="destructive"

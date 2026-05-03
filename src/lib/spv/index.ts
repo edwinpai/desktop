@@ -5,7 +5,7 @@
  */
 
 // BEEF Parser
-export { parseBeef, serializeBeef } from './beef-parser';
+export { parseBeef, serializeBeef } from "./beef-parser";
 
 // BUMP Parser
 export {
@@ -14,7 +14,7 @@ export {
   parseBlockHeader,
   serializeBlockHeader,
   validateBlockHeaderPoW,
-} from './bump-parser';
+} from "./bump-parser";
 
 // Merkle Calculator
 export {
@@ -27,7 +27,7 @@ export {
   validateMerkleProofStructure,
   calculateConfirmations,
   estimateBlockPosition,
-} from './merkle-calculator';
+} from "./merkle-calculator";
 
 // SPV Verifier
 export {
@@ -37,4 +37,4 @@ export {
   verifyBatch,
   type SpvVerificationOptions,
   type SpvVerificationResult,
-} from './spv-verifier';
+} from "./spv-verifier";

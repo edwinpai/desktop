@@ -8,7 +8,7 @@
  * for decentralized applications (e.g., subscription tracking, channel state).
  */
 
-import type { BeefEnvelope, MerkleProof } from './spv';
+import type { BeefEnvelope, MerkleProof } from "./spv";
 
 // --- Topic Manager Types ---
 
@@ -55,7 +55,9 @@ export interface TopicManager {
   /** Query UTXOs in topic */
   query: (filter: UtxoFilter) => Promise<UtxoQueryResult>;
   /** Subscribe to topic updates (SSE) */
-  subscribe: (callback: (event: TopicEvent) => void) => Promise<TopicSubscription>;
+  subscribe: (
+    callback: (event: TopicEvent) => void,
+  ) => Promise<TopicSubscription>;
 }
 
 // --- BEEF Submission (Arcade/STEAK pattern) ---
@@ -71,7 +73,7 @@ export interface ArcadeSubmission {
   /** Topics to submit to */
   topics: string[];
   /** Submission mode */
-  mode: 'current-tx' | 'historical-tx' | 'historical-tx-no-spv';
+  mode: "current-tx" | "historical-tx" | "historical-tx-no-spv";
   /** Off-chain value assignments (for internal accounting) */
   offChainValues?: number[];
 }
@@ -188,13 +190,17 @@ export interface TopicSubscription {
  */
 export interface TopicEvent {
   /** Event type */
-  type: 'utxo_added' | 'utxo_spent' | 'utxo_confirmed' | 'topic_updated';
+  type: "utxo_added" | "utxo_spent" | "utxo_confirmed" | "topic_updated";
   /** Topic ID */
   topicId: string;
   /** Event timestamp (ISO 8601) */
   timestamp: string;
   /** Event data */
-  data: UtxoAddedEvent | UtxoSpentEvent | UtxoConfirmedEvent | TopicUpdatedEvent;
+  data:
+    | UtxoAddedEvent
+    | UtxoSpentEvent
+    | UtxoConfirmedEvent
+    | TopicUpdatedEvent;
 }
 
 export interface UtxoAddedEvent {
@@ -234,7 +240,7 @@ export interface ArcadeConfig {
   /** Topic ID for subscriptions (e.g., "edwinpai-subscriptions") */
   subscriptionTopic: string;
   /** SPV verification mode */
-  spvMode: 'full' | 'cached' | 'trust';
+  spvMode: "full" | "cached" | "trust";
   /** Cache duration for proofs (milliseconds) */
   cacheDuration: number;
   /** Grace period before marking subscription expired (milliseconds) */
@@ -245,9 +251,9 @@ export interface ArcadeConfig {
  * Default Arcade configuration per SPEC §5.6
  */
 export const DEFAULT_ARCADE_CONFIG: ArcadeConfig = {
-  baseUrl: 'https://overlay.bsvblockchain.org',
-  subscriptionTopic: 'edwinpai-subscriptions',
-  spvMode: 'cached',
+  baseUrl: "https://overlay.bsvblockchain.org",
+  subscriptionTopic: "edwinpai-subscriptions",
+  spvMode: "cached",
   cacheDuration: 72 * 60 * 60 * 1000, // 72 hours
-  gracePeriod: 72 * 60 * 60 * 1000,    // 72 hours
+  gracePeriod: 72 * 60 * 60 * 1000, // 72 hours
 };

@@ -5,24 +5,24 @@
  * pause/resume, and level filtering.
  */
 
-import { useEffect, useRef, useState } from 'react';
-import { Play, Pause, Trash2, FileText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { StyledSelect } from '@/components/ui/styled-select';
-import { useLogTail, type LogLine } from '@/hooks/useLogTail';
-import { cn } from '@/lib/utils';
+import { useEffect, useRef, useState } from "react";
+import { Play, Pause, Trash2, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { StyledSelect } from "@/components/ui/styled-select";
+import { useLogTail, type LogLine } from "@/hooks/useLogTail";
+import { cn } from "@/lib/utils";
 
 const LEVEL_COLORS: Record<string, string> = {
-  DEBUG: 'text-gray-400',
-  INFO: 'text-blue-400',
-  WARN: 'text-yellow-400',
-  ERROR: 'text-red-400',
-  FATAL: 'text-red-600 font-bold',
+  DEBUG: "text-gray-400",
+  INFO: "text-blue-400",
+  WARN: "text-yellow-400",
+  ERROR: "text-red-400",
+  FATAL: "text-red-600 font-bold",
 };
 
 export function LogViewer() {
   const { lines, isPolling, error, logFile, start, stop, clear } = useLogTail();
-  const [levelFilter, setLevelFilter] = useState<string>('all');
+  const [levelFilter, setLevelFilter] = useState<string>("all");
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -47,9 +47,10 @@ export function LogViewer() {
     setAutoScroll(isAtBottom);
   };
 
-  const filteredLines = levelFilter === 'all'
-    ? lines
-    : lines.filter((l) => l.level === levelFilter);
+  const filteredLines =
+    levelFilter === "all"
+      ? lines
+      : lines.filter((l) => l.level === levelFilter);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -79,11 +80,17 @@ export function LogViewer() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => isPolling ? stop() : start()}
+            onClick={() => (isPolling ? stop() : start())}
             className="h-7"
           >
-            {isPolling ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-            <span className="ml-1 text-xs">{isPolling ? 'Pause' : 'Resume'}</span>
+            {isPolling ? (
+              <Pause className="h-3 w-3" />
+            ) : (
+              <Play className="h-3 w-3" />
+            )}
+            <span className="ml-1 text-xs">
+              {isPolling ? "Pause" : "Resume"}
+            </span>
           </Button>
           <Button variant="ghost" size="sm" onClick={clear} className="h-7">
             <Trash2 className="h-3 w-3" />
@@ -106,39 +113,55 @@ export function LogViewer() {
       >
         {filteredLines.length === 0 ? (
           <div className="text-gray-500 text-center py-8">
-            {isPolling ? 'Waiting for log lines...' : 'Log viewer paused. Click Resume to start.'}
+            {isPolling
+              ? "Waiting for log lines..."
+              : "Log viewer paused. Click Resume to start."}
           </div>
         ) : (
-          filteredLines.map((line, i) => (
-            <LogLineRow key={i} line={line} />
-          ))
+          filteredLines.map((line, i) => <LogLineRow key={i} line={line} />)
         )}
       </div>
 
       {/* Footer */}
       <div className="px-4 py-1 border-t bg-background text-xs text-muted-foreground flex items-center justify-between">
-        <span>{filteredLines.length} lines{levelFilter !== 'all' ? ` (filtered from ${lines.length})` : ''}</span>
-        <span>{autoScroll ? 'Auto-scroll on' : 'Auto-scroll off (scroll to bottom to re-enable)'}</span>
+        <span>
+          {filteredLines.length} lines
+          {levelFilter !== "all" ? ` (filtered from ${lines.length})` : ""}
+        </span>
+        <span>
+          {autoScroll
+            ? "Auto-scroll on"
+            : "Auto-scroll off (scroll to bottom to re-enable)"}
+        </span>
       </div>
     </div>
   );
 }
 
 function LogLineRow({ line }: { line: LogLine }) {
-  const levelColor = line.level ? LEVEL_COLORS[line.level] ?? 'text-gray-300' : 'text-gray-300';
+  const levelColor = line.level
+    ? (LEVEL_COLORS[line.level] ?? "text-gray-300")
+    : "text-gray-300";
 
   if (!line.parsed) {
-    return <div className="text-gray-300 whitespace-pre-wrap break-all">{line.raw}</div>;
+    return (
+      <div className="text-gray-300 whitespace-pre-wrap break-all">
+        {line.raw}
+      </div>
+    );
   }
 
   return (
     <div className="whitespace-pre-wrap break-all hover:bg-white/5">
       {line.timestamp && (
-        <span className="text-gray-500">{formatTimestamp(line.timestamp)} </span>
+        <span className="text-gray-500">
+          {formatTimestamp(line.timestamp)}{" "}
+        </span>
       )}
       {line.level && (
-        <span className={cn('font-semibold', levelColor)}>
-          {line.level.padEnd(5)} </span>
+        <span className={cn("font-semibold", levelColor)}>
+          {line.level.padEnd(5)}{" "}
+        </span>
       )}
       <span className="text-gray-200">{line.message}</span>
     </div>
@@ -149,7 +172,10 @@ function formatTimestamp(ts: string): string {
   try {
     const date = new Date(ts);
     if (isNaN(date.getTime())) return ts;
-    return date.toLocaleTimeString('en-US', { hour12: false, fractionalSecondDigits: 3 });
+    return date.toLocaleTimeString("en-US", {
+      hour12: false,
+      fractionalSecondDigits: 3,
+    });
   } catch {
     return ts;
   }

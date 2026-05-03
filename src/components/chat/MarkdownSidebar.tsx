@@ -22,7 +22,7 @@ export function MarkdownSidebar({
   initialWidth = DEFAULT_WIDTH,
 }: MarkdownSidebarProps) {
   const [width, setWidth] = useState(
-    Math.min(Math.max(initialWidth, MIN_WIDTH), MAX_WIDTH)
+    Math.min(Math.max(initialWidth, MIN_WIDTH), MAX_WIDTH),
   );
   const isDragging = useRef(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -65,7 +65,7 @@ export function MarkdownSidebar({
       className={cn(
         "fixed top-0 right-0 h-full bg-background border-l shadow-lg z-50",
         "flex flex-col transition-transform duration-200 ease-in-out",
-        isOpen ? "translate-x-0" : "translate-x-full"
+        isOpen ? "translate-x-0" : "translate-x-full",
       )}
       style={{ width }}
     >

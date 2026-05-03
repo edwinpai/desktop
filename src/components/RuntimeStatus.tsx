@@ -5,12 +5,25 @@
  * status and readiness for gateway startup.
  */
 
-import { useState, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, Loader2, Package, Terminal, Wifi } from 'lucide-react';
-import { readConfig } from '@/lib/config';
+import { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Package,
+  Terminal,
+  Wifi,
+} from "lucide-react";
+import { readConfig } from "@/lib/config";
 
 interface RuntimeInfo {
   nodeAvailable: boolean;
@@ -32,7 +45,7 @@ export function RuntimeStatus() {
     (async () => {
       try {
         const [status, config] = await Promise.all([
-          invoke<RuntimeInfo>('check_runtime'),
+          invoke<RuntimeInfo>("check_runtime"),
           readConfig().catch(() => null),
         ]);
         setRuntime(status);
@@ -41,15 +54,18 @@ export function RuntimeStatus() {
         if (config?.gatewayUrl) {
           try {
             const url = new URL(config.gatewayUrl);
-            const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+            const isLocal =
+              url.hostname === "localhost" || url.hostname === "127.0.0.1";
             setIsRemoteGateway(!isLocal);
             if (!isLocal) {
-              setGatewayLabel(`${url.hostname}:${url.port || '18789'}`);
+              setGatewayLabel(`${url.hostname}:${url.port || "18789"}`);
             }
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
         }
       } catch (err) {
-        console.error('Failed to check runtime:', err);
+        console.error("Failed to check runtime:", err);
       } finally {
         setLoading(false);
       }
@@ -61,7 +77,9 @@ export function RuntimeStatus() {
       <Card>
         <CardContent className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-muted-foreground">Checking runtime...</span>
+          <span className="ml-2 text-muted-foreground">
+            Checking runtime...
+          </span>
         </CardContent>
       </Card>
     );
@@ -80,8 +98,8 @@ export function RuntimeStatus() {
             </CardTitle>
             <CardDescription>
               {isRemoteGateway
-                ? 'Local runtime status (connected to remote gateway)'
-                : 'Runtime environment for running the EdwinPAI gateway locally'}
+                ? "Local runtime status (connected to remote gateway)"
+                : "Runtime environment for running the EdwinPAI gateway locally"}
             </CardDescription>
           </div>
           {isRemoteGateway && gatewayLabel ? (
@@ -89,8 +107,18 @@ export function RuntimeStatus() {
               <Wifi className="h-3 w-3" /> {gatewayLabel}
             </Badge>
           ) : (
-            <Badge variant={runtime.ready ? 'default' : 'destructive'}>
-              {runtime.ready ? <><CheckCircle className="h-4 w-4 inline text-green-500 mr-1" />Ready</> : <><XCircle className="h-4 w-4 inline text-red-500 mr-1" />Not Ready</>}
+            <Badge variant={runtime.ready ? "default" : "destructive"}>
+              {runtime.ready ? (
+                <>
+                  <CheckCircle className="h-4 w-4 inline text-green-500 mr-1" />
+                  Ready
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-4 w-4 inline text-red-500 mr-1" />
+                  Not Ready
+                </>
+              )}
             </Badge>
           )}
         </div>
@@ -106,7 +134,9 @@ export function RuntimeStatus() {
             {runtime.nodeAvailable ? (
               <>
                 <CheckCircle className="h-4 w-4 text-green-600" />
-                <span className="text-sm text-muted-foreground">{runtime.nodeVersion}</span>
+                <span className="text-sm text-muted-foreground">
+                  {runtime.nodeVersion}
+                </span>
               </>
             ) : (
               <>
@@ -128,7 +158,7 @@ export function RuntimeStatus() {
               <>
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <span className="text-sm text-muted-foreground">
-                  {runtime.edwinpaiVersion || 'installed'}
+                  {runtime.edwinpaiVersion || "installed"}
                 </span>
               </>
             ) : (
@@ -156,7 +186,9 @@ export function RuntimeStatus() {
             <span className="text-sm">Bundled Runtime</span>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-sm text-muted-foreground">~/.edwinpai/runtime/</span>
+              <span className="text-sm text-muted-foreground">
+                ~/.edwinpai/runtime/
+              </span>
             </div>
           </div>
         )}
@@ -164,18 +196,21 @@ export function RuntimeStatus() {
         {/* Not ready guidance — only show as error for local gateway */}
         {!runtime.ready && !isRemoteGateway && (
           <div className="mt-4 p-3 rounded-md bg-destructive/10 text-sm">
-            <p className="font-medium text-destructive mb-1">Gateway cannot start locally</p>
+            <p className="font-medium text-destructive mb-1">
+              Gateway cannot start locally
+            </p>
             <p className="text-muted-foreground">
               {!runtime.nodeAvailable
-                ? 'Node.js is required. Install from nodejs.org (v22+ recommended).'
-                : 'EdwinPAI gateway binary not found. Install with: npm install -g edwinpai'}
+                ? "Node.js is required. Install from nodejs.org (v22+ recommended)."
+                : "EdwinPAI gateway binary not found. Install with: npm install -g edwinpai"}
             </p>
           </div>
         )}
         {!runtime.ready && isRemoteGateway && (
           <div className="mt-4 p-3 rounded-md bg-muted text-sm">
             <p className="text-muted-foreground">
-              Local runtime not installed — not needed when using a remote gateway.
+              Local runtime not installed — not needed when using a remote
+              gateway.
             </p>
           </div>
         )}

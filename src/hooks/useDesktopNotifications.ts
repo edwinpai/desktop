@@ -43,7 +43,7 @@ export function useDesktopNotifications({
       if (document.hasFocus()) return; // Don't notify if window is focused
       sendNotification({ title, body });
     },
-    [enabled]
+    [enabled],
   );
 
   // Notify on new assistant message

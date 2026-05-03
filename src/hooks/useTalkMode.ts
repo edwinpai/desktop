@@ -11,11 +11,11 @@
  * before passing to the LLM, so we don't need client-side STT.
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from "react";
 
-import { useAudioPlayback } from './useAudioPlayback';
+import { useAudioPlayback } from "./useAudioPlayback";
 
-export type TalkPhase = 'idle' | 'listening' | 'processing' | 'speaking';
+export type TalkPhase = "idle" | "listening" | "processing" | "speaking";
 
 export interface UseTalkModeOpts {
   /** Send a chat message with attachments */
@@ -36,7 +36,7 @@ export interface UseTalkModeOpts {
     params?: Record<string, unknown>,
   ) => Promise<T>;
   /** Gateway kind for audio playback routing */
-  gatewayKind?: 'local' | 'docker' | 'remote';
+  gatewayKind?: "local" | "docker" | "remote";
   /** Auto-play TTS for voice-initiated messages */
   autoTts?: boolean;
 }
@@ -44,23 +44,30 @@ export interface UseTalkModeOpts {
 export function useTalkMode({
   onSendMessage,
   request,
-  gatewayKind = 'local',
+  gatewayKind = "local",
   autoTts = true,
 }: UseTalkModeOpts) {
-  const [phase, setPhase] = useState<TalkPhase>('idle');
+  const [phase, setPhase] = useState<TalkPhase>("idle");
   const [error, setError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const waitingForReplyRef = useRef(false);
 
-  const { play, stop: stopPlayback, isPlaying } = useAudioPlayback({
+  const {
+    play,
+    stop: stopPlayback,
+    isPlaying,
+  } = useAudioPlayback({
     gatewayKind,
     onError: (err) => setError(`Playback error: ${err.message}`),
   });
 
   const stopMic = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== "inactive"
+    ) {
       mediaRecorderRef.current.stop();
     }
     if (streamRef.current) {
@@ -79,9 +86,9 @@ export function useTalkMode({
       streamRef.current = stream;
 
       // Prefer webm/opus, fall back to whatever is available
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm';
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm";
       const recorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
@@ -96,23 +103,23 @@ export function useTalkMode({
 
         if (blob.size < 1000) {
           // Too short, probably accidental — go back to idle
-          setPhase('idle');
+          setPhase("idle");
           return;
         }
 
-        setPhase('processing');
+        setPhase("processing");
         waitingForReplyRef.current = autoTts;
 
         // Convert to base64 and send as attachment
         const buffer = await blob.arrayBuffer();
         const base64 = arrayBufferToBase64(buffer);
 
-        onSendMessage('', {
+        onSendMessage("", {
           attachments: [
             {
-              type: 'audio',
-              mimeType: mimeType.split(';')[0] ?? 'audio/webm',
-              fileName: 'voice.webm',
+              type: "audio",
+              mimeType: mimeType.split(";")[0] ?? "audio/webm",
+              fileName: "voice.webm",
               content: base64,
             },
           ],
@@ -120,15 +127,18 @@ export function useTalkMode({
       };
 
       recorder.start(250); // collect in 250ms chunks
-      setPhase('listening');
+      setPhase("listening");
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes('Permission denied') || msg.includes('NotAllowedError')) {
-        setError('Microphone access denied. Check system permissions.');
+      if (
+        msg.includes("Permission denied") ||
+        msg.includes("NotAllowedError")
+      ) {
+        setError("Microphone access denied. Check system permissions.");
       } else {
         setError(`Mic error: ${msg}`);
       }
-      setPhase('idle');
+      setPhase("idle");
     }
   }, [onSendMessage, autoTts]);
 
@@ -147,24 +157,26 @@ export function useTalkMode({
       waitingForReplyRef.current = false;
 
       if (!replyText.trim()) {
-        setPhase('idle');
+        setPhase("idle");
         return;
       }
 
-      setPhase('speaking');
+      setPhase("speaking");
       try {
         const result = await request<{
           audioPath?: string;
           outputFormat?: string;
-        }>('tts.convert', { text: replyText });
+        }>("tts.convert", { text: replyText });
 
         if (result.audioPath) {
           await play(result.audioPath, result.outputFormat);
         }
       } catch (err) {
-        setError(`TTS error: ${err instanceof Error ? err.message : String(err)}`);
+        setError(
+          `TTS error: ${err instanceof Error ? err.message : String(err)}`,
+        );
       } finally {
-        setPhase('idle');
+        setPhase("idle");
       }
     },
     [request, play],
@@ -173,17 +185,17 @@ export function useTalkMode({
   /** Toggle talk mode: start listening or stop current activity */
   const toggle = useCallback(() => {
     switch (phase) {
-      case 'idle':
+      case "idle":
         startListening();
         break;
-      case 'listening':
+      case "listening":
         stopListening();
         break;
-      case 'speaking':
+      case "speaking":
         stopPlayback();
-        setPhase('idle');
+        setPhase("idle");
         break;
-      case 'processing':
+      case "processing":
         // Can't cancel processing, just wait
         break;
     }
@@ -194,7 +206,7 @@ export function useTalkMode({
     stopMic();
     stopPlayback();
     waitingForReplyRef.current = false;
-    setPhase('idle');
+    setPhase("idle");
     setError(null);
   }, [stopMic, stopPlayback]);
 
@@ -212,11 +224,11 @@ export function useTalkMode({
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
-  let binary = '';
+  let binary = "";
   for (let i = 0; i < bytes.byteLength; i++) {
     const byte = bytes[i];
     if (byte === undefined) {
-      throw new Error('Unexpected missing byte while encoding audio');
+      throw new Error("Unexpected missing byte while encoding audio");
     }
     binary += String.fromCharCode(byte);
   }

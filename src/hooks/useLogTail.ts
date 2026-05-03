@@ -4,14 +4,14 @@
  * Uses cursor-based pagination to fetch new log lines incrementally.
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   callGatewayMethod,
   resolveToken,
   inferGatewayKind,
   type GatewayTarget,
-} from '@/lib/gateway-context';
-import { readConfig } from '@/lib/config';
+} from "@/lib/gateway-context";
+import { readConfig } from "@/lib/config";
 
 export interface LogLine {
   raw: string;
@@ -54,7 +54,7 @@ export function useLogTail({
 
   const buildTarget = useCallback(async (): Promise<GatewayTarget> => {
     const cfg = await readConfig();
-    const url = cfg.gatewayUrl || 'http://localhost:18789';
+    const url = cfg.gatewayUrl || "http://localhost:18789";
     const token = cfg.gatewayToken || (await resolveToken());
     return { url, token: token || undefined, kind: inferGatewayKind(url) };
   }, []);
@@ -66,10 +66,10 @@ export function useLogTail({
       }
       const result = (await callGatewayMethod(
         targetRef.current,
-        'logs.tail',
+        "logs.tail",
         { cursor: cursorRef.current, limit },
         10_000,
-        'logs.tail timed out',
+        "logs.tail timed out",
       )) as LogTailResult;
 
       if (result.reset) {

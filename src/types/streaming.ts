@@ -152,7 +152,7 @@ export function isSSEMessage(value: unknown): value is SSEMessage {
  * Type guard for ChatCompletionChunk (imported from api.ts)
  */
 export function isChatCompletionChunk(
-  value: unknown
+  value: unknown,
 ): value is ChatCompletionChunk {
   return (
     typeof value === "object" &&
@@ -168,7 +168,7 @@ export function isChatCompletionChunk(
  * Type guard for ChatCompletionDelta
  */
 export function isChatCompletionDelta(
-  value: unknown
+  value: unknown,
 ): value is ChatCompletionDelta {
   if (typeof value !== "object" || value === null) {
     return false;
@@ -275,7 +275,7 @@ export interface StreamingChatCompletionResponse {
  * Validate GatewayClientConfig
  */
 export function isValidGatewayClientConfig(
-  value: unknown
+  value: unknown,
 ): value is GatewayClientConfig {
   if (typeof value !== "object" || value === null) {
     return false;
@@ -295,7 +295,7 @@ export function isValidGatewayClientConfig(
  * Validate StreamingChatMessage
  */
 export function isValidStreamingChatMessage(
-  value: unknown
+  value: unknown,
 ): value is StreamingChatMessage {
   if (typeof value !== "object" || value === null) {
     return false;

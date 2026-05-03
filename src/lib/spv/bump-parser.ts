@@ -14,7 +14,7 @@
  * - Hashes (32 bytes each, only for non-computed nodes)
  */
 
-import type { MerkleProof, MerkleProofNode, BlockHeader } from '@/types';
+import type { MerkleProof, MerkleProofNode, BlockHeader } from "@/types";
 
 /**
  * Parse BUMP (Binary Unified Merkle Path) format
@@ -50,7 +50,7 @@ export function parseBump(bumpBytes: Uint8Array): MerkleProof {
     const hash = reader.readBytes(32).reverse(); // Reverse for display
 
     nodes.push({
-      hash: Buffer.from(hash).toString('hex'),
+      hash: Buffer.from(hash).toString("hex"),
       isLeft,
     });
   }
@@ -60,7 +60,7 @@ export function parseBump(bumpBytes: Uint8Array): MerkleProof {
   return {
     txIndex,
     blockHeight,
-    merkleRoot: '', // Will be computed during verification
+    merkleRoot: "", // Will be computed during verification
     nodes,
   };
 }
@@ -100,7 +100,7 @@ export function serializeBump(proof: MerkleProof): Uint8Array {
 
   // Write hashes (reverse for wire format)
   for (const node of proof.nodes) {
-    const hashBytes = Buffer.from(node.hash, 'hex').reverse();
+    const hashBytes = Buffer.from(node.hash, "hex").reverse();
     writer.writeBytes(hashBytes);
   }
 
@@ -114,7 +114,9 @@ export function serializeBump(proof: MerkleProof): Uint8Array {
  */
 export function parseBlockHeader(headerBytes: Uint8Array): BlockHeader {
   if (headerBytes.length !== 80) {
-    throw new Error(`Invalid block header length: ${headerBytes.length} (expected 80)`);
+    throw new Error(
+      `Invalid block header length: ${headerBytes.length} (expected 80)`,
+    );
   }
 
   const reader = new BumpReader(headerBytes);
@@ -144,8 +146,8 @@ export function parseBlockHeader(headerBytes: Uint8Array): BlockHeader {
     height: 0, // Height not included in header, must be provided separately
     hash,
     version,
-    prevHash: Buffer.from(prevHash).toString('hex'),
-    merkleRoot: Buffer.from(merkleRoot).toString('hex'),
+    prevHash: Buffer.from(prevHash).toString("hex"),
+    merkleRoot: Buffer.from(merkleRoot).toString("hex"),
     timestamp,
     bits,
     nonce,
@@ -164,11 +166,11 @@ export function serializeBlockHeader(header: BlockHeader): Uint8Array {
   writer.writeUint32LE(header.version);
 
   // Write previous block hash (reverse for wire format)
-  const prevHashBytes = Buffer.from(header.prevHash, 'hex').reverse();
+  const prevHashBytes = Buffer.from(header.prevHash, "hex").reverse();
   writer.writeBytes(prevHashBytes);
 
   // Write merkle root (reverse for wire format)
-  const merkleRootBytes = Buffer.from(header.merkleRoot, 'hex').reverse();
+  const merkleRootBytes = Buffer.from(header.merkleRoot, "hex").reverse();
   writer.writeBytes(merkleRootBytes);
 
   // Write timestamp
@@ -190,7 +192,7 @@ function calculateBlockHash(headerBytes: Uint8Array): string {
   // Use Web Crypto API for SHA-256
   const hash1 = sha256(headerBytes);
   const hash2 = sha256(hash1);
-  return Buffer.from(hash2).reverse().toString('hex');
+  return Buffer.from(hash2).reverse().toString("hex");
 }
 
 /**
@@ -204,7 +206,9 @@ function sha256(_data: Uint8Array): Uint8Array {
   // - Or @noble/hashes: sha256(data)
 
   // For now, throw error - implementation required
-  throw new Error('SHA-256 not implemented - use Web Crypto API or crypto library');
+  throw new Error(
+    "SHA-256 not implemented - use Web Crypto API or crypto library",
+  );
 }
 
 /**
@@ -218,7 +222,7 @@ export function validateBlockHeaderPoW(header: BlockHeader): boolean {
   const target = calculateTargetFromBits(header.bits);
 
   // Block hash must be less than target
-  const hashValue = BigInt('0x' + header.hash);
+  const hashValue = BigInt("0x" + header.hash);
 
   return hashValue < target;
 }
@@ -248,15 +252,18 @@ class BumpReader {
   readUint8(): number {
     const value = this.data[this.position];
     if (value === undefined) {
-      throw new Error('Unexpected end of BUMP data');
+      throw new Error("Unexpected end of BUMP data");
     }
     this.position += 1;
     return value;
   }
 
   readUint32LE(): number {
-    const value = new DataView(this.data.buffer, this.data.byteOffset + this.position, 4)
-      .getUint32(0, true);
+    const value = new DataView(
+      this.data.buffer,
+      this.data.byteOffset + this.position,
+      4,
+    ).getUint32(0, true);
     this.position += 4;
     return value;
   }
@@ -277,15 +284,21 @@ class BumpReader {
   }
 
   readUint16LE(): number {
-    const value = new DataView(this.data.buffer, this.data.byteOffset + this.position, 2)
-      .getUint16(0, true);
+    const value = new DataView(
+      this.data.buffer,
+      this.data.byteOffset + this.position,
+      2,
+    ).getUint16(0, true);
     this.position += 2;
     return value;
   }
 
   readUint64LE(): bigint {
-    const value = new DataView(this.data.buffer, this.data.byteOffset + this.position, 8)
-      .getBigUint64(0, true);
+    const value = new DataView(
+      this.data.buffer,
+      this.data.byteOffset + this.position,
+      8,
+    ).getBigUint64(0, true);
     this.position += 8;
     return value;
   }

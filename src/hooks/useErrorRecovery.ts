@@ -4,8 +4,8 @@
  * Hook for connection recovery with exponential backoff (5s → 10s → 20s).
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 export interface ErrorRecoveryOptions {
   maxRetries?: number;
@@ -27,7 +27,8 @@ export interface ErrorRecoveryState {
 const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_DELAYS = [5000, 10000, 20000] as const; // 5s, 10s, 20s
 const DEFAULT_BASE_DELAY: number = DEFAULT_DELAYS[0];
-const DEFAULT_MAX_DELAY: number = DEFAULT_DELAYS[DEFAULT_DELAYS.length - 1] ?? 20000;
+const DEFAULT_MAX_DELAY: number =
+  DEFAULT_DELAYS[DEFAULT_DELAYS.length - 1] ?? 20000;
 
 /**
  * Hook for automatic error recovery with exponential backoff.
@@ -86,107 +87,119 @@ export function useErrorRecovery(options: ErrorRecoveryOptions = {}) {
   /**
    * Calculate next retry delay with exponential backoff.
    */
-  const getRetryDelay = useCallback((attempt: number): number => {
-    if (attempt < DEFAULT_DELAYS.length) {
-      return DEFAULT_DELAYS[attempt] ?? DEFAULT_BASE_DELAY;
-    }
+  const getRetryDelay = useCallback(
+    (attempt: number): number => {
+      if (attempt < DEFAULT_DELAYS.length) {
+        return DEFAULT_DELAYS[attempt] ?? DEFAULT_BASE_DELAY;
+      }
 
-    // Exponential backoff: delay = baseDelay * 2^attempt
-    const delay = effectiveBaseDelay * Math.pow(2, attempt);
-    return Math.min(delay, effectiveMaxDelay);
-  }, [effectiveBaseDelay, effectiveMaxDelay]);
+      // Exponential backoff: delay = baseDelay * 2^attempt
+      const delay = effectiveBaseDelay * Math.pow(2, attempt);
+      return Math.min(delay, effectiveMaxDelay);
+    },
+    [effectiveBaseDelay, effectiveMaxDelay],
+  );
 
   /**
    * Execute retry attempt.
    */
-  const executeRetry = useCallback(async (initialError: Error, initialAttempt: number): Promise<boolean> => {
-    let error = initialError;
+  const executeRetry = useCallback(
+    async (initialError: Error, initialAttempt: number): Promise<boolean> => {
+      let error = initialError;
 
-    for (let attempt = initialAttempt; attempt < maxRetries; attempt += 1) {
-      const delay = getRetryDelay(attempt);
+      for (let attempt = initialAttempt; attempt < maxRetries; attempt += 1) {
+        const delay = getRetryDelay(attempt);
 
-      setState(prev => ({
-        ...prev,
-        isRecovering: true,
-        retryCount: attempt + 1,
-        nextRetryDelay: delay,
-      }));
-
-      if (showToast) {
-        toast.info('Connection lost', {
-          description: `Retrying in ${delay / 1000}s... (${attempt + 1}/${maxRetries})`,
-          duration: delay,
-        });
-      }
-
-      await new Promise<void>((resolve) => {
-        retryTimeoutRef.current = setTimeout(() => resolve(), delay);
-      });
-
-      try {
-        await onRetry?.(attempt + 1);
-
-        setState({
-          isRecovering: false,
-          retryCount: 0,
-          lastError: null,
-          nextRetryDelay: null,
-        });
+        setState((prev) => ({
+          ...prev,
+          isRecovering: true,
+          retryCount: attempt + 1,
+          nextRetryDelay: delay,
+        }));
 
         if (showToast) {
-          toast.success('Connection restored', {
-            description: 'Successfully reconnected',
+          toast.info("Connection lost", {
+            description: `Retrying in ${delay / 1000}s... (${attempt + 1}/${maxRetries})`,
+            duration: delay,
           });
         }
 
-        onSuccess?.();
-        return true;
-      } catch (retryError) {
-        error = retryError instanceof Error ? retryError : new Error('Retry failed');
+        await new Promise<void>((resolve) => {
+          retryTimeoutRef.current = setTimeout(() => resolve(), delay);
+        });
 
-        setState(prev => ({
-          ...prev,
-          lastError: error,
-        }));
+        try {
+          await onRetry?.(attempt + 1);
+
+          setState({
+            isRecovering: false,
+            retryCount: 0,
+            lastError: null,
+            nextRetryDelay: null,
+          });
+
+          if (showToast) {
+            toast.success("Connection restored", {
+              description: "Successfully reconnected",
+            });
+          }
+
+          onSuccess?.();
+          return true;
+        } catch (retryError) {
+          error =
+            retryError instanceof Error
+              ? retryError
+              : new Error("Retry failed");
+
+          setState((prev) => ({
+            ...prev,
+            lastError: error,
+          }));
+        }
       }
-    }
 
-    setState(prev => ({
-      ...prev,
-      isRecovering: false,
-      nextRetryDelay: null,
-    }));
+      setState((prev) => ({
+        ...prev,
+        isRecovering: false,
+        nextRetryDelay: null,
+      }));
 
-    if (showToast) {
-      toast.error('Recovery failed', {
-        description: 'Maximum retry attempts reached',
-      });
-    }
+      if (showToast) {
+        toast.error("Recovery failed", {
+          description: "Maximum retry attempts reached",
+        });
+      }
 
-    onFailure?.(error);
-    return false;
-  }, [maxRetries, getRetryDelay, onRetry, onSuccess, onFailure, showToast]);
+      onFailure?.(error);
+      return false;
+    },
+    [maxRetries, getRetryDelay, onRetry, onSuccess, onFailure, showToast],
+  );
 
   /**
    * Start recovery process.
    */
-  const recover = useCallback(async (error: Error): Promise<boolean> => {
-    // Cancel any ongoing recovery
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
+  const recover = useCallback(
+    async (error: Error): Promise<boolean> => {
+      // Cancel any ongoing recovery
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
 
-    abortControllerRef.current = new AbortController();
+      abortControllerRef.current = new AbortController();
 
-    setState({
-      isRecovering: true,
-      retryCount: 0,
-      lastError: error,
-      nextRetryDelay: DEFAULT_DELAYS[0] ?? null,
-    });
+      setState({
+        isRecovering: true,
+        retryCount: 0,
+        lastError: error,
+        nextRetryDelay: DEFAULT_DELAYS[0] ?? null,
+      });
 
-    return executeRetry(error, 0);
-  }, [executeRetry]);
+      return executeRetry(error, 0);
+    },
+    [executeRetry],
+  );
 
   /**
    * Reset recovery state.
@@ -277,28 +290,32 @@ export function useConnectionRecovery(options: {
   /**
    * Wrap an async function with automatic error recovery.
    */
-  const wrapAsync = useCallback(<T extends unknown[], R>(
-    fn: (...args: T) => Promise<R>
-  ): (...args: T) => Promise<R> => {
-    return async (...args: T): Promise<R> => {
-      try {
-        return await fn(...args);
-      } catch (error) {
-        const err = error instanceof Error ? error : new Error('Unknown error');
-
-        // Check if error is recoverable (network/IPC errors)
-        if (isRecoverableError(err)) {
-          await recover(err);
-
-          // Retry the original operation after recovery
+  const wrapAsync = useCallback(
+    <T extends unknown[], R>(
+      fn: (...args: T) => Promise<R>,
+    ): ((...args: T) => Promise<R>) => {
+      return async (...args: T): Promise<R> => {
+        try {
           return await fn(...args);
-        }
+        } catch (error) {
+          const err =
+            error instanceof Error ? error : new Error("Unknown error");
 
-        // Non-recoverable error, rethrow
-        throw error;
-      }
-    };
-  }, [recover]);
+          // Check if error is recoverable (network/IPC errors)
+          if (isRecoverableError(err)) {
+            await recover(err);
+
+            // Retry the original operation after recovery
+            return await fn(...args);
+          }
+
+          // Non-recoverable error, rethrow
+          throw error;
+        }
+      };
+    },
+    [recover],
+  );
 
   return {
     wrapAsync,
@@ -316,12 +333,12 @@ function isRecoverableError(error: Error): boolean {
   const name = error.name.toLowerCase();
 
   return (
-    message.includes('network') ||
-    message.includes('timeout') ||
-    message.includes('connection') ||
-    message.includes('ipc') ||
-    message.includes('tauri') ||
-    name.includes('networkerror') ||
-    name.includes('timeouterror')
+    message.includes("network") ||
+    message.includes("timeout") ||
+    message.includes("connection") ||
+    message.includes("ipc") ||
+    message.includes("tauri") ||
+    name.includes("networkerror") ||
+    name.includes("timeouterror")
   );
 }

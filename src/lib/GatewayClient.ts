@@ -5,17 +5,14 @@
  * Handles authentication, retry logic, and error recovery.
  */
 
-import type {
-  ChatCompletionRequest,
-  ChatCompletionChunk,
-} from '@/types/api';
+import type { ChatCompletionRequest, ChatCompletionChunk } from "@/types/api";
 
 import type {
   GatewayClientConfig,
   StreamingChatCompletionRequest,
-} from '@/types/streaming';
+} from "@/types/streaming";
 
-import { DEFAULT_GATEWAY_CLIENT_CONFIG } from '@/types/streaming';
+import { DEFAULT_GATEWAY_CLIENT_CONFIG } from "@/types/streaming";
 
 // ============================================================================
 // Gateway Client
@@ -53,7 +50,7 @@ export class GatewayClient {
    * ```
    */
   async *sendMessage(
-    request: StreamingChatCompletionRequest
+    request: StreamingChatCompletionRequest,
   ): AsyncGenerator<ChatCompletionChunk, void, unknown> {
     const abortController = new AbortController();
     let response: Response | null = null;
@@ -61,10 +58,10 @@ export class GatewayClient {
     try {
       // Fetch SSE stream
       response = await fetch(`${this.config.baseURL}/v1/chat/completions`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.authToken}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.config.authToken}`,
         },
         body: JSON.stringify(request),
         signal: abortController.signal,
@@ -89,13 +86,13 @@ export class GatewayClient {
 
       // Check for body
       if (!response.body) {
-        throw new Error('Response body is null');
+        throw new Error("Response body is null");
       }
 
       // Process SSE stream
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let buffer = '';
+      let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -108,25 +105,25 @@ export class GatewayClient {
         buffer += decoder.decode(value, { stream: true });
 
         // Split by double newline (SSE event boundary)
-        const events = buffer.split('\n\n');
+        const events = buffer.split("\n\n");
 
         // Keep incomplete event in buffer
-        buffer = events.pop() ?? '';
+        buffer = events.pop() ?? "";
 
         // Process complete events
         for (const eventText of events) {
           if (!eventText.trim()) continue;
 
           // Parse SSE message: "data: {json}\n"
-          const lines = eventText.trim().split('\n');
-          const dataLine = lines.find((line) => line.startsWith('data: '));
+          const lines = eventText.trim().split("\n");
+          const dataLine = lines.find((line) => line.startsWith("data: "));
 
           if (!dataLine) continue;
 
           const jsonStr = dataLine.slice(6); // Remove "data: " prefix
 
           // Handle [DONE] signal
-          if (jsonStr === '[DONE]') {
+          if (jsonStr === "[DONE]") {
             return;
           }
 
@@ -135,13 +132,13 @@ export class GatewayClient {
             const chunk = JSON.parse(jsonStr) as ChatCompletionChunk;
             yield chunk;
           } catch (err) {
-            console.error('Failed to parse SSE chunk:', err);
+            console.error("Failed to parse SSE chunk:", err);
           }
         }
       }
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        throw new Error('Request cancelled');
+      if (err instanceof Error && err.name === "AbortError") {
+        throw new Error("Request cancelled");
       }
       throw err;
     } finally {
@@ -156,13 +153,13 @@ export class GatewayClient {
    * @returns Chat completion response
    */
   async sendMessageSync(
-    request: ChatCompletionRequest
+    request: ChatCompletionRequest,
   ): Promise<ChatCompletionChunk> {
     const response = await fetch(`${this.config.baseURL}/v1/chat/completions`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.config.authToken}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.config.authToken}`,
       },
       body: JSON.stringify({ ...request, stream: false }),
     });
@@ -209,7 +206,7 @@ export class GatewayClient {
  * Create a GatewayClient instance
  */
 export function createGatewayClient(
-  config: Partial<GatewayClientConfig>
+  config: Partial<GatewayClientConfig>,
 ): GatewayClient {
   return new GatewayClient(config);
 }

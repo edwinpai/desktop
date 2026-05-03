@@ -11,7 +11,7 @@
  * - Window resize handlers (150ms)
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * Creates a debounced function that delays invoking `func` until after `delay` milliseconds
@@ -30,7 +30,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  */
 export function debounce<TArgs extends unknown[], TResult>(
   func: (...args: TArgs) => TResult,
-  delay: number
+  delay: number,
 ): (...args: TArgs) => void {
   let timeoutId: NodeJS.Timeout | null = null;
 
@@ -94,7 +94,7 @@ export function useDebounce<T>(value: T, delay: number): T {
  */
 export function useDebouncedCallback<TArgs extends unknown[], TResult>(
   callback: (...args: TArgs) => TResult,
-  delay: number
+  delay: number,
 ): (...args: TArgs) => void {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const callbackRef = useRef(callback);
@@ -124,6 +124,6 @@ export function useDebouncedCallback<TArgs extends unknown[], TResult>(
         timeoutRef.current = null;
       }, delay);
     },
-    [delay]
+    [delay],
   );
 }

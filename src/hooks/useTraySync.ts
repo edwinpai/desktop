@@ -21,7 +21,12 @@ interface UseTrayOptions {
  * Syncs app state to the system tray menu.
  * Debounced to avoid rapid menu rebuilds that steal focus.
  */
-export function useTraySync({ isConnected, activeProfileName, sshTunnelStatus, channelCount = 0 }: UseTrayOptions) {
+export function useTraySync({
+  isConnected,
+  activeProfileName,
+  sshTunnelStatus,
+  channelCount = 0,
+}: UseTrayOptions) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastStateRef = useRef<string>("");
   const hasSkippedInitialSyncRef = useRef(false);

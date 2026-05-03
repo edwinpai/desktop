@@ -47,6 +47,6 @@ export const useIdentityStore = create<IdentityState>()(
     {
       name: "edwinpai-identity-storage",
       version: 1,
-    }
-  )
+    },
+  ),
 );

@@ -9,12 +9,17 @@
  * - CRUD operations via useChannels hook integration
  */
 
-import { create } from 'zustand';
-import type { ChannelConfig, ChannelName, WizardStep, ChannelSettings } from '@/types/channels';
-import type { AccessLevel } from '@/types/auth';
-import * as channelsApi from '@/lib/channels';
+import { create } from "zustand";
+import type {
+  ChannelConfig,
+  ChannelName,
+  WizardStep,
+  ChannelSettings,
+} from "@/types/channels";
+import type { AccessLevel } from "@/types/auth";
+import * as channelsApi from "@/lib/channels";
 
-type AppMode = 'gateway' | 'client';
+type AppMode = "gateway" | "client";
 
 interface WizardState {
   isOpen: boolean;
@@ -52,19 +57,19 @@ interface ChannelStoreState {
     channel: ChannelName,
     configuredBy: string,
     credentials: Record<string, string>,
-    settings: ChannelSettings
+    settings: ChannelSettings,
   ) => Promise<void>;
   updateChannelConfig: (
     channel: ChannelName,
     enabled?: boolean,
     credentials?: Record<string, string>,
-    settings?: ChannelSettings
+    settings?: ChannelSettings,
   ) => Promise<void>;
   deleteChannel: (channel: ChannelName) => Promise<void>;
   toggleChannel: (channel: ChannelName, enabled: boolean) => Promise<void>;
   validateCredentials: (
     channel: ChannelName,
-    credentials: Record<string, string>
+    credentials: Record<string, string>,
   ) => Promise<channelsApi.ValidationResult>;
 
   // State management
@@ -94,7 +99,7 @@ interface ChannelStoreState {
 const initialWizardState: WizardState = {
   isOpen: false,
   channel: null,
-  currentStep: 'intro',
+  currentStep: "intro",
   credentials: {},
   isValidating: false,
   validationError: null,
@@ -107,8 +112,13 @@ const POLLING_INTERVAL_MS = 30000;
 
 function toUserFacingError(err: unknown): string {
   const errorMsg = err instanceof Error ? err.message : String(err);
-  if (errorMsg.includes("Cannot read properties of undefined (reading 'invoke')") || errorMsg.includes('Failed to initialize configuration')) {
-    return 'Desktop integration is unavailable right now. Please reopen this screen inside the desktop app.';
+  if (
+    errorMsg.includes(
+      "Cannot read properties of undefined (reading 'invoke')",
+    ) ||
+    errorMsg.includes("Failed to initialize configuration")
+  ) {
+    return "Desktop integration is unavailable right now. Please reopen this screen inside the desktop app.";
   }
   return errorMsg;
 }
@@ -118,7 +128,7 @@ export const useChannelStore = create<ChannelStoreState>((set, get) => ({
   channels: [],
   isLoading: false,
   error: null,
-  mode: 'gateway',
+  mode: "gateway",
   wizard: initialWizardState,
   currentUserLevel: null,
   pollingInterval: null,
@@ -129,9 +139,10 @@ export const useChannelStore = create<ChannelStoreState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const { mode } = get();
-      const channels = mode === 'gateway'
-        ? await channelsApi.listChannelsFromGatewayConfig()
-        : await channelsApi.listChannels();
+      const channels =
+        mode === "gateway"
+          ? await channelsApi.listChannelsFromGatewayConfig()
+          : await channelsApi.listChannels();
       set({ channels, isLoading: false, lastPolledAt: new Date() });
     } catch (err) {
       set({ error: toUserFacingError(err), isLoading: false });
@@ -142,12 +153,17 @@ export const useChannelStore = create<ChannelStoreState>((set, get) => ({
   createChannel: async (channel, configuredBy, credentials, settings) => {
     // Permission check (Phase 4 integration)
     if (!get().canManageChannels()) {
-      throw new Error('Insufficient permissions to create channels');
+      throw new Error("Insufficient permissions to create channels");
     }
 
     set({ error: null });
     try {
-      await channelsApi.createChannel(channel, configuredBy, credentials, settings);
+      await channelsApi.createChannel(
+        channel,
+        configuredBy,
+        credentials,
+        settings,
+      );
       await get().loadChannels(); // Reload channels after creation
     } catch (err) {
       set({ error: toUserFacingError(err) });
@@ -159,7 +175,7 @@ export const useChannelStore = create<ChannelStoreState>((set, get) => ({
   updateChannelConfig: async (channel, enabled, credentials, settings) => {
     // Permission check (Phase 4 integration)
     if (!get().canManageChannels()) {
-      throw new Error('Insufficient permissions to update channels');
+      throw new Error("Insufficient permissions to update channels");
     }
 
     set({ error: null });
@@ -176,7 +192,7 @@ export const useChannelStore = create<ChannelStoreState>((set, get) => ({
   deleteChannel: async (channel) => {
     // Permission check (Phase 4 integration)
     if (!get().canManageChannels()) {
-      throw new Error('Insufficient permissions to delete channels');
+      throw new Error("Insufficient permissions to delete channels");
     }
 
     set({ error: null });
@@ -193,7 +209,7 @@ export const useChannelStore = create<ChannelStoreState>((set, get) => ({
   toggleChannel: async (channel, enabled) => {
     // Permission check (Phase 4 integration)
     if (!get().canManageChannels()) {
-      throw new Error('Insufficient permissions to toggle channels');
+      throw new Error("Insufficient permissions to toggle channels");
     }
 
     set({ error: null });
@@ -231,7 +247,7 @@ export const useChannelStore = create<ChannelStoreState>((set, get) => ({
         isOpen: true,
         channel,
         editMode,
-        currentStep: editMode ? 'credentials' : 'intro',
+        currentStep: editMode ? "credentials" : "intro",
       },
     }),
 
@@ -302,6 +318,6 @@ export const useChannelStore = create<ChannelStoreState>((set, get) => ({
   canManageChannels: () => {
     const { currentUserLevel } = get();
     // Owner and Member can manage channels, Guest is read-only
-    return currentUserLevel === 'owner' || currentUserLevel === 'member';
+    return currentUserLevel === "owner" || currentUserLevel === "member";
   },
 }));

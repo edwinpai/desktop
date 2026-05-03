@@ -57,7 +57,8 @@ export function VersionDisplay({
     async function loadVersion() {
       try {
         const version = await getVersion();
-        const environment = import.meta.env.MODE === "production" ? "production" : "development";
+        const environment =
+          import.meta.env.MODE === "production" ? "production" : "development";
 
         if (mounted) {
           setVersionInfo({ version, environment });
@@ -69,7 +70,10 @@ export function VersionDisplay({
           // Fallback to package.json version
           setVersionInfo({
             version: APP_VERSION,
-            environment: import.meta.env.MODE === "production" ? "production" : "development",
+            environment:
+              import.meta.env.MODE === "production"
+                ? "production"
+                : "development",
           });
           setIsLoading(false);
         }
@@ -99,7 +103,9 @@ export function VersionDisplay({
         </Badge>
         {showEnvironment && (
           <Badge
-            variant={versionInfo.environment === "production" ? "default" : "secondary"}
+            variant={
+              versionInfo.environment === "production" ? "default" : "secondary"
+            }
             aria-label={`Environment: ${versionInfo.environment}`}
           >
             {versionInfo.environment}
@@ -120,7 +126,11 @@ export function VersionDisplay({
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">Environment:</span>
             <Badge
-              variant={versionInfo.environment === "production" ? "default" : "secondary"}
+              variant={
+                versionInfo.environment === "production"
+                  ? "default"
+                  : "secondary"
+              }
               className="h-5"
             >
               {versionInfo.environment}
@@ -136,9 +146,7 @@ export function VersionDisplay({
     <span className={`text-sm text-muted-foreground ${className}`}>
       v{versionInfo.version}
       {showEnvironment && (
-        <span className="ml-2">
-          ({versionInfo.environment})
-        </span>
+        <span className="ml-2">({versionInfo.environment})</span>
       )}
     </span>
   );
@@ -157,7 +165,8 @@ export function useVersion() {
     async function loadVersion() {
       try {
         const version = await getVersion();
-        const environment = import.meta.env.MODE === "production" ? "production" : "development";
+        const environment =
+          import.meta.env.MODE === "production" ? "production" : "development";
 
         if (mounted) {
           setVersionInfo({ version, environment });
@@ -168,7 +177,10 @@ export function useVersion() {
         if (mounted) {
           setVersionInfo({
             version: APP_VERSION,
-            environment: import.meta.env.MODE === "production" ? "production" : "development",
+            environment:
+              import.meta.env.MODE === "production"
+                ? "production"
+                : "development",
           });
           setIsLoading(false);
         }

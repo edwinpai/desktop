@@ -9,24 +9,24 @@
  * - Client-specific settings (auto-reconnect, timeout)
  */
 
-import { useState, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 
 // Backend config structure from Phase 4
 interface BackendDesktopConfig {
   version: string;
-  mode: 'gateway' | 'client';
+  mode: "gateway" | "client";
   gateway: {
     port: number;
     autoStart: boolean;
@@ -41,7 +41,7 @@ interface BackendDesktopConfig {
     advertiseOnStartup: boolean;
   };
   ui: {
-    theme: 'light' | 'dark' | 'system';
+    theme: "light" | "dark" | "system";
     minimizeToTray: boolean;
     startMinimized: boolean;
     windowWidth: number;
@@ -75,10 +75,12 @@ export function GeneralSettings() {
     const loadConfig = async () => {
       try {
         setLoading(true);
-        const backendConfig = await invoke<BackendDesktopConfig>('get_config');
+        const backendConfig = await invoke<BackendDesktopConfig>("get_config");
         setConfig(backendConfig);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load configuration');
+        setError(
+          err instanceof Error ? err.message : "Failed to load configuration",
+        );
       } finally {
         setLoading(false);
       }
@@ -86,45 +88,49 @@ export function GeneralSettings() {
     loadConfig();
   }, []);
 
-  const handleModeChange = async (newMode: 'gateway' | 'client') => {
+  const handleModeChange = async (newMode: "gateway" | "client") => {
     if (!config || newMode === config.mode) return;
 
     setIsSwitchingMode(true);
     setModeChangeError(null);
 
     try {
-      if (config.mode === 'gateway') {
+      if (config.mode === "gateway") {
         // Stop gateway before switching to client mode
-        await invoke('stop_gateway_real');
+        await invoke("stop_gateway_real");
       }
 
       // Use set_mode command
-      const updatedConfig = await invoke<BackendDesktopConfig>('set_mode', { mode: newMode });
+      const updatedConfig = await invoke<BackendDesktopConfig>("set_mode", {
+        mode: newMode,
+      });
       setConfig(updatedConfig);
 
-      if (newMode === 'gateway' && updatedConfig.gateway.autoStart) {
+      if (newMode === "gateway" && updatedConfig.gateway.autoStart) {
         // Auto-start gateway if configured
-        await invoke('start_gateway_real', { port: updatedConfig.gateway.port });
+        await invoke("start_gateway_real", {
+          port: updatedConfig.gateway.port,
+        });
       }
     } catch (err) {
       const errorMsg =
-        err instanceof Error ? err.message : 'Failed to switch mode';
+        err instanceof Error ? err.message : "Failed to switch mode";
       setModeChangeError(errorMsg);
     } finally {
       setIsSwitchingMode(false);
     }
   };
 
-  const handleThemeChange = async (theme: 'light' | 'dark' | 'system') => {
+  const handleThemeChange = async (theme: "light" | "dark" | "system") => {
     if (!config) return;
     try {
       const updated = { ...config, ui: { ...config.ui, theme } };
-      await invoke('save_config', { config: updated });
+      await invoke("save_config", { config: updated });
       setConfig(updated);
       // Apply theme to document
-      document.documentElement.classList.toggle('dark', theme === 'dark');
+      document.documentElement.classList.toggle("dark", theme === "dark");
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update theme');
+      setError(err instanceof Error ? err.message : "Failed to update theme");
     }
   };
 
@@ -132,27 +138,32 @@ export function GeneralSettings() {
     if (!config || port < 1024 || port > 65535) return;
     try {
       const updated = { ...config, gateway: { ...config.gateway, port } };
-      await invoke('save_config', { config: updated });
+      await invoke("save_config", { config: updated });
       setConfig(updated);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update port');
+      setError(err instanceof Error ? err.message : "Failed to update port");
     }
   };
 
   const handleAutoStartChange = async (enabled: boolean) => {
     if (!config) return;
     try {
-      const updated = { ...config, gateway: { ...config.gateway, autoStart: enabled } };
-      await invoke('save_config', { config: updated });
+      const updated = {
+        ...config,
+        gateway: { ...config.gateway, autoStart: enabled },
+      };
+      await invoke("save_config", { config: updated });
       setConfig(updated);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update auto-start');
+      setError(
+        err instanceof Error ? err.message : "Failed to update auto-start",
+      );
     }
   };
 
   const handleAutoReconnectChange = async (enabled: boolean) => {
     // Client config - placeholder for future implementation
-    console.log('Auto-reconnect:', enabled);
+    console.log("Auto-reconnect:", enabled);
   };
 
   if (loading || !config) {
@@ -187,18 +198,18 @@ export function GeneralSettings() {
         <div className="grid grid-cols-2 gap-4">
           {/* Gateway Mode Card */}
           <button
-            onClick={() => handleModeChange('gateway')}
+            onClick={() => handleModeChange("gateway")}
             disabled={isSwitchingMode}
             className={`p-4 rounded-lg border-2 transition-all text-left ${
-              config.mode === 'gateway'
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300'
-            } ${isSwitchingMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              config.mode === "gateway"
+                ? "border-blue-500 bg-blue-50"
+                : "border-gray-200 hover:border-gray-300"
+            } ${isSwitchingMode ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
           >
             <div className="flex items-start gap-3">
               <div
                 className={`p-2 rounded-lg ${
-                  config.mode === 'gateway' ? 'bg-blue-100' : 'bg-muted'
+                  config.mode === "gateway" ? "bg-blue-100" : "bg-muted"
                 }`}
               >
                 <svg
@@ -211,7 +222,11 @@ export function GeneralSettings() {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className={config.mode === 'gateway' ? 'text-blue-600' : 'text-muted-foreground'}
+                  className={
+                    config.mode === "gateway"
+                      ? "text-blue-600"
+                      : "text-muted-foreground"
+                  }
                 >
                   <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
                   <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
@@ -223,7 +238,7 @@ export function GeneralSettings() {
                   Run your own AI gateway and allow others to connect
                 </p>
               </div>
-              {config.mode === 'gateway' && (
+              {config.mode === "gateway" && (
                 <div className="text-blue-600">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -245,18 +260,18 @@ export function GeneralSettings() {
 
           {/* Client Mode Card */}
           <button
-            onClick={() => handleModeChange('client')}
+            onClick={() => handleModeChange("client")}
             disabled={isSwitchingMode}
             className={`p-4 rounded-lg border-2 transition-all text-left ${
-              config.mode === 'client'
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300'
-            } ${isSwitchingMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              config.mode === "client"
+                ? "border-blue-500 bg-blue-50"
+                : "border-gray-200 hover:border-gray-300"
+            } ${isSwitchingMode ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
           >
             <div className="flex items-start gap-3">
               <div
                 className={`p-2 rounded-lg ${
-                  config.mode === 'client' ? 'bg-blue-100' : 'bg-muted'
+                  config.mode === "client" ? "bg-blue-100" : "bg-muted"
                 }`}
               >
                 <svg
@@ -269,7 +284,11 @@ export function GeneralSettings() {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className={config.mode === 'client' ? 'text-blue-600' : 'text-muted-foreground'}
+                  className={
+                    config.mode === "client"
+                      ? "text-blue-600"
+                      : "text-muted-foreground"
+                  }
                 >
                   <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
                 </svg>
@@ -280,7 +299,7 @@ export function GeneralSettings() {
                   Connect to someone else's gateway on your network
                 </p>
               </div>
-              {config.mode === 'client' && (
+              {config.mode === "client" && (
                 <div className="text-blue-600">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -317,7 +336,7 @@ export function GeneralSettings() {
             <Select
               value={config.ui.theme}
               onValueChange={(value) =>
-                handleThemeChange(value as 'light' | 'dark' | 'system')
+                handleThemeChange(value as "light" | "dark" | "system")
               }
             >
               <SelectTrigger className="mt-1.5 w-full">
@@ -337,7 +356,7 @@ export function GeneralSettings() {
       </Card>
 
       {/* Gateway-Specific Settings */}
-      {config.mode === 'gateway' && (
+      {config.mode === "gateway" && (
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-4">Gateway Settings</h3>
           <div className="space-y-4">
@@ -349,7 +368,9 @@ export function GeneralSettings() {
                 min={1024}
                 max={65535}
                 value={config.gateway.port}
-                onChange={(e) => handleGatewayPortChange(parseInt(e.target.value))}
+                onChange={(e) =>
+                  handleGatewayPortChange(parseInt(e.target.value))
+                }
                 className="mt-1.5"
               />
               <p className="text-xs text-muted-foreground mt-1.5">
@@ -375,7 +396,7 @@ export function GeneralSettings() {
       )}
 
       {/* Client-Specific Settings */}
-      {config.mode === 'client' && (
+      {config.mode === "client" && (
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-4">Client Settings</h3>
           <div className="space-y-4">

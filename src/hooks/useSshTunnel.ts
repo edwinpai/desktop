@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { getTunnelManager, stopAllTunnels, type SshTunnelConfig, type SshTunnelState } from "@/lib/ssh-tunnel";
+import {
+  getTunnelManager,
+  stopAllTunnels,
+  type SshTunnelConfig,
+  type SshTunnelState,
+} from "@/lib/ssh-tunnel";
 import type { GatewayProfile } from "@/types/config";
 
 interface UseSshTunnelReturn {
@@ -13,13 +18,16 @@ interface UseSshTunnelReturn {
   stopTunnel: () => Promise<void>;
 }
 
-export function useSshTunnel(activeProfile: GatewayProfile): UseSshTunnelReturn {
+export function useSshTunnel(
+  activeProfile: GatewayProfile,
+): UseSshTunnelReturn {
   const [tunnelState, setTunnelState] = useState<SshTunnelState | null>(null);
   const isSshProfile = activeProfile.ssh?.enabled === true;
 
-  const effectiveUrl = isSshProfile && activeProfile.ssh
-    ? `http://localhost:${activeProfile.ssh.localPort}`
-    : activeProfile.gatewayUrl;
+  const effectiveUrl =
+    isSshProfile && activeProfile.ssh
+      ? `http://localhost:${activeProfile.ssh.localPort}`
+      : activeProfile.gatewayUrl;
 
   const startTunnel = useCallback(async (profile: GatewayProfile) => {
     if (!profile.ssh?.enabled) return;
@@ -74,5 +82,10 @@ export function useSshTunnel(activeProfile: GatewayProfile): UseSshTunnelReturn 
     };
   }, []);
 
-  return { tunnelState: isSshProfile ? tunnelState : null, effectiveUrl, startTunnel, stopTunnel };
+  return {
+    tunnelState: isSshProfile ? tunnelState : null,
+    effectiveUrl,
+    startTunnel,
+    stopTunnel,
+  };
 }

@@ -53,7 +53,8 @@ export function DarkModeToggle({
   // Apply theme to document
   useEffect(() => {
     const root = document.documentElement;
-    const effectiveTheme = theme === "system" ? (isSystemDark() ? "dark" : "light") : theme;
+    const effectiveTheme =
+      theme === "system" ? (isSystemDark() ? "dark" : "light") : theme;
 
     if (effectiveTheme === "dark") {
       root.classList.add(DARK_CLASS);
@@ -151,7 +152,8 @@ export function useDarkMode() {
 
   useEffect(() => {
     const root = document.documentElement;
-    const effectiveTheme = theme === "system" ? (isSystemDark() ? "dark" : "light") : theme;
+    const effectiveTheme =
+      theme === "system" ? (isSystemDark() ? "dark" : "light") : theme;
 
     if (effectiveTheme === "dark") {
       root.classList.add(DARK_CLASS);

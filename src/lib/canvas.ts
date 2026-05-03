@@ -1,4 +1,8 @@
-import { callGatewayMethod, signGatewayParams, type GatewayTarget } from "@/lib/gateway-context";
+import {
+  callGatewayMethod,
+  signGatewayParams,
+  type GatewayTarget,
+} from "@/lib/gateway-context";
 
 export { buildGatewayTarget } from "@/lib/gateway-context";
 
@@ -61,7 +65,10 @@ function buildNodeInvokeParams(
       return { javaScript: params.javaScript };
     case "snapshot":
       return {
-        format: params.outputFormat === "jpg" ? "jpeg" : params.outputFormat ?? "png",
+        format:
+          params.outputFormat === "jpg"
+            ? "jpeg"
+            : (params.outputFormat ?? "png"),
         maxWidth: params.maxWidth,
         quality: params.quality,
       };
@@ -134,13 +141,13 @@ export async function invokeCanvasTool(
     idempotencyKey: crypto.randomUUID(),
   });
 
-  const raw = await callGatewayMethod(
+  const raw = (await callGatewayMethod(
     target,
     "node.invoke",
     signedParams,
     timeoutMs,
     `Timed out invoking ${command}`,
-  ) as Record<string, unknown>;
+  )) as Record<string, unknown>;
 
   return normalizeCanvasResult(action, raw?.payload ?? raw);
 }

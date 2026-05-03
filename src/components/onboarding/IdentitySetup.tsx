@@ -11,7 +11,14 @@
  */
 
 import { useState } from "react";
-import { ChevronRight, ChevronLeft, Check, Key, Shield, Download } from "lucide-react";
+import {
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  Key,
+  Shield,
+  Download,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -39,10 +46,38 @@ interface IdentitySetupProps {
  */
 function generateRecoveryPhrase(): string[] {
   const words = [
-    "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract",
-    "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid",
-    "acoustic", "acquire", "across", "act", "action", "actor", "actress", "actual",
-    "adapt", "add", "addict", "address", "adjust", "admit", "adult", "advance",
+    "abandon",
+    "ability",
+    "able",
+    "about",
+    "above",
+    "absent",
+    "absorb",
+    "abstract",
+    "absurd",
+    "abuse",
+    "access",
+    "accident",
+    "account",
+    "accuse",
+    "achieve",
+    "acid",
+    "acoustic",
+    "acquire",
+    "across",
+    "act",
+    "action",
+    "actor",
+    "actress",
+    "actual",
+    "adapt",
+    "add",
+    "addict",
+    "address",
+    "adjust",
+    "admit",
+    "adult",
+    "advance",
   ];
 
   return Array.from({ length: 12 }, () => {
@@ -61,11 +96,14 @@ export function IdentitySetup({
   initialStep = IdentitySetupStep.Welcome,
   allowSkipBackup = false,
 }: IdentitySetupProps) {
-  const [currentStep, setCurrentStep] = useState<IdentitySetupStep>(initialStep);
+  const [currentStep, setCurrentStep] =
+    useState<IdentitySetupStep>(initialStep);
   const [identity, setIdentity] = useState<SetupIdentity | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [backupConfirmed, setBackupConfirmed] = useState(false);
-  const [recoveryInput, setRecoveryInput] = useState<string[]>(Array(12).fill(""));
+  const [recoveryInput, setRecoveryInput] = useState<string[]>(
+    Array(12).fill(""),
+  );
 
   /**
    * Generate a new BSV identity via Crypto Domain IPC
@@ -227,14 +265,23 @@ export function IdentitySetup({
 /**
  * Step 1: Welcome
  */
-function WelcomeStep({ onNext, onCancel }: { onNext: () => void; onCancel?: () => void }) {
+function WelcomeStep({
+  onNext,
+  onCancel,
+}: {
+  onNext: () => void;
+  onCancel?: () => void;
+}) {
   return (
     <>
       <div className="text-center max-w-2xl">
-        <h1 className="text-4xl font-bold tracking-tight">Welcome to EdwinPAI</h1>
+        <h1 className="text-4xl font-bold tracking-tight">
+          Welcome to EdwinPAI
+        </h1>
         <p className="mt-4 text-lg text-muted-foreground">
-          EdwinPAI uses BSV blockchain technology to create a secure, decentralized identity
-          for you. Your keys, your data, your AI assistant.
+          EdwinPAI uses BSV blockchain technology to create a secure,
+          decentralized identity for you. Your keys, your data, your AI
+          assistant.
         </p>
       </div>
 
@@ -242,8 +289,8 @@ function WelcomeStep({ onNext, onCancel }: { onNext: () => void; onCancel?: () =
         <CardHeader>
           <CardTitle>Create Your Identity</CardTitle>
           <CardDescription>
-            We'll generate a unique cryptographic identity stored securely on your device.
-            No usernames, no passwords—just your keys.
+            We'll generate a unique cryptographic identity stored securely on
+            your device. No usernames, no passwords—just your keys.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -321,7 +368,11 @@ function GenerateKeyStep({
         </CardHeader>
         <CardContent>
           {identity && !isGenerating ? (
-            <IdentityBadge publicKey={identity.publicKey} petname={identity.petname} size="lg" />
+            <IdentityBadge
+              publicKey={identity.publicKey}
+              petname={identity.petname}
+              size="lg"
+            />
           ) : (
             <div className="flex items-center justify-center h-24">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
@@ -332,7 +383,11 @@ function GenerateKeyStep({
           <Button variant="outline" onClick={onBack} disabled={isGenerating}>
             <ChevronLeft className="mr-1 size-4" /> Back
           </Button>
-          <Button onClick={onNext} disabled={isGenerating || !identity} className="flex-1">
+          <Button
+            onClick={onNext}
+            disabled={isGenerating || !identity}
+            className="flex-1"
+          >
             Continue <ChevronRight className="ml-1 size-4" />
           </Button>
         </CardFooter>
@@ -358,7 +413,9 @@ function ReviewIdentityStep({
   return (
     <>
       <div className="text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Review Your Identity</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Review Your Identity
+        </h1>
         <p className="mt-2 text-muted-foreground">
           This is how you'll appear to others in the EdwinPAI network
         </p>
@@ -372,7 +429,11 @@ function ReviewIdentityStep({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <IdentityBadge publicKey={identity.publicKey} petname={identity.petname} size="lg" />
+          <IdentityBadge
+            publicKey={identity.publicKey}
+            petname={identity.petname}
+            size="lg"
+          />
 
           <div>
             <p className="text-sm font-medium mb-2">Short ID</p>
@@ -445,7 +506,8 @@ function BackupKeyStep({
         <CardHeader>
           <CardTitle>Recovery Phrase</CardTitle>
           <CardDescription>
-            Write down these 12 words in order. Keep them safe and never share them.
+            Write down these 12 words in order. Keep them safe and never share
+            them.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -455,18 +517,16 @@ function BackupKeyStep({
                 key={index}
                 className="flex items-center gap-2 bg-muted px-3 py-2 rounded"
               >
-                <span className="text-xs text-muted-foreground w-5">{index + 1}.</span>
+                <span className="text-xs text-muted-foreground w-5">
+                  {index + 1}.
+                </span>
                 <span className="font-mono text-sm">{word}</span>
               </div>
             ))}
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
-          <Button
-            variant="outline"
-            onClick={handleDownload}
-            className="w-full"
-          >
+          <Button variant="outline" onClick={handleDownload} className="w-full">
             <Download className="mr-2 size-4" />
             Download Backup
           </Button>
@@ -479,7 +539,12 @@ function BackupKeyStep({
             </Button>
           </div>
           {allowSkip && (
-            <Button variant="ghost" size="sm" onClick={onNext} className="w-full">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onNext}
+              className="w-full"
+            >
               Skip for now (not recommended)
             </Button>
           )}
@@ -509,13 +574,18 @@ function ConfirmBackupStep({
   // Randomly select 3 words to verify
   const [selectedIndices] = useState(() => {
     const indices = Array.from({ length: 12 }, (_, i) => i);
-    return indices.sort(() => Math.random() - 0.5).slice(0, 3).sort((a, b) => a - b);
+    return indices
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3)
+      .sort((a, b) => a - b);
   });
 
   return (
     <>
       <div className="text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Confirm Your Backup</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Confirm Your Backup
+        </h1>
         <p className="mt-2 text-muted-foreground">
           Enter the following words from your recovery phrase
         </p>
@@ -525,7 +595,8 @@ function ConfirmBackupStep({
         <CardHeader>
           <CardTitle>Verify Recovery Phrase</CardTitle>
           <CardDescription>
-            Enter the words at the specified positions to confirm you've saved them
+            Enter the words at the specified positions to confirm you've saved
+            them
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -593,7 +664,11 @@ function CompleteStep({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <IdentityBadge publicKey={identity.publicKey} petname={identity.petname} size="lg" />
+          <IdentityBadge
+            publicKey={identity.publicKey}
+            petname={identity.petname}
+            size="lg"
+          />
         </CardContent>
         <CardFooter>
           <Button onClick={onComplete} className="w-full">

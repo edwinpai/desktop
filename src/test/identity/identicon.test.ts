@@ -53,7 +53,7 @@ describe("Identicon Generation", () => {
     it("should generate valid SVG markup", () => {
       const svg = generateMockIdenticon(
         "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
-        64
+        64,
       );
 
       expect(svg).toContain('xmlns="http://www.w3.org/2000/svg"');
@@ -67,7 +67,7 @@ describe("Identicon Generation", () => {
     it("should include dimensions in viewBox", () => {
       const svg = generateMockIdenticon(
         "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
-        64
+        64,
       );
 
       expect(svg).toMatch(/viewBox="0 0 \d+ \d+"/);
@@ -76,17 +76,17 @@ describe("Identicon Generation", () => {
     it("should contain rect elements for grid pattern", () => {
       const svg = generateMockIdenticon(
         "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
-        64
+        64,
       );
 
       expect(svg).toContain("<rect");
-      expect(svg).toContain('fill=');
+      expect(svg).toContain("fill=");
     });
 
     it("should use valid colors", () => {
       const svg = generateMockIdenticon(
         "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
-        64
+        64,
       );
 
       // Should use HSL color format
@@ -190,7 +190,7 @@ describe("Identicon Generation", () => {
     it("should create symmetrical pattern", () => {
       const svg = generateMockIdenticon(
         "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
-        64
+        64,
       );
 
       // Grid should be symmetrical (mirrored horizontally)
@@ -201,7 +201,7 @@ describe("Identicon Generation", () => {
     it("should derive color from public key hash", () => {
       const svg = generateMockIdenticon(
         "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
-        64
+        64,
       );
 
       // Should contain HSL color derived from hash
@@ -235,7 +235,7 @@ describe("Identicon Generation", () => {
       sizes.forEach((size) => {
         const svg = generateMockIdenticon(
           "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
-          size
+          size,
         );
 
         expect(svg).toContain(`width="${size}"`);
@@ -246,7 +246,7 @@ describe("Identicon Generation", () => {
     it("should maintain aspect ratio", () => {
       const svg = generateMockIdenticon(
         "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
-        64
+        64,
       );
 
       const widthMatch = svg.match(/width="(\d+)"/);
@@ -309,7 +309,7 @@ describe("Identicon Generation", () => {
     it("should handle minimum size", () => {
       const svg = generateMockIdenticon(
         "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
-        16
+        16,
       );
 
       expect(svg).toContain('width="16"');
@@ -319,7 +319,7 @@ describe("Identicon Generation", () => {
     it("should handle large size", () => {
       const svg = generateMockIdenticon(
         "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
-        512
+        512,
       );
 
       expect(svg).toContain('width="512"');
@@ -344,8 +344,8 @@ function generateMockIdenticon(publicKey: string, size: number): string {
 
   // Derive color from hash
   const hue = (parseInt(hash.slice(0, 2), 16) * 360) / 256;
-  const saturation = 60 + ((parseInt(hash.slice(2, 4), 16) * 20) / 256);
-  const lightness = 45 + ((parseInt(hash.slice(4, 6), 16) * 10) / 256);
+  const saturation = 60 + (parseInt(hash.slice(2, 4), 16) * 20) / 256;
+  const lightness = 45 + (parseInt(hash.slice(4, 6), 16) * 10) / 256;
   const color = `hsl(${Math.floor(hue)}, ${Math.floor(saturation)}%, ${Math.floor(lightness)}%)`;
 
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`;

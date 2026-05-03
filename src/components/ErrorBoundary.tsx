@@ -4,8 +4,8 @@
  * React Error Boundary with retry logic, exponential backoff, and toast notifications.
  */
 
-import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { toast } from 'sonner';
+import { Component, type ErrorInfo, type ReactNode } from "react";
+import { toast } from "sonner";
 import {
   ErrorSeverity,
   ErrorCategory,
@@ -13,11 +13,17 @@ import {
   type ErrorBoundaryConfig,
   type ErrorFallbackProps,
   type ErrorRecoveryAction,
-} from '@/types/errors';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, RefreshCw, Home, XCircle } from 'lucide-react';
+} from "@/types/errors";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, RefreshCw, Home, XCircle } from "lucide-react";
 
 interface ErrorBoundaryProps extends Partial<ErrorBoundaryConfig> {
   children: ReactNode;
@@ -53,8 +59,8 @@ function DefaultErrorFallback({
           </div>
           <CardDescription>
             {errorState?.severity === ErrorSeverity.Critical
-              ? 'A critical error occurred. Please restart the application.'
-              : 'An error occurred while rendering this component.'}
+              ? "A critical error occurred. Please restart the application."
+              : "An error occurred while rendering this component."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -84,24 +90,21 @@ function DefaultErrorFallback({
 
           <div className="flex gap-2">
             {canRetry && (
-              <Button
-                onClick={() => onRecover('retry')}
-                className="flex-1"
-              >
+              <Button onClick={() => onRecover("retry")} className="flex-1">
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Retry ({errorState.occurrences}/{MAX_RETRIES})
               </Button>
             )}
             <Button
-              onClick={() => onRecover('reset')}
-              variant={canRetry ? 'outline' : 'default'}
+              onClick={() => onRecover("reset")}
+              variant={canRetry ? "outline" : "default"}
               className="flex-1"
             >
               <RefreshCw className="mr-2 h-4 w-4" />
               Reset
             </Button>
             <Button
-              onClick={() => onRecover('navigate')}
+              onClick={() => onRecover("navigate")}
               variant="outline"
               className="flex-1"
             >
@@ -109,10 +112,7 @@ function DefaultErrorFallback({
               Go Home
             </Button>
             {onDismiss && (
-              <Button
-                onClick={onDismiss}
-                variant="ghost"
-              >
+              <Button onClick={onDismiss} variant="ghost">
                 <XCircle className="h-4 w-4" />
               </Button>
             )}
@@ -120,7 +120,8 @@ function DefaultErrorFallback({
 
           {errorState && (
             <p className="text-xs text-muted-foreground">
-              Error occurred at {new Date(errorState.timestamp).toLocaleString()}
+              Error occurred at{" "}
+              {new Date(errorState.timestamp).toLocaleString()}
             </p>
           )}
         </CardContent>
@@ -152,7 +153,10 @@ function DefaultErrorFallback({
  * </ErrorBoundary>
  * ```
  */
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryComponentState> {
+export class ErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryComponentState
+> {
   private retryTimeoutId: NodeJS.Timeout | null = null;
 
   constructor(props: ErrorBoundaryProps) {
@@ -163,24 +167,26 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryCo
     };
   }
 
-  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryComponentState> {
+  static getDerivedStateFromError(
+    error: Error,
+  ): Partial<ErrorBoundaryComponentState> {
     // Update state so the next render will show the fallback UI
     return {
       errorState: {
         error,
-        errorInfo: { componentStack: '' },
+        errorInfo: { componentStack: "" },
         recovered: false,
         timestamp: new Date().toISOString(),
         severity: ErrorSeverity.Medium,
         category: ErrorCategory.Render,
-        message: error.message || 'An unexpected error occurred',
+        message: error.message || "An unexpected error occurred",
         occurrences: 1,
       },
     };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    const { name = 'ErrorBoundary', onError, autoRetry = true } = this.props;
+    const { name = "ErrorBoundary", onError, autoRetry = true } = this.props;
     const { retryCount } = this.state;
 
     // Classify error
@@ -210,12 +216,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryCo
     const toastMessage = `${errorState.message} (${errorState.occurrences}/${MAX_RETRIES})`;
 
     if (severity === ErrorSeverity.Critical) {
-      toast.error('Critical Error', {
+      toast.error("Critical Error", {
         description: toastMessage,
         duration: Infinity,
       });
     } else {
-      toast.error('Error', {
+      toast.error("Error", {
         description: toastMessage,
         duration: 5000,
       });
@@ -223,16 +229,17 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryCo
 
     // Auto-retry with exponential backoff
     if (autoRetry && retryCount < MAX_RETRIES) {
-      const delay = RETRY_DELAYS[retryCount] ?? RETRY_DELAYS[RETRY_DELAYS.length - 1];
+      const delay =
+        RETRY_DELAYS[retryCount] ?? RETRY_DELAYS[RETRY_DELAYS.length - 1];
 
       if (delay) {
-        toast.info('Auto-retry', {
+        toast.info("Auto-retry", {
           description: `Retrying in ${delay / 1000}s...`,
           duration: delay,
         });
 
         this.retryTimeoutId = setTimeout(() => {
-          this.handleRecover('retry');
+          this.handleRecover("retry");
         }, delay);
       }
     }
@@ -250,15 +257,15 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryCo
   private classifyErrorSeverity(error: Error): ErrorSeverity {
     const message = error.message.toLowerCase();
 
-    if (message.includes('critical') || message.includes('security')) {
+    if (message.includes("critical") || message.includes("security")) {
       return ErrorSeverity.Critical;
     }
 
-    if (message.includes('network') || message.includes('timeout')) {
+    if (message.includes("network") || message.includes("timeout")) {
       return ErrorSeverity.Medium;
     }
 
-    if (message.includes('validation') || message.includes('format')) {
+    if (message.includes("validation") || message.includes("format")) {
       return ErrorSeverity.Low;
     }
 
@@ -272,27 +279,31 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryCo
     const message = error.message.toLowerCase();
     const name = error.name.toLowerCase();
 
-    if (message.includes('network') || message.includes('fetch') || message.includes('timeout')) {
+    if (
+      message.includes("network") ||
+      message.includes("fetch") ||
+      message.includes("timeout")
+    ) {
       return ErrorCategory.Network;
     }
 
-    if (message.includes('ipc') || message.includes('tauri')) {
+    if (message.includes("ipc") || message.includes("tauri")) {
       return ErrorCategory.IPC;
     }
 
-    if (message.includes('validation') || message.includes('invalid')) {
+    if (message.includes("validation") || message.includes("invalid")) {
       return ErrorCategory.Validation;
     }
 
-    if (message.includes('auth') || message.includes('permission')) {
+    if (message.includes("auth") || message.includes("permission")) {
       return ErrorCategory.Auth;
     }
 
-    if (name.includes('error') && message.includes('render')) {
+    if (name.includes("error") && message.includes("render")) {
       return ErrorCategory.Render;
     }
 
-    if (message.includes('state') || message.includes('store')) {
+    if (message.includes("state") || message.includes("store")) {
       return ErrorCategory.State;
     }
 
@@ -302,22 +313,25 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryCo
   /**
    * Get user-friendly error message based on category.
    */
-  private getUserFriendlyMessage(error: Error, category: ErrorCategory): string {
+  private getUserFriendlyMessage(
+    error: Error,
+    category: ErrorCategory,
+  ): string {
     switch (category) {
       case ErrorCategory.Network:
-        return 'Network connection failed. Please check your internet connection.';
+        return "Network connection failed. Please check your internet connection.";
       case ErrorCategory.IPC:
-        return 'Communication with the app backend failed. Try restarting the app.';
+        return "Communication with the app backend failed. Try restarting the app.";
       case ErrorCategory.Validation:
-        return 'Invalid data detected. Please check your input.';
+        return "Invalid data detected. Please check your input.";
       case ErrorCategory.Auth:
-        return 'Authentication failed. Please sign in again.';
+        return "Authentication failed. Please sign in again.";
       case ErrorCategory.Render:
-        return 'Failed to display this component. Retrying...';
+        return "Failed to display this component. Retrying...";
       case ErrorCategory.State:
-        return 'App state is corrupted. Resetting...';
+        return "App state is corrupted. Resetting...";
       default:
-        return error.message || 'An unexpected error occurred.';
+        return error.message || "An unexpected error occurred.";
     }
   }
 
@@ -334,38 +348,38 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryCo
     }
 
     switch (action) {
-      case 'retry':
+      case "retry":
         this.setState({
           errorState: null,
           retryCount: retryCount + 1,
         });
-        toast.info('Retrying...');
+        toast.info("Retrying...");
         break;
 
-      case 'reset':
+      case "reset":
         this.setState({
           errorState: null,
           retryCount: 0,
         });
-        toast.info('Resetting...');
+        toast.info("Resetting...");
         onRecover?.();
         break;
 
-      case 'navigate':
+      case "navigate":
         this.setState({
           errorState: null,
           retryCount: 0,
         });
-        window.location.hash = '/';
-        toast.info('Navigating to home...');
+        window.location.hash = "/";
+        toast.info("Navigating to home...");
         break;
 
-      case 'reload':
-        toast.info('Reloading app...');
+      case "reload":
+        toast.info("Reloading app...");
         window.location.reload();
         break;
 
-      case 'ignore':
+      case "ignore":
         this.setState({ errorState: null });
         break;
     }
@@ -375,7 +389,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryCo
    * Handle dismiss (same as ignore).
    */
   private handleDismiss = () => {
-    this.handleRecover('ignore');
+    this.handleRecover("ignore");
   };
 
   render() {
@@ -392,7 +406,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryCo
           errorState={errorState}
           onRecover={this.handleRecover}
           onDismiss={this.handleDismiss}
-          recoveryActions={['retry', 'reset', 'navigate', 'reload']}
+          recoveryActions={["retry", "reset", "navigate", "reload"]}
         />
       );
     }

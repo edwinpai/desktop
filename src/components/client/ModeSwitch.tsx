@@ -2,12 +2,12 @@
  * Mode Switch - Toggle between Gateway and Client mode with confirmation
  */
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Dialog } from '@/components/ui/dialog';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
 
-type Mode = 'gateway' | 'client';
+type Mode = "gateway" | "client";
 
 interface ModeSwitchProps {
   currentMode: Mode;
@@ -29,8 +29,8 @@ export function ModeSwitch({
     // Show confirmation if switching will disconnect active connections
     if (
       mode !== currentMode &&
-      ((currentMode === 'gateway' && isGatewayRunning) ||
-       (currentMode === 'client' && isClientConnected))
+      ((currentMode === "gateway" && isGatewayRunning) ||
+        (currentMode === "client" && isClientConnected))
     ) {
       setTargetMode(mode);
       setShowConfirmation(true);
@@ -58,15 +58,15 @@ export function ModeSwitch({
       <div className="grid grid-cols-2 gap-4">
         <ModeCard
           mode="gateway"
-          isActive={currentMode === 'gateway'}
+          isActive={currentMode === "gateway"}
           isRunning={isGatewayRunning}
-          onClick={() => handleModeClick('gateway')}
+          onClick={() => handleModeClick("gateway")}
         />
         <ModeCard
           mode="client"
-          isActive={currentMode === 'client'}
+          isActive={currentMode === "client"}
           isRunning={isClientConnected}
-          onClick={() => handleModeClick('client')}
+          onClick={() => handleModeClick("client")}
         />
       </div>
 
@@ -76,16 +76,17 @@ export function ModeSwitch({
             <Card className="max-w-md w-full p-6">
               <h3 className="text-lg font-semibold mb-2">Switch Mode?</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                {currentMode === 'gateway'
-                  ? 'Switching to client mode will stop your gateway. Any connected users will be disconnected.'
-                  : 'Switching to gateway mode will disconnect you from the current gateway.'}
+                {currentMode === "gateway"
+                  ? "Switching to client mode will stop your gateway. Any connected users will be disconnected."
+                  : "Switching to gateway mode will disconnect you from the current gateway."}
               </p>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={handleCancel}>
                   Cancel
                 </Button>
                 <Button onClick={handleConfirm}>
-                  Switch to {targetMode === 'gateway' ? 'Gateway' : 'Client'} Mode
+                  Switch to {targetMode === "gateway" ? "Gateway" : "Client"}{" "}
+                  Mode
                 </Button>
               </div>
             </Card>
@@ -106,8 +107,8 @@ interface ModeCardProps {
 function ModeCard({ mode, isActive, isRunning, onClick }: ModeCardProps) {
   const config = {
     gateway: {
-      title: 'Gateway Mode',
-      description: 'Run your own AI gateway and share access with others',
+      title: "Gateway Mode",
+      description: "Run your own AI gateway and share access with others",
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -124,11 +125,11 @@ function ModeCard({ mode, isActive, isRunning, onClick }: ModeCardProps) {
           <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
         </svg>
       ),
-      features: ['Full control', 'Share with others', 'Custom channels'],
+      features: ["Full control", "Share with others", "Custom channels"],
     },
     client: {
-      title: 'Client Mode',
-      description: 'Connect to a remote gateway shared by someone else',
+      title: "Client Mode",
+      description: "Connect to a remote gateway shared by someone else",
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -145,7 +146,7 @@ function ModeCard({ mode, isActive, isRunning, onClick }: ModeCardProps) {
           <polyline points="12 6 12 12 16 14" />
         </svg>
       ),
-      features: ['Quick setup', 'No configuration', 'Guest access'],
+      features: ["Quick setup", "No configuration", "Guest access"],
     },
   };
 
@@ -156,12 +157,14 @@ function ModeCard({ mode, isActive, isRunning, onClick }: ModeCardProps) {
       onClick={onClick}
       className={`p-6 border-2 rounded-lg text-left transition-all ${
         isActive
-          ? 'border-primary bg-primary/5 hover:bg-primary/10 cursor-pointer'
-          : 'border-border hover:border-primary/50 hover:bg-accent cursor-pointer'
+          ? "border-primary bg-primary/5 hover:bg-primary/10 cursor-pointer"
+          : "border-border hover:border-primary/50 hover:bg-accent cursor-pointer"
       }`}
     >
       <div className="flex items-start justify-between mb-4">
-        <div className={isActive ? 'text-primary' : 'text-muted-foreground'}>{icon}</div>
+        <div className={isActive ? "text-primary" : "text-muted-foreground"}>
+          {icon}
+        </div>
         {isActive && isRunning && (
           <div className="flex items-center gap-1.5 px-2 py-1 bg-green-100 border border-green-200 rounded-full">
             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
@@ -175,7 +178,10 @@ function ModeCard({ mode, isActive, isRunning, onClick }: ModeCardProps) {
 
       <ul className="space-y-1">
         {features.map((feature) => (
-          <li key={feature} className="flex items-center gap-2 text-xs text-muted-foreground">
+          <li
+            key={feature}
+            className="flex items-center gap-2 text-xs text-muted-foreground"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="12"
@@ -186,7 +192,7 @@ function ModeCard({ mode, isActive, isRunning, onClick }: ModeCardProps) {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className={isActive ? 'text-primary' : ''}
+              className={isActive ? "text-primary" : ""}
             >
               <polyline points="20 6 9 17 4 12" />
             </svg>

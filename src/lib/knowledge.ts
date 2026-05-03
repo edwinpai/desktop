@@ -92,14 +92,22 @@ export async function listKnowledgeDisciplines(): Promise<DisciplinesListResult>
   return invoke<DisciplinesListResult>("knowledge_list_disciplines");
 }
 
-export async function getKnowledgeDisciplineDetails(id: string): Promise<DisciplineDetails> {
+export async function getKnowledgeDisciplineDetails(
+  id: string,
+): Promise<DisciplineDetails> {
   return invoke<DisciplineDetails>("knowledge_get_discipline_details", { id });
 }
 
-export async function listKnowledgeRuns(limit = 25): Promise<KnowledgeRunsResult> {
+export async function listKnowledgeRuns(
+  limit = 25,
+): Promise<KnowledgeRunsResult> {
   return invoke<KnowledgeRunsResult>("knowledge_list_runs", { limit });
 }
 
-export async function getKnowledgeRunDetails(manifestPath: string): Promise<KnowledgeRunDetails> {
-  return invoke<KnowledgeRunDetails>("knowledge_get_run_details", { manifestPath });
+export async function getKnowledgeRunDetails(
+  manifestPath: string,
+): Promise<KnowledgeRunDetails> {
+  return invoke<KnowledgeRunDetails>("knowledge_get_run_details", {
+    manifestPath,
+  });
 }

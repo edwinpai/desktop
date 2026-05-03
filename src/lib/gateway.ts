@@ -6,8 +6,11 @@
 // 3. Auth request with signature → session token
 // 4. Authenticated requests with session token
 
-import type { ChatCompletionRequest, ChatCompletionResponse } from '@/types/api';
-import { getIdentity, signMessage } from '@/lib/crypto-domain';
+import type {
+  ChatCompletionRequest,
+  ChatCompletionResponse,
+} from "@/types/api";
+import { getIdentity, signMessage } from "@/lib/crypto-domain";
 
 interface InitialRequest {
   publicKey: string;
@@ -39,13 +42,17 @@ export class GatewayClient {
   private publicKey: string | null = null;
 
   constructor(baseUrl: string) {
-    this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
+    this.baseUrl = baseUrl.replace(/\/$/, ""); // Remove trailing slash
   }
 
   /**
    * Perform BRC-103 authentication handshake
    */
-  async authenticate(): Promise<{ success: boolean; petname?: string; error?: string }> {
+  async authenticate(): Promise<{
+    success: boolean;
+    petname?: string;
+    error?: string;
+  }> {
     try {
       // Step 1: Get our public key from crypto domain
       const identityResponse = await getIdentity();
@@ -57,9 +64,9 @@ export class GatewayClient {
       };
 
       const initialResp = await fetch(`${this.baseUrl}/v1/auth/initial`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(initialReq),
       });
@@ -84,9 +91,9 @@ export class GatewayClient {
       };
 
       const authResp = await fetch(`${this.baseUrl}/v1/auth/verify`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(authReq),
       });
@@ -100,7 +107,7 @@ export class GatewayClient {
       if (!authData.success) {
         return {
           success: false,
-          error: authData.error || 'Authentication failed',
+          error: authData.error || "Authentication failed",
         };
       }
 
@@ -113,7 +120,7 @@ export class GatewayClient {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
@@ -123,15 +130,15 @@ export class GatewayClient {
    */
   private async authenticatedRequest<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     if (!this.sessionToken) {
-      throw new Error('Not authenticated. Call authenticate() first.');
+      throw new Error("Not authenticated. Call authenticate() first.");
     }
 
     const headers = new Headers(options.headers);
-    headers.set('Authorization', `Bearer ${this.sessionToken}`);
-    headers.set('Content-Type', 'application/json');
+    headers.set("Authorization", `Bearer ${this.sessionToken}`);
+    headers.set("Content-Type", "application/json");
 
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       ...options,
@@ -139,7 +146,9 @@ export class GatewayClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Request failed: ${response.status} ${response.statusText}`,
+      );
     }
 
     return response.json();
@@ -148,28 +157,35 @@ export class GatewayClient {
   /**
    * Send chat completion request (non-streaming)
    */
-  async chatCompletion(request: ChatCompletionRequest): Promise<ChatCompletionResponse> {
-    return this.authenticatedRequest<ChatCompletionResponse>('/v1/chat/completions', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
+  async chatCompletion(
+    request: ChatCompletionRequest,
+  ): Promise<ChatCompletionResponse> {
+    return this.authenticatedRequest<ChatCompletionResponse>(
+      "/v1/chat/completions",
+      {
+        method: "POST",
+        body: JSON.stringify(request),
+      },
+    );
   }
 
   /**
    * Send streaming chat completion request
    */
-  async *chatCompletionStream(request: ChatCompletionRequest): AsyncGenerator<string, void, unknown> {
+  async *chatCompletionStream(
+    request: ChatCompletionRequest,
+  ): AsyncGenerator<string, void, unknown> {
     if (!this.sessionToken) {
-      throw new Error('Not authenticated. Call authenticate() first.');
+      throw new Error("Not authenticated. Call authenticate() first.");
     }
 
     const streamRequest = { ...request, stream: true };
 
     const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${this.sessionToken}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.sessionToken}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(streamRequest),
     });
@@ -179,7 +195,7 @@ export class GatewayClient {
     }
 
     if (!response.body) {
-      throw new Error('No response body');
+      throw new Error("No response body");
     }
 
     const reader = response.body.getReader();
@@ -194,12 +210,12 @@ export class GatewayClient {
         }
 
         const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n').filter(line => line.trim() !== '');
+        const lines = chunk.split("\n").filter((line) => line.trim() !== "");
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
+          if (line.startsWith("data: ")) {
             const data = line.slice(6);
-            if (data === '[DONE]') {
+            if (data === "[DONE]") {
               return;
             }
             yield data;
@@ -245,7 +261,7 @@ export class GatewayClient {
    * Convert byte array to hex string
    */
   private bytesToHex(bytes: number[]): string {
-    return bytes.map(b => b.toString(16).padStart(2, '0')).join('');
+    return bytes.map((b) => b.toString(16).padStart(2, "0")).join("");
   }
 }
 

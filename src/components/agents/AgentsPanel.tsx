@@ -18,7 +18,10 @@ interface AgentsPanelProps {
   agents: Agent[];
   currentAgentId: string;
   onSelectAgent?: (id: string) => void;
-  request?: (method: string, params: Record<string, unknown>) => Promise<unknown>;
+  request?: (
+    method: string,
+    params: Record<string, unknown>,
+  ) => Promise<unknown>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -67,7 +70,7 @@ export function AgentsPanel({
                 key={agent.id}
                 className={cn(
                   "transition-colors",
-                  isActive && "border-primary/50 bg-primary/5"
+                  isActive && "border-primary/50 bg-primary/5",
                 )}
               >
                 <CardHeader className="pb-2">
@@ -76,7 +79,10 @@ export function AgentsPanel({
                       <Bot className="h-4 w-4" />
                       {agent.name || agent.id}
                       {isActive && (
-                        <Badge variant="secondary" className="flex items-center gap-1">
+                        <Badge
+                          variant="secondary"
+                          className="flex items-center gap-1"
+                        >
                           <CheckCircle className="h-3 w-3" />
                           Active
                         </Badge>

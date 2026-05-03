@@ -1,7 +1,13 @@
 import { useCallback, useState } from "react";
 import { RefreshCw, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 interface FileNode {
   name: string;
@@ -11,7 +17,10 @@ interface FileNode {
 }
 
 interface FileEditorProps {
-  request?: (method: string, params: Record<string, unknown>) => Promise<unknown>;
+  request?: (
+    method: string,
+    params: Record<string, unknown>,
+  ) => Promise<unknown>;
 }
 
 function toUserFacingError(err: unknown): string {
@@ -22,7 +31,11 @@ function toUserFacingError(err: unknown): string {
   ) {
     return "Desktop integration is unavailable right now. Please reopen this screen inside the desktop app.";
   }
-  if (msg.includes("unknown method") || msg.includes("not found") || msg.includes("does not exist")) {
+  if (
+    msg.includes("unknown method") ||
+    msg.includes("not found") ||
+    msg.includes("does not exist")
+  ) {
     return "Workspace browsing is not available from this gateway yet.";
   }
   return msg;
@@ -64,11 +77,14 @@ export function FileEditor({ request }: FileEditorProps) {
             Workspace
           </h2>
           <p className="text-sm text-muted-foreground">
-            Browse and edit workspace files once the desktop app is connected to a gateway that exposes workspace file APIs.
+            Browse and edit workspace files once the desktop app is connected to
+            a gateway that exposes workspace file APIs.
           </p>
         </div>
         <Button variant="outline" onClick={handleRefresh} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+          />
           {loading ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
@@ -80,7 +96,8 @@ export function FileEditor({ request }: FileEditorProps) {
           <CardHeader>
             <CardTitle>Workspace Files</CardTitle>
             <CardDescription>
-              Workspace file browsing is connected. File editing UI can be expanded once the underlying gateway methods are finalized.
+              Workspace file browsing is connected. File editing UI can be
+              expanded once the underlying gateway methods are finalized.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -95,7 +112,8 @@ export function FileEditor({ request }: FileEditorProps) {
             <FolderOpen className="h-10 w-10 text-muted-foreground mb-3" />
             <p className="text-sm font-medium">No workspace files available</p>
             <p className="text-xs text-muted-foreground mt-1 max-w-md">
-              Workspace files will appear here once the desktop app can reach a gateway with real workspace file methods.
+              Workspace files will appear here once the desktop app can reach a
+              gateway with real workspace file methods.
             </p>
           </CardContent>
         </Card>

@@ -10,11 +10,11 @@
  * 6. Message list updates
  */
 
-import { act, renderHook, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useGatewayChat } from '@/hooks/useGatewayChat';
-import type { ChatCompletionChunk } from '@/types/api';
+import { useGatewayChat } from "@/hooks/useGatewayChat";
+import type { ChatCompletionChunk } from "@/types/api";
 
 // ============================================================================
 // Mock Dependencies
@@ -25,13 +25,13 @@ const mockSendMessage = vi.fn();
 const mockSetAuthToken = vi.fn();
 const mockSetBaseURL = vi.fn();
 
-vi.mock('@/hooks/useConfig', () => ({
+vi.mock("@/hooks/useConfig", () => ({
   useGatewayConfig: () => ({
     gatewayPort: 3000,
   }),
 }));
 
-vi.mock('@/lib/GatewayClient', () => {
+vi.mock("@/lib/GatewayClient", () => {
   class MockGatewayClient {
     sendMessage = mockSendMessage;
     setAuthToken = mockSetAuthToken;
@@ -49,38 +49,38 @@ vi.mock('@/lib/GatewayClient', () => {
 
 const MOCK_CHUNKS: ChatCompletionChunk[] = [
   {
-    id: 'chunk-1',
-    object: 'chat.completion.chunk',
+    id: "chunk-1",
+    object: "chat.completion.chunk",
     created: Date.now(),
     choices: [
       {
-        delta: { content: 'Hello', role: 'assistant' },
+        delta: { content: "Hello", role: "assistant" },
         index: 0,
         finish_reason: null,
       },
     ],
   },
   {
-    id: 'chunk-2',
-    object: 'chat.completion.chunk',
+    id: "chunk-2",
+    object: "chat.completion.chunk",
     created: Date.now(),
     choices: [
       {
-        delta: { content: ' world' },
+        delta: { content: " world" },
         index: 0,
         finish_reason: null,
       },
     ],
   },
   {
-    id: 'chunk-3',
-    object: 'chat.completion.chunk',
+    id: "chunk-3",
+    object: "chat.completion.chunk",
     created: Date.now(),
     choices: [
       {
-        delta: { content: '!' },
+        delta: { content: "!" },
         index: 0,
-        finish_reason: 'stop',
+        finish_reason: "stop",
       },
     ],
   },
@@ -91,7 +91,7 @@ const MOCK_CHUNKS: ChatCompletionChunk[] = [
 // ============================================================================
 
 async function* createThrowingStreamingGenerator(
-  error: Error
+  error: Error,
 ): AsyncGenerator<ChatCompletionChunk> {
   yield* [] as ChatCompletionChunk[];
   throw error;
@@ -110,7 +110,7 @@ async function* createMockStreamingGenerator(chunks: ChatCompletionChunk[]) {
 // Tests
 // ============================================================================
 
-describe('useGatewayChat', () => {
+describe("useGatewayChat", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -123,27 +123,27 @@ describe('useGatewayChat', () => {
   // Test 1: Send message flow
   // --------------------------------------------------------------------------
 
-  it('should send user message and receive assistant response', async () => {
+  it("should send user message and receive assistant response", async () => {
     // Mock GatewayClient.sendMessage
     mockSendMessage.mockImplementation(() =>
-      createMockStreamingGenerator(MOCK_CHUNKS)
+      createMockStreamingGenerator(MOCK_CHUNKS),
     );
 
     const { result } = renderHook(() =>
       useGatewayChat({
-        authToken: 'test-token',
-        model: 'claude-sonnet-4-5',
-      })
+        authToken: "test-token",
+        model: "claude-sonnet-4-5",
+      }),
     );
 
     // Initial state
     expect(result.current.messages).toHaveLength(0);
     expect(result.current.isStreaming).toBe(false);
-    expect(result.current.currentResponse).toBe('');
+    expect(result.current.currentResponse).toBe("");
 
     // Send message
     await act(async () => {
-      await result.current.sendMessage('Hello');
+      await result.current.sendMessage("Hello");
     });
 
     // Wait for streaming to complete
@@ -155,15 +155,15 @@ describe('useGatewayChat', () => {
     expect(result.current.messages).toHaveLength(2);
 
     // User message
-    expect(result.current.messages[0]?.role).toBe('user');
-    expect(result.current.messages[0]?.content).toBe('Hello');
+    expect(result.current.messages[0]?.role).toBe("user");
+    expect(result.current.messages[0]?.content).toBe("Hello");
 
     // Assistant message
-    expect(result.current.messages[1]?.role).toBe('assistant');
-    expect(result.current.messages[1]?.content).toBe('Hello world!');
+    expect(result.current.messages[1]?.role).toBe("assistant");
+    expect(result.current.messages[1]?.content).toBe("Hello world!");
 
     // Streaming state reset
-    expect(result.current.currentResponse).toBe('');
+    expect(result.current.currentResponse).toBe("");
     expect(result.current.error).toBeNull();
   });
 
@@ -171,8 +171,10 @@ describe('useGatewayChat', () => {
   // Test 2: Streaming state updates
   // --------------------------------------------------------------------------
 
-  it('should update streaming state during message send', async () => {
-    let resolveChunk: ((value: IteratorResult<ChatCompletionChunk>) => void) | null = null;
+  it("should update streaming state during message send", async () => {
+    let resolveChunk:
+      | ((value: IteratorResult<ChatCompletionChunk>) => void)
+      | null = null;
 
     // Mock generator that yields chunks on demand
     const mockGenerator = {
@@ -192,7 +194,7 @@ describe('useGatewayChat', () => {
 
     // Start sending message
     act(() => {
-      result.current.sendMessage('Test');
+      result.current.sendMessage("Test");
     });
 
     // Should be streaming
@@ -208,7 +210,7 @@ describe('useGatewayChat', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.currentResponse).toBe('Hello');
+      expect(result.current.currentResponse).toBe("Hello");
     });
 
     // Complete stream
@@ -227,20 +229,20 @@ describe('useGatewayChat', () => {
   // Test 3: Error handling - 401 Unauthorized
   // --------------------------------------------------------------------------
 
-  it('should handle 401 Unauthorized error', async () => {
+  it("should handle 401 Unauthorized error", async () => {
     mockSendMessage.mockImplementation(() =>
-      createThrowingStreamingGenerator(new Error('HTTP 401: Unauthorized'))
+      createThrowingStreamingGenerator(new Error("HTTP 401: Unauthorized")),
     );
 
     const { result } = renderHook(() => useGatewayChat());
 
     // Send message
     await act(async () => {
-      await result.current.sendMessage('Test');
+      await result.current.sendMessage("Test");
     });
 
     // Should have error
-    expect(result.current.error).toContain('Authentication failed');
+    expect(result.current.error).toContain("Authentication failed");
     expect(result.current.isStreaming).toBe(false);
     expect(result.current.loading).toBe(false);
   });
@@ -249,20 +251,22 @@ describe('useGatewayChat', () => {
   // Test 4: Error handling - Connection refused
   // --------------------------------------------------------------------------
 
-  it('should handle connection refused error', async () => {
+  it("should handle connection refused error", async () => {
     mockSendMessage.mockImplementation(() =>
-      createThrowingStreamingGenerator(new TypeError('Failed to fetch: ECONNREFUSED'))
+      createThrowingStreamingGenerator(
+        new TypeError("Failed to fetch: ECONNREFUSED"),
+      ),
     );
 
     const { result } = renderHook(() => useGatewayChat());
 
     // Send message
     await act(async () => {
-      await result.current.sendMessage('Test');
+      await result.current.sendMessage("Test");
     });
 
     // Should have error
-    expect(result.current.error).toContain('Cannot connect to gateway');
+    expect(result.current.error).toContain("Cannot connect to gateway");
     expect(result.current.isStreaming).toBe(false);
     expect(result.current.loading).toBe(false);
   });
@@ -271,11 +275,11 @@ describe('useGatewayChat', () => {
   // Test 5: Error handling - Timeout
   // --------------------------------------------------------------------------
 
-  it('should handle timeout error', async () => {
+  it("should handle timeout error", async () => {
     mockSendMessage.mockImplementation(() => {
       // Throw error that matches the timeout pattern
-      const error = new Error('Connection timeout');
-      error.name = 'AbortError';
+      const error = new Error("Connection timeout");
+      error.name = "AbortError";
       return createThrowingStreamingGenerator(error);
     });
 
@@ -283,11 +287,11 @@ describe('useGatewayChat', () => {
 
     // Send message
     await act(async () => {
-      await result.current.sendMessage('Test');
+      await result.current.sendMessage("Test");
     });
 
     // Should have error (hook checks for 'AbortError' in message)
-    expect(result.current.error).toContain('Request timed out');
+    expect(result.current.error).toContain("Request timed out");
     expect(result.current.isStreaming).toBe(false);
     expect(result.current.loading).toBe(false);
   });
@@ -296,16 +300,16 @@ describe('useGatewayChat', () => {
   // Test 6: Message list updates
   // --------------------------------------------------------------------------
 
-  it('should update message list correctly', async () => {
+  it("should update message list correctly", async () => {
     mockSendMessage.mockImplementation(() =>
-      createMockStreamingGenerator(MOCK_CHUNKS)
+      createMockStreamingGenerator(MOCK_CHUNKS),
     );
 
     const { result } = renderHook(() => useGatewayChat());
 
     // Send first message
     await act(async () => {
-      await result.current.sendMessage('First message');
+      await result.current.sendMessage("First message");
     });
 
     await waitFor(() => {
@@ -314,7 +318,7 @@ describe('useGatewayChat', () => {
 
     // Send second message
     await act(async () => {
-      await result.current.sendMessage('Second message');
+      await result.current.sendMessage("Second message");
     });
 
     await waitFor(() => {
@@ -322,10 +326,10 @@ describe('useGatewayChat', () => {
     });
 
     // Verify message order
-    expect(result.current.messages[0]?.content).toBe('First message');
-    expect(result.current.messages[1]?.content).toBe('Hello world!');
-    expect(result.current.messages[2]?.content).toBe('Second message');
-    expect(result.current.messages[3]?.content).toBe('Hello world!');
+    expect(result.current.messages[0]?.content).toBe("First message");
+    expect(result.current.messages[1]?.content).toBe("Hello world!");
+    expect(result.current.messages[2]?.content).toBe("Second message");
+    expect(result.current.messages[3]?.content).toBe("Hello world!");
 
     // Clear messages
     act(() => {
@@ -339,7 +343,7 @@ describe('useGatewayChat', () => {
   // Bonus: Cancel stream
   // --------------------------------------------------------------------------
 
-  it('should cancel streaming request', async () => {
+  it("should cancel streaming request", async () => {
     // Mock generator that yields chunks on demand
     const mockGenerator = {
       async next() {
@@ -358,7 +362,7 @@ describe('useGatewayChat', () => {
 
     // Start sending message
     act(() => {
-      result.current.sendMessage('Test');
+      result.current.sendMessage("Test");
     });
 
     await waitFor(() => {
@@ -373,17 +377,17 @@ describe('useGatewayChat', () => {
     // Should stop streaming
     expect(result.current.isStreaming).toBe(false);
     expect(result.current.loading).toBe(false);
-    expect(result.current.currentResponse).toBe('');
+    expect(result.current.currentResponse).toBe("");
   });
 
   // --------------------------------------------------------------------------
   // Bonus: Retry last message
   // --------------------------------------------------------------------------
 
-  it('should retry last failed message', async () => {
+  it("should retry last failed message", async () => {
     mockSendMessage
       .mockImplementationOnce(() =>
-        createThrowingStreamingGenerator(new Error('Network error'))
+        createThrowingStreamingGenerator(new Error("Network error")),
       )
       .mockImplementation(() => createMockStreamingGenerator(MOCK_CHUNKS));
 
@@ -391,7 +395,7 @@ describe('useGatewayChat', () => {
 
     // First attempt fails
     await act(async () => {
-      await result.current.sendMessage('Test message');
+      await result.current.sendMessage("Test message");
     });
 
     // Should have error and user message

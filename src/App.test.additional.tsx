@@ -47,7 +47,9 @@ describe("App - Onboarding Routing", () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.queryByText(/welcome to edwinpai/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/welcome to edwinpai/i),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -70,7 +72,8 @@ describe("App - Onboarding Routing", () => {
 
     // Mock onboarding completion
     vi.mocked(invoke)
-      .mockResolvedValueOnce({ // get_edwinpai_config for save
+      .mockResolvedValueOnce({
+        // get_edwinpai_config for save
         config: {
           ui: { onboardingComplete: false },
           gateway: { aiProvider: {} },
@@ -79,14 +82,16 @@ describe("App - Onboarding Routing", () => {
       .mockResolvedValueOnce({ success: true }); // update_edwinpai_config
 
     // Complete onboarding (simulate through steps)
-    const getStartedButton = screen.getByRole("button", { name: /get started/i });
+    const getStartedButton = screen.getByRole("button", {
+      name: /get started/i,
+    });
     await user.click(getStartedButton);
 
     // Verify update_edwinpai_config was called
     await waitFor(() => {
-      const updateCalls = vi.mocked(invoke).mock.calls.filter(
-        (call) => call[0] === "update_edwinpai_config"
-      );
+      const updateCalls = vi
+        .mocked(invoke)
+        .mock.calls.filter((call) => call[0] === "update_edwinpai_config");
       expect(updateCalls.length).toBeGreaterThanOrEqual(0);
     });
   });

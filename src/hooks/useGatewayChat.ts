@@ -5,20 +5,14 @@
  * Handles connection errors (401, connection refused, timeout).
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from "react";
 
-import { GatewayClient } from '@/lib/GatewayClient';
-import { useGatewayConfig } from './useConfig';
+import { GatewayClient } from "@/lib/GatewayClient";
+import { useGatewayConfig } from "./useConfig";
 
-import type {
-  ChatMessage,
-  ChatCompletionRequest,
-} from '@/types/api';
+import type { ChatMessage, ChatCompletionRequest } from "@/types/api";
 
-import type {
-  StreamingChatMessage,
-  ToolUseBlock,
-} from '@/types/streaming';
+import type { StreamingChatMessage, ToolUseBlock } from "@/types/streaming";
 
 // ============================================================================
 // Hook Types
@@ -70,7 +64,10 @@ interface UseGatewayChatReturn {
   loading: boolean;
 
   /** Send a message */
-  sendMessage: (content: string, role?: 'user' | 'system' | 'assistant') => Promise<void>;
+  sendMessage: (
+    content: string,
+    role?: "user" | "system" | "assistant",
+  ) => Promise<void>;
 
   /** Cancel current streaming request */
   cancelStream: () => void;
@@ -110,14 +107,17 @@ interface UseGatewayChatReturn {
  * );
  * ```
  */
-export function useGatewayChat(options: UseGatewayChatOptions = {}): UseGatewayChatReturn {
+export function useGatewayChat(
+  options: UseGatewayChatOptions = {},
+): UseGatewayChatReturn {
   const { gatewayUrl, gatewayPort } = useGatewayConfig();
-  const baseURL = options.baseURL ?? gatewayUrl ?? `http://localhost:${gatewayPort ?? 18789}`;
-  const authToken = options.authToken ?? '';
+  const baseURL =
+    options.baseURL ?? gatewayUrl ?? `http://localhost:${gatewayPort ?? 18789}`;
+  const authToken = options.authToken ?? "";
 
   const [messages, setMessages] = useState<StreamingChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [currentResponse, setCurrentResponse] = useState('');
+  const [currentResponse, setCurrentResponse] = useState("");
   const [currentToolUses, setCurrentToolUses] = useState<ToolUseBlock[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -147,10 +147,10 @@ export function useGatewayChat(options: UseGatewayChatOptions = {}): UseGatewayC
    * Send a chat message with streaming
    */
   const sendMessage = useCallback(
-    async (content: string, role: 'user' | 'system' | 'assistant' = 'user') => {
+    async (content: string, role: "user" | "system" | "assistant" = "user") => {
       if (!content.trim()) return;
       if (!clientRef.current) {
-        setError('Gateway client not initialized');
+        setError("Gateway client not initialized");
         return;
       }
 
@@ -158,7 +158,7 @@ export function useGatewayChat(options: UseGatewayChatOptions = {}): UseGatewayC
         setError(null);
         setLoading(true);
         setIsStreaming(true);
-        setCurrentResponse('');
+        setCurrentResponse("");
         setCurrentToolUses([]);
 
         // Add user message to history
@@ -176,7 +176,7 @@ export function useGatewayChat(options: UseGatewayChatOptions = {}): UseGatewayC
 
         // Build request payload
         const requestMessages: ChatMessage[] = [
-          ...messages.map(msg => ({
+          ...messages.map((msg) => ({
             role: msg.role,
             content: msg.content,
           })),
@@ -188,7 +188,7 @@ export function useGatewayChat(options: UseGatewayChatOptions = {}): UseGatewayC
 
         const request: ChatCompletionRequest = {
           messages: requestMessages,
-          model: options.model ?? 'claude-sonnet-4-5',
+          model: options.model ?? "claude-sonnet-4-5",
           stream: true,
           temperature: options.temperature,
           maxTokens: options.maxTokens,
@@ -198,7 +198,7 @@ export function useGatewayChat(options: UseGatewayChatOptions = {}): UseGatewayC
         abortControllerRef.current = new AbortController();
 
         // Stream response
-        let accumulated = '';
+        let accumulated = "";
         const toolUses: ToolUseBlock[] = [];
 
         for await (const chunk of clientRef.current.sendMessage({
@@ -222,7 +222,7 @@ export function useGatewayChat(options: UseGatewayChatOptions = {}): UseGatewayC
           }
 
           // Accumulate tool uses
-          if ('tool_use' in delta && Array.isArray(delta.tool_use)) {
+          if ("tool_use" in delta && Array.isArray(delta.tool_use)) {
             toolUses.push(...delta.tool_use);
             setCurrentToolUses(toolUses);
           }
@@ -231,7 +231,7 @@ export function useGatewayChat(options: UseGatewayChatOptions = {}): UseGatewayC
         // Add assistant message to history
         const assistantMessage: StreamingChatMessage = {
           id: crypto.randomUUID(),
-          role: 'assistant',
+          role: "assistant",
           content: accumulated,
           timestamp: Date.now(),
           streaming: false,
@@ -242,26 +242,36 @@ export function useGatewayChat(options: UseGatewayChatOptions = {}): UseGatewayC
         options.onStreamEnd?.(accumulated);
 
         // Reset streaming state
-        setCurrentResponse('');
+        setCurrentResponse("");
         setCurrentToolUses([]);
         setIsStreaming(false);
         setLoading(false);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to send message";
 
         // Handle specific error cases
-        if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-          setError('Authentication failed. Please reconnect to gateway.');
-        } else if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('Failed to fetch')) {
-          setError('Cannot connect to gateway. Is it running?');
-        } else if (errorMessage.includes('timeout') || errorMessage.includes('AbortError')) {
-          setError('Request timed out. Please try again.');
+        if (
+          errorMessage.includes("401") ||
+          errorMessage.includes("Unauthorized")
+        ) {
+          setError("Authentication failed. Please reconnect to gateway.");
+        } else if (
+          errorMessage.includes("ECONNREFUSED") ||
+          errorMessage.includes("Failed to fetch")
+        ) {
+          setError("Cannot connect to gateway. Is it running?");
+        } else if (
+          errorMessage.includes("timeout") ||
+          errorMessage.includes("AbortError")
+        ) {
+          setError("Request timed out. Please try again.");
         } else {
           setError(errorMessage);
         }
 
         options.onStreamError?.(errorMessage);
-        console.error('Chat request failed:', err);
+        console.error("Chat request failed:", err);
 
         setIsStreaming(false);
         setLoading(false);
@@ -269,7 +279,7 @@ export function useGatewayChat(options: UseGatewayChatOptions = {}): UseGatewayC
         abortControllerRef.current = null;
       }
     },
-    [baseURL, authToken, messages, options]
+    [baseURL, authToken, messages, options],
   );
 
   /**
@@ -280,7 +290,7 @@ export function useGatewayChat(options: UseGatewayChatOptions = {}): UseGatewayC
       abortControllerRef.current.abort();
       setIsStreaming(false);
       setLoading(false);
-      setCurrentResponse('');
+      setCurrentResponse("");
       setCurrentToolUses([]);
     }
   }, []);
@@ -290,7 +300,7 @@ export function useGatewayChat(options: UseGatewayChatOptions = {}): UseGatewayC
    */
   const clearMessages = useCallback(() => {
     setMessages([]);
-    setCurrentResponse('');
+    setCurrentResponse("");
     setCurrentToolUses([]);
     setError(null);
     setIsStreaming(false);

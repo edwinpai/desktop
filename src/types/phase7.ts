@@ -15,7 +15,7 @@
  * - src-tauri/src/gateway/log.rs (LogEntry - NEW in Phase 7)
  */
 
-import { APP_VERSION } from '@/lib/app-version';
+import { APP_VERSION } from "@/lib/app-version";
 
 // ============================================================================
 // Gateway Process Management (SPEC §7.1, §7.2)
@@ -25,12 +25,12 @@ import { APP_VERSION } from '@/lib/app-version';
  * Gateway process lifecycle states
  */
 export type GatewayProcessStatus =
-  | 'stopped'
-  | 'starting'
-  | 'running'
-  | 'unhealthy'
-  | 'stopping'
-  | 'crashed';
+  | "stopped"
+  | "starting"
+  | "running"
+  | "unhealthy"
+  | "stopping"
+  | "crashed";
 
 /**
  * Gateway process information
@@ -63,7 +63,7 @@ export interface GatewayProcess {
 /**
  * Health check status (from gateway HTTP /health endpoint)
  */
-export type HealthStatus = 'healthy' | 'degraded' | 'unhealthy';
+export type HealthStatus = "healthy" | "degraded" | "unhealthy";
 
 /**
  * Service health indicators
@@ -106,7 +106,7 @@ export interface GatewayHealth {
 /**
  * Log level severity
  */
-export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error';
+export type LogLevel = "trace" | "debug" | "info" | "warn" | "error";
 
 /**
  * Gateway log entry
@@ -155,12 +155,12 @@ export interface LogQueryFilters {
 /**
  * Operating mode (gateway or client)
  */
-export type OperatingMode = 'gateway' | 'client';
+export type OperatingMode = "gateway" | "client";
 
 /**
  * Theme preference
  */
-export type ThemePreference = 'light' | 'dark' | 'system';
+export type ThemePreference = "light" | "dark" | "system";
 
 /**
  * Gateway configuration subset
@@ -259,7 +259,7 @@ export interface ClientSessionInfo {
   connectedAt: string;
 
   /** Permission level granted to this client */
-  permission: 'owner' | 'member' | 'guest';
+  permission: "owner" | "member" | "guest";
 }
 
 /**
@@ -296,19 +296,23 @@ export interface EdwinPAIConfig {
  * Onboarding step identifier
  */
 export type OnboardingStepId =
-  | 'welcome'
-  | 'identity'
-  | 'backup'
-  | 'mode-select'
-  | 'gateway-setup'
-  | 'client-discovery'
-  | 'subscription'
-  | 'complete';
+  | "welcome"
+  | "identity"
+  | "backup"
+  | "mode-select"
+  | "gateway-setup"
+  | "client-discovery"
+  | "subscription"
+  | "complete";
 
 /**
  * Onboarding step status
  */
-export type OnboardingStepStatus = 'pending' | 'in-progress' | 'completed' | 'skipped';
+export type OnboardingStepStatus =
+  | "pending"
+  | "in-progress"
+  | "completed"
+  | "skipped";
 
 /**
  * Individual onboarding step state
@@ -361,22 +365,22 @@ export interface OnboardingProgress {
  * Connection status for sidebar indicator
  */
 export type ConnectionStatus =
-  | 'disconnected'
-  | 'connecting'
-  | 'connected'
-  | 'reconnecting'
-  | 'failed';
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "failed";
 
 /**
  * Subscription status for sidebar indicator
  */
 export type SubscriptionStatusIndicator =
-  | 'active'
-  | 'cached'
-  | 'expired'
-  | 'grace-exceeded'
-  | 'not-found'
-  | 'checking';
+  | "active"
+  | "cached"
+  | "expired"
+  | "grace-exceeded"
+  | "not-found"
+  | "checking";
 
 /**
  * Sidebar status aggregation (visible in navigation)
@@ -651,7 +655,7 @@ export const DEFAULT_GATEWAY_CONFIG: GatewayConfigOptions = {
   autoRestart: true,
   maxRestarts: 5,
   healthCheckIntervalMs: 30_000, // 30 seconds
-  logLevel: 'info',
+  logLevel: "info",
   memoryLimitMb: 0, // unlimited
 };
 
@@ -668,7 +672,7 @@ export const DEFAULT_MDNS_CONFIG: MdnsConfigOptions = {
  * Default UI preferences
  */
 export const DEFAULT_UI_PREFERENCES: UiPreferences = {
-  theme: 'system',
+  theme: "system",
   minimizeToTray: true,
   startMinimized: false,
   windowWidth: 1200,
@@ -691,7 +695,7 @@ export const DEFAULT_SUBSCRIPTION_SETTINGS: SubscriptionSettings = {
  */
 export const DEFAULT_EDWINPAI_CONFIG: EdwinPAIConfig = {
   version: APP_VERSION,
-  mode: 'gateway',
+  mode: "gateway",
   gateway: DEFAULT_GATEWAY_CONFIG,
   mdns: DEFAULT_MDNS_CONFIG,
   ui: DEFAULT_UI_PREFERENCES,
@@ -714,14 +718,14 @@ export const LOG_LEVEL_ORDER: Record<LogLevel, number> = {
  * Onboarding step order
  */
 export const ONBOARDING_STEP_ORDER: OnboardingStepId[] = [
-  'welcome',
-  'identity',
-  'backup',
-  'mode-select',
-  'gateway-setup',
-  'client-discovery',
-  'subscription',
-  'complete',
+  "welcome",
+  "identity",
+  "backup",
+  "mode-select",
+  "gateway-setup",
+  "client-discovery",
+  "subscription",
+  "complete",
 ];
 
 // ============================================================================
@@ -732,21 +736,23 @@ export const ONBOARDING_STEP_ORDER: OnboardingStepId[] = [
  * Check if gateway is in a running state
  */
 export function isGatewayRunning(status: GatewayProcessStatus): boolean {
-  return status === 'running' || status === 'unhealthy';
+  return status === "running" || status === "unhealthy";
 }
 
 /**
  * Check if gateway can be started
  */
 export function canStartGateway(status: GatewayProcessStatus): boolean {
-  return status === 'stopped' || status === 'crashed';
+  return status === "stopped" || status === "crashed";
 }
 
 /**
  * Check if gateway can be stopped
  */
 export function canStopGateway(status: GatewayProcessStatus): boolean {
-  return status === 'running' || status === 'unhealthy' || status === 'starting';
+  return (
+    status === "running" || status === "unhealthy" || status === "starting"
+  );
 }
 
 /**
@@ -761,7 +767,7 @@ export function isLogLevelAtLeast(level1: LogLevel, level2: LogLevel): boolean {
  */
 export function calculateOnboardingCompletion(steps: OnboardingStep[]): number {
   const completedCount = steps.filter(
-    (s) => s.status === 'completed' || s.status === 'skipped',
+    (s) => s.status === "completed" || s.status === "skipped",
   ).length;
   return Math.round((completedCount / steps.length) * 100);
 }
@@ -773,7 +779,10 @@ export function getNextOnboardingStep(
   currentStep: OnboardingStepId,
 ): OnboardingStepId | null {
   const currentIndex = ONBOARDING_STEP_ORDER.indexOf(currentStep);
-  if (currentIndex === -1 || currentIndex === ONBOARDING_STEP_ORDER.length - 1) {
+  if (
+    currentIndex === -1 ||
+    currentIndex === ONBOARDING_STEP_ORDER.length - 1
+  ) {
     return null;
   }
   return ONBOARDING_STEP_ORDER[currentIndex + 1] ?? null;

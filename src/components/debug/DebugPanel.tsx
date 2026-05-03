@@ -1,6 +1,12 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +22,10 @@ interface HistoryEntry {
 }
 
 interface DebugPanelProps {
-  request?: (method: string, params: Record<string, unknown>) => Promise<unknown>;
+  request?: (
+    method: string,
+    params: Record<string, unknown>,
+  ) => Promise<unknown>;
 }
 
 let nextId = 1;
@@ -54,7 +63,8 @@ export function DebugPanel({ request }: DebugPanelProps) {
       if (request) {
         entry.result = await request(entry.method, parsed);
       } else {
-        entry.error = "No request handler available. Connect to a gateway first.";
+        entry.error =
+          "No request handler available. Connect to a gateway first.";
       }
     } catch (err) {
       entry.error = err instanceof Error ? err.message : String(err);
@@ -168,7 +178,9 @@ export function DebugPanel({ request }: DebugPanelProps) {
                 <CardContent className="space-y-2">
                   {Object.keys(entry.params).length > 0 && (
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">Params</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Params
+                      </p>
                       <pre className="text-xs whitespace-pre-wrap bg-muted/40 p-3 rounded-md font-mono">
                         {JSON.stringify(entry.params, null, 2)}
                       </pre>
@@ -177,14 +189,18 @@ export function DebugPanel({ request }: DebugPanelProps) {
 
                   {entry.error ? (
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">Error</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Error
+                      </p>
                       <pre className="text-xs whitespace-pre-wrap bg-destructive/10 text-destructive p-3 rounded-md font-mono">
                         {entry.error}
                       </pre>
                     </div>
                   ) : (
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">Response</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Response
+                      </p>
                       <pre className="text-xs whitespace-pre-wrap bg-muted/40 p-3 rounded-md font-mono">
                         {JSON.stringify(entry.result, null, 2)}
                       </pre>

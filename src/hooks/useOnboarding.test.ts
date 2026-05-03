@@ -129,9 +129,9 @@ describe("useOnboarding", () => {
     // isComplete requires currentStep >= TOTAL_STEPS - 1 (6) AND completedSteps.length >= 3
     // completeStep auto-advances, so we need to reach step 6 with 3+ completed steps
     act(() => {
-      result.current.completeStep("Identity" as OnboardingStepType);   // step -> 1
-      result.current.completeStep("Gateway" as OnboardingStepType);    // step -> 2
-      result.current.completeStep("TestChat" as OnboardingStepType);   // step -> 3
+      result.current.completeStep("Identity" as OnboardingStepType); // step -> 1
+      result.current.completeStep("Gateway" as OnboardingStepType); // step -> 2
+      result.current.completeStep("TestChat" as OnboardingStepType); // step -> 3
       result.current.nextStep(); // step -> 4
       result.current.nextStep(); // step -> 5
       result.current.nextStep(); // step -> 6
@@ -146,9 +146,9 @@ describe("useOnboarding", () => {
 
     // Need to reach step 6 with 3+ completed steps, then call nextStep at the end
     act(() => {
-      result.current.completeStep("Identity" as OnboardingStepType);   // step -> 1
-      result.current.completeStep("Gateway" as OnboardingStepType);    // step -> 2
-      result.current.completeStep("TestChat" as OnboardingStepType);   // step -> 3
+      result.current.completeStep("Identity" as OnboardingStepType); // step -> 1
+      result.current.completeStep("Gateway" as OnboardingStepType); // step -> 2
+      result.current.completeStep("TestChat" as OnboardingStepType); // step -> 3
       result.current.nextStep(); // step -> 4
       result.current.nextStep(); // step -> 5
       result.current.nextStep(); // step -> 6 (isComplete = true now)
@@ -165,7 +165,9 @@ describe("useOnboarding", () => {
     const { result } = renderHook(() => useOnboarding({ autoSave: true }));
 
     act(() => {
-      result.current.completeStep("identity" as OnboardingStepType, { test: "data" });
+      result.current.completeStep("identity" as OnboardingStepType, {
+        test: "data",
+      });
     });
 
     const saved = localStorage.getItem("edwinpai_onboarding_progress");
@@ -187,7 +189,10 @@ describe("useOnboarding", () => {
       lastUpdatedAt: new Date().toISOString(),
     };
 
-    localStorage.setItem("edwinpai_onboarding_progress", JSON.stringify(progress));
+    localStorage.setItem(
+      "edwinpai_onboarding_progress",
+      JSON.stringify(progress),
+    );
 
     const { result } = renderHook(() => useOnboarding());
 
@@ -238,7 +243,7 @@ describe("useOnboarding", () => {
     });
 
     const identityCount = result.current.completedSteps.filter(
-      (s) => s === "Identity"
+      (s) => s === "Identity",
     ).length;
     expect(identityCount).toBe(1);
   });
