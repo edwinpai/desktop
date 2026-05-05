@@ -23,6 +23,7 @@ import { TasksPanel } from "@/components/tasks/TasksPanel";
 import { DebugPanel } from "@/components/debug/DebugPanel";
 import { FileEditor } from "@/components/workspace/FileEditor";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { RuntimeInstallerGate } from "@/components/runtime/RuntimeInstallerGate";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LockScreen } from "@/components/LockScreen";
 // PinSetup available for onboarding integration
@@ -84,6 +85,7 @@ function App() {
   const [currentUserLevel] = useState<AccessLevel>("owner");
   const [isInitializing, setIsInitializing] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [needsRuntimeSetup, setNeedsRuntimeSetup] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [agentId, setAgentId] = useState("main");
   const [mainSessionKey, setMainSessionKey] = useState("main");
@@ -628,6 +630,25 @@ function App() {
           }
         }
 
+        // The desktop app is the primary front door. Before onboarding or
+        // gateway mode selection, make sure the local EdwinPAI runtime exists.
+        try {
+          const runtime = await invoke<{
+            installed: boolean;
+            compatible: boolean;
+          }>("check_edwinpai_runtime");
+          if (!runtime.installed || !runtime.compatible) {
+            setNeedsRuntimeSetup(true);
+            setIsInitializing(false);
+            return;
+          }
+        } catch (error) {
+          console.error("Failed to check EdwinPAI runtime:", error);
+          setNeedsRuntimeSetup(true);
+          setIsInitializing(false);
+          return;
+        }
+
         // Check onboarding status from localStorage (desktop-only state)
         const onboardingDone =
           localStorage.getItem("edwinpai_onboarding_complete") === "true";
@@ -838,6 +859,28 @@ function App() {
           setIsInitializing(true);
         }}
       />
+    );
+  }
+
+  // First-run runtime setup comes before onboarding: the desktop app owns
+  // bootstrapping the local EdwinPAI runtime if it is missing/incompatible.
+  if (needsRuntimeSetup) {
+    return (
+      <ErrorBoundary>
+        <RuntimeInstallerGate
+          onReady={() => {
+            setNeedsRuntimeSetup(false);
+            const onboardingDone =
+              localStorage.getItem("edwinpai_onboarding_complete") === "true";
+            if (!onboardingDone) {
+              setNeedsOnboarding(true);
+            } else {
+              setCurrentView("mode-select");
+            }
+          }}
+          onCancel={() => setNeedsRuntimeSetup(false)}
+        />
+      </ErrorBoundary>
     );
   }
 

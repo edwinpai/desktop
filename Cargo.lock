@@ -116,7 +116,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "edwin-overlay-client"
+name = "edwinpai-overlay-client"
 version = "0.1.0"
 dependencies = [
  "mockito",

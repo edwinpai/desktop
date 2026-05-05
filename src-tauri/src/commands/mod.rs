@@ -16,6 +16,7 @@ pub mod knowledge;
 pub mod spv;
 pub mod providers;
 pub mod runtime;
+pub mod runtime_installer;
 pub mod signed_request;
 pub mod tray;
 pub mod vault;
