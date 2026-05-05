@@ -1,7 +1,7 @@
 {
   "name": "edwinpai-desktop",
   "private": true,
-  "version": "1.0.0-beta.3",
+  "version": "1.0.0-beta.6",
   "type": "module",
   "scripts": {
     "dev": "npm run version:sync --silent && vite",
