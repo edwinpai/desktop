@@ -1,12 +1,15 @@
 use serde::Serialize;
 use std::{
     env, fs,
-    process::Command,
-    time::{SystemTime, UNIX_EPOCH},
+    process::{Command, Output, Stdio},
+    thread,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 const BUNDLED_INSTALLER: &str = include_str!("../../resources/install-edwinpai-runtime.sh");
 const EXPECTED_RUNTIME_VERSION: &str = env!("CARGO_PKG_VERSION");
+const RUNTIME_COMMAND_TIMEOUT: Duration = Duration::from_secs(10);
+const INSTALLER_TIMEOUT: Duration = Duration::from_secs(600);
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -48,10 +51,11 @@ pub async fn check_edwinpai_runtime() -> Result<EdwinpaiRuntimeCheck, String> {
         });
     };
 
-    let version_output = Command::new(&path)
-        .arg("--version")
-        .output()
-        .map_err(|e| format!("failed to run edwinpai --version: {e}"))?;
+    let version_output = run_command_with_timeout(
+        Command::new(&path).arg("--version"),
+        RUNTIME_COMMAND_TIMEOUT,
+    )
+    .map_err(|e| format!("failed to run edwinpai --version: {e}"))?;
     let version = String::from_utf8_lossy(&version_output.stdout)
         .trim()
         .to_string();
@@ -65,7 +69,10 @@ pub async fn check_edwinpai_runtime() -> Result<EdwinpaiRuntimeCheck, String> {
             || value == format!("edwinpai {}", EXPECTED_RUNTIME_VERSION)
     });
 
-    let status_output = Command::new(&path).args(["gateway", "status"]).output();
+    let status_output = run_command_with_timeout(
+        Command::new(&path).args(["gateway", "status"]),
+        RUNTIME_COMMAND_TIMEOUT,
+    );
     let (gateway_status_ok, gateway_status) = match status_output {
         Ok(out) => {
             let mut text = String::new();
@@ -135,11 +142,13 @@ pub async fn install_edwinpai_runtime() -> Result<RuntimeCommandResult, String> 
         fs::set_permissions(&script_path, perms).map_err(|e| e.to_string())?;
     }
 
-    let output = Command::new("bash")
-        .arg(&script_path)
-        .env("EDWINPAI_VERSION", "beta")
-        .output()
-        .map_err(|e| format!("failed to run bundled installer: {e}"))?;
+    let output = run_command_with_timeout(
+        Command::new("bash")
+            .arg(&script_path)
+            .env("EDWINPAI_VERSION", "beta"),
+        INSTALLER_TIMEOUT,
+    )
+    .map_err(|e| format!("failed to run bundled installer: {e}"))?;
 
     let _ = fs::remove_file(&script_path);
     Ok(RuntimeCommandResult {
@@ -153,9 +162,7 @@ pub async fn install_edwinpai_runtime() -> Result<RuntimeCommandResult, String> 
 fn run_edwinpai_args(args: &[&str]) -> Result<RuntimeCommandResult, String> {
     let binary = crate::gateway::find_edwinpai_binary()
         .ok_or_else(|| "EdwinPAI CLI was not found.".to_string())?;
-    let output = Command::new(binary)
-        .args(args)
-        .output()
+    let output = run_command_with_timeout(Command::new(binary).args(args), RUNTIME_COMMAND_TIMEOUT)
         .map_err(|e| format!("failed to run edwinpai {}: {e}", args.join(" ")))?;
     Ok(RuntimeCommandResult {
         success: output.status.success(),
@@ -163,4 +170,51 @@ fn run_edwinpai_args(args: &[&str]) -> Result<RuntimeCommandResult, String> {
         stdout: String::from_utf8_lossy(&output.stdout).to_string(),
         stderr: String::from_utf8_lossy(&output.stderr).to_string(),
     })
+}
+
+fn run_command_with_timeout(command: &mut Command, timeout: Duration) -> Result<Output, String> {
+    let mut child = command
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    let start = SystemTime::now();
+
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => return child.wait_with_output().map_err(|e| e.to_string()),
+            Ok(None) => {
+                let elapsed = start.elapsed().map_err(|e| e.to_string())?;
+                if elapsed >= timeout {
+                    let _ = child.kill();
+                    let output = child.wait_with_output().map_err(|e| e.to_string())?;
+                    return Err(format!(
+                        "command timed out after {}s (stdout: {}, stderr: {})",
+                        timeout.as_secs(),
+                        String::from_utf8_lossy(&output.stdout).trim(),
+                        String::from_utf8_lossy(&output.stderr).trim()
+                    ));
+                }
+                thread::sleep(Duration::from_millis(50));
+            }
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn command_timeout_returns_error_instead_of_hanging() {
+        let result = run_command_with_timeout(
+            Command::new("bash").args(["-lc", "echo started; sleep 2"]),
+            Duration::from_millis(100),
+        );
+
+        let error = result.expect_err("sleeping command should time out");
+        assert!(error.contains("command timed out"));
+        assert!(error.contains("started"));
+    }
 }
