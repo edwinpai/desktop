@@ -5,11 +5,15 @@ set -euo pipefail
 # This is intentionally non-silent: the desktop app shows this output in its setup log.
 
 EDWINPAI_VERSION="${EDWINPAI_VERSION:-beta}"
-INSTALL_URL="${EDWINPAI_INSTALL_URL:-https://edwinpai.com/install.sh}"
+INSTALL_URL="${EDWINPAI_INSTALL_URL:-}"
 
 echo "=== EdwinPAI Runtime Installer ==="
 echo "Target version/channel: ${EDWINPAI_VERSION}"
-echo "Installer URL: ${INSTALL_URL}"
+if [[ -n "${INSTALL_URL}" ]]; then
+  echo "Installer URL override: ${INSTALL_URL}"
+else
+  echo "Install method: npm package @edwinpai/edwinpai@${EDWINPAI_VERSION}"
+fi
 
 echo "Checking prerequisites..."
 if ! command -v node >/dev/null 2>&1; then
@@ -20,23 +24,35 @@ if ! command -v npm >/dev/null 2>&1; then
   echo "ERROR: npm is required before installing EdwinPAI runtime." >&2
   exit 11
 fi
-node --version
-npm --version
 
-if command -v curl >/dev/null 2>&1; then
-  echo "Trying canonical installer script..."
-  if curl -fsSL "${INSTALL_URL}" -o /tmp/edwinpai-install.sh; then
-    chmod +x /tmp/edwinpai-install.sh
-    bash /tmp/edwinpai-install.sh
-  else
-    echo "Installer URL unavailable; falling back to npm beta package install."
-    npm install -g "@edwinpai/edwinpai@${EDWINPAI_VERSION}"
-    edwinpai setup || true
-  fi
-else
-  echo "curl not found; using npm package install."
+NODE_VERSION_RAW="$(node --version)"
+NODE_MAJOR="${NODE_VERSION_RAW#v}"
+NODE_MAJOR="${NODE_MAJOR%%.*}"
+echo "Node: ${NODE_VERSION_RAW}"
+echo "npm: $(npm --version)"
+if [[ ! "${NODE_MAJOR}" =~ ^[0-9]+$ ]] || (( NODE_MAJOR < 22 )); then
+  echo "ERROR: EdwinPAI requires Node.js 22 or newer. Found ${NODE_VERSION_RAW}." >&2
+  exit 12
+fi
+
+install_with_npm() {
+  echo "Installing EdwinPAI runtime from npm..."
   npm install -g "@edwinpai/edwinpai@${EDWINPAI_VERSION}"
+  echo "Preparing first-run config..."
   edwinpai setup || true
+}
+
+if [[ -n "${INSTALL_URL}" ]]; then
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "ERROR: EDWINPAI_INSTALL_URL was set, but curl is not available." >&2
+    exit 13
+  fi
+  echo "Running installer URL override..."
+  curl -fsSL "${INSTALL_URL}" -o /tmp/edwinpai-install.sh
+  chmod +x /tmp/edwinpai-install.sh
+  bash /tmp/edwinpai-install.sh
+else
+  install_with_npm
 fi
 
 echo "Verifying EdwinPAI runtime..."
