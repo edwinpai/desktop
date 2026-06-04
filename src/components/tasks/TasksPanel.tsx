@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ArrowLeft,
   AlertCircle,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  CircleDot,
   ListChecks,
   PauseCircle,
   PlayCircle,
@@ -32,11 +34,68 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+interface TaskEvent {
+  id: string;
+  ts: number;
+  taskId?: string;
+  type?: string;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
+type TaskExecutorKind =
+  | "edwin"
+  | "human"
+  | "workflow"
+  | "subagent"
+  | "codex"
+  | "claude-code"
+  | "opencode"
+  | "custom";
+
+type TaskApprovalState =
+  | "not_required"
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "expired";
+
+type TaskRunState =
+  | "not_started"
+  | "queued"
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "cancelled";
+
+interface TaskAssignment {
+  assigneeType?: string;
+  assigneeId?: string;
+  executorKind?: TaskExecutorKind;
+  executorId?: string;
+  approvalState?: TaskApprovalState;
+  runState?: TaskRunState;
+  runId?: string;
+  sessionKey?: string;
+  prompt?: string;
+  artifacts?: string[];
+  logPath?: string;
+  resultSummary?: string;
+}
+
+interface TaskStep {
+  id: string;
+  title: string;
+  status?: "active" | "done" | "blocked" | "needs_user" | "review";
+  assignment?: TaskAssignment;
+}
+
 interface TaskRecord {
   id?: string;
+  title?: string;
   goal?: string;
   definitionOfDone?: string;
-  status?: "active" | "done" | "blocked" | "needs_user";
+  status?: "active" | "done" | "blocked" | "needs_user" | "review";
   criteria?: string[];
   completedCriteria?: string[];
   blockedReason?: string;
@@ -46,17 +105,49 @@ interface TaskRecord {
   maxIterations?: number;
   delayMs?: number;
   active?: boolean;
+  parentTaskId?: string;
+  childTaskIds?: string[];
+  assignedAgentType?: string;
+  assignedAgentId?: string;
+  assignedProfileId?: string;
+  assignedDisciplineId?: string;
+  assignedSessionKey?: string;
+  assignment?: TaskAssignment;
+  steps?: TaskStep[];
+  boardColumn?: BoardColumnId;
+  taskSource?: {
+    kind?: string;
+    path?: string;
+    fileStatus?: "active" | "waiting" | "inbox" | "done" | string;
+  };
 }
+
+type BoardColumnId =
+  | "inbox"
+  | "ready"
+  | "queue"
+  | "waiting"
+  | "review"
+  | "done";
+
+type BoardColumn = {
+  id: BoardColumnId;
+  title: string;
+  description: string;
+  tasks: TaskRecord[];
+};
 
 interface TaskQueueResult {
   activeTaskId?: string;
   activeTask?: TaskRecord;
   tasks?: TaskRecord[];
+  taskEvents?: TaskEvent[];
 }
 
 interface TaskSession {
   key: string;
   label?: string;
+  userLabel?: string;
   displayName?: string;
   derivedTitle?: string;
   activeTask?: {
@@ -100,8 +191,62 @@ function getDraftStorageKey(sessionKey: string): string {
 
 function getSessionTitle(session: TaskSession): string {
   return (
-    session.displayName || session.label || session.derivedTitle || session.key
+    session.userLabel ||
+    session.displayName ||
+    session.label ||
+    session.derivedTitle ||
+    session.key
   );
+}
+
+function getTaskTitle(task: TaskRecord): string {
+  return task.title ?? task.goal ?? task.id ?? "Untitled task";
+}
+
+function getTaskAssigneeLabel(task: TaskRecord): string | null {
+  const type = task.assignedAgentType?.trim();
+  const id = task.assignedAgentId?.trim();
+  const profile = task.assignedProfileId?.trim();
+  const discipline = task.assignedDisciplineId?.trim();
+  if (type && id) return `${type}: ${id}`;
+  if (type) return type;
+  if (profile) return `profile: ${profile}`;
+  if (discipline) return `discipline: ${discipline}`;
+  return null;
+}
+
+function getTaskBoardColumn(
+  task: TaskRecord,
+  activeTaskId?: string,
+): BoardColumnId {
+  if (task.boardColumn) return task.boardColumn;
+  const fileStatus = task.taskSource?.fileStatus;
+  if (fileStatus === "inbox") return "inbox";
+  if (fileStatus === "waiting") return "waiting";
+  if (fileStatus === "done") return "done";
+  if (task.status === "done" || isTaskCompleted(task)) return "done";
+  if (task.status === "review") return "review";
+  if (isTaskBlocked(task) || isTaskNeedsUser(task)) return "waiting";
+  if (task.id === activeTaskId || task.active || task.autoContinueEnabled)
+    return "queue";
+  return "ready";
+}
+
+function getBoardColumnTitle(columnId: BoardColumnId): string {
+  switch (columnId) {
+    case "inbox":
+      return "Inbox";
+    case "ready":
+      return "Ready";
+    case "queue":
+      return "Queue / Executing";
+    case "waiting":
+      return "Waiting / Blocked";
+    case "review":
+      return "Review";
+    case "done":
+      return "Done";
+  }
 }
 
 function getTaskStatusLabel(task: TaskRecord, activeTaskId?: string): string {
@@ -147,6 +292,108 @@ function isTaskNeedsUser(task: TaskRecord): boolean {
   );
 }
 
+function getTaskProgress(task: TaskRecord | null): {
+  completed: number;
+  total: number;
+  percent: number;
+} {
+  const total = task?.criteria?.length ?? 0;
+  const completed = task?.completedCriteria?.length ?? 0;
+  return {
+    completed,
+    total,
+    percent: total > 0 ? Math.round((completed / total) * 100) : 0,
+  };
+}
+
+function getTaskCurrentStep(task: TaskRecord | null): string {
+  if (!task) return "No task selected.";
+  if (isTaskCompleted(task)) return "All criteria complete — ready to finish.";
+  if (isTaskBlocked(task)) {
+    return `Blocked: ${task.blockedReason ?? "waiting on an external dependency"}`;
+  }
+  if (isTaskNeedsUser(task)) {
+    return `Needs user input: ${task.needsUserReason ?? "waiting for direction"}`;
+  }
+  const completed = new Set(task.completedCriteria ?? []);
+  const nextCriterion = (task.criteria ?? []).find(
+    (criterion) => !completed.has(criterion),
+  );
+  if (nextCriterion) return `Working toward: ${nextCriterion}`;
+  return task.active
+    ? "Executing task and watching for progress updates."
+    : "Queued and ready to execute.";
+}
+
+function buildTaskActivity(task: TaskRecord | null): string[] {
+  if (!task) return ["Select a task to see execution activity."];
+  const entries: string[] = [];
+  const statusLabel = getTaskStatusLabel(
+    task,
+    task.active ? task.id : undefined,
+  );
+  entries.push(`Task is ${statusLabel}.`);
+  if (task.active)
+    entries.push("Agent execution is currently attached to this task.");
+  if (task.definitionOfDone?.trim()) {
+    entries.push(`Definition of done: ${task.definitionOfDone.trim()}`);
+  }
+  for (const criterion of task.completedCriteria ?? []) {
+    entries.push(`Completed criterion: ${criterion}`);
+  }
+  const remaining = (task.criteria ?? []).filter(
+    (criterion) => !(task.completedCriteria ?? []).includes(criterion),
+  );
+  if (remaining.length > 0) {
+    entries.push(`Next remaining criterion: ${remaining[0]}`);
+  }
+  if (task.lastEvaluationReason?.trim()) {
+    entries.push(`Latest evaluation: ${task.lastEvaluationReason.trim()}`);
+  }
+  if (task.blockedReason?.trim())
+    entries.push(`Blocked: ${task.blockedReason.trim()}`);
+  if (task.needsUserReason?.trim())
+    entries.push(`Needs user: ${task.needsUserReason.trim()}`);
+  if (entries.length === 1 && !task.active) {
+    entries.push("No execution updates yet — run the queue to start work.");
+  }
+  return entries;
+}
+
+function formatTaskSteps(steps: TaskStep[] | undefined): string {
+  return (steps ?? [])
+    .map((step) => {
+      const executor = step.assignment?.executorKind ?? "edwin";
+      const status = step.status ?? "active";
+      return `${step.title} | ${executor} | ${status}`;
+    })
+    .join("\n");
+}
+
+function parseTaskSteps(text: string): TaskStep[] {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, index) => {
+      const [rawTitle, rawExecutor, rawStatus] = line
+        .split("|")
+        .map((part) => part.trim());
+      const executorKind = (rawExecutor || "edwin") as TaskExecutorKind;
+      const status = (rawStatus || "active") as TaskStep["status"];
+      return {
+        id: `step-${index + 1}`,
+        title: rawTitle || `Step ${index + 1}`,
+        status,
+        assignment: {
+          executorKind,
+          approvalState: executorKind === "human" ? "not_required" : "pending",
+          runState: "not_started",
+        },
+      };
+    });
+}
+
 function loadTaskIntoEditor(
   task: TaskRecord | null,
   setters: {
@@ -177,6 +424,7 @@ export function TasksPanel({
   request,
 }: TasksPanelProps) {
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
+  const [taskEvents, setTaskEvents] = useState<TaskEvent[]>([]);
   const [activeTaskId, setActiveTaskId] = useState<string | undefined>(
     undefined,
   );
@@ -202,12 +450,28 @@ export function TasksPanel({
   const [editAutoContinueEnabled, setEditAutoContinueEnabled] = useState(true);
   const [editMaxIterations, setEditMaxIterations] = useState("25");
   const [editDelayMs, setEditDelayMs] = useState("1500");
+  const [editAssigneeType, setEditAssigneeType] = useState("agent");
+  const [editAssigneeId, setEditAssigneeId] = useState("");
+  const [editExecutorKind, setEditExecutorKind] =
+    useState<TaskExecutorKind>("edwin");
+  const [editExecutorId, setEditExecutorId] = useState("");
+  const [editApprovalState, setEditApprovalState] =
+    useState<TaskApprovalState>("not_required");
+  const [editRunState, setEditRunState] = useState<TaskRunState>("not_started");
+  const [editRunId, setEditRunId] = useState("");
+  const [editAssignmentPrompt, setEditAssignmentPrompt] = useState("");
+  const [editAssignmentArtifacts, setEditAssignmentArtifacts] = useState("");
+  const [editAssignmentLogPath, setEditAssignmentLogPath] = useState("");
+  const [editAssignmentResultSummary, setEditAssignmentResultSummary] =
+    useState("");
+  const [editStepsText, setEditStepsText] = useState("");
   const [editorDirty, setEditorDirty] = useState(false);
   const [blockReasonInput, setBlockReasonInput] = useState("");
   const [needsUserReasonInput, setNeedsUserReasonInput] = useState("");
-  const [showBlockedTasks, setShowBlockedTasks] = useState(false);
-  const [showNeedsUserTasks, setShowNeedsUserTasks] = useState(false);
-  const [showCompletedTasks, setShowCompletedTasks] = useState(false);
+  const [tasksView, setTasksView] = useState<"board" | "add" | "task" | "run">(
+    "board",
+  );
+  const [createColumnId, setCreateColumnId] = useState<BoardColumnId>("ready");
 
   const currentSession = sessions.find((session) => session.key === sessionKey);
   const sessionOptions = useMemo(() => {
@@ -235,6 +499,37 @@ export function TasksPanel({
     const completed = new Set(selectedTask?.completedCriteria ?? []);
     return all.filter((item) => !completed.has(item));
   }, [selectedTask]);
+  const selectedTaskProgress = useMemo(
+    () => getTaskProgress(selectedTask),
+    [selectedTask],
+  );
+  const selectedTaskCurrentStep = useMemo(
+    () => getTaskCurrentStep(selectedTask),
+    [selectedTask],
+  );
+  const selectedTaskActivity = useMemo(() => {
+    const selectedEvents = selectedTask?.id
+      ? taskEvents.filter(
+          (event) => !event.taskId || event.taskId === selectedTask.id,
+        )
+      : [];
+    if (selectedEvents.length > 0) {
+      return selectedEvents
+        .slice(-12)
+        .reverse()
+        .map((event) => {
+          const when = Number.isFinite(event.ts)
+            ? new Date(event.ts).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              })
+            : "";
+          return when ? `${when} · ${event.message}` : event.message;
+        });
+    }
+    return buildTaskActivity(selectedTask);
+  }, [selectedTask, taskEvents]);
   const runnableTaskCount = useMemo(
     () =>
       tasks.filter(
@@ -251,28 +546,55 @@ export function TasksPanel({
     () => tasks.find((task) => task.id === activeTaskId) ?? null,
     [activeTaskId, tasks],
   );
-  const completedTasks = useMemo(
-    () => tasks.filter((task) => isTaskCompleted(task)),
-    [tasks],
-  );
-  const blockedTasks = useMemo(
-    () => tasks.filter((task) => isTaskBlocked(task)),
-    [tasks],
-  );
-  const needsUserTasks = useMemo(
-    () => tasks.filter((task) => isTaskNeedsUser(task)),
-    [tasks],
-  );
-  const workingTasks = useMemo(
-    () =>
-      tasks.filter(
-        (task) =>
-          !isTaskCompleted(task) &&
-          !isTaskBlocked(task) &&
-          !isTaskNeedsUser(task),
+  const childTasksByParent = useMemo(() => {
+    const map = new Map<string, TaskRecord[]>();
+    for (const task of tasks) {
+      if (!task.parentTaskId) continue;
+      const children = map.get(task.parentTaskId) ?? [];
+      children.push(task);
+      map.set(task.parentTaskId, children);
+    }
+    return map;
+  }, [tasks]);
+  const boardColumns = useMemo<BoardColumn[]>(() => {
+    const topLevelTasks = tasks.filter((task) => !task.parentTaskId);
+    const makeColumn = (
+      id: BoardColumnId,
+      title: string,
+      description: string,
+    ): BoardColumn => ({
+      id,
+      title,
+      description,
+      tasks: topLevelTasks.filter(
+        (task) => getTaskBoardColumn(task, activeTaskId) === id,
       ),
-    [tasks],
-  );
+    });
+    return [
+      makeColumn("inbox", "Inbox", "Captured tasks that still need triage."),
+      makeColumn(
+        "ready",
+        "Ready",
+        "Clear tasks that can be queued or assigned.",
+      ),
+      makeColumn(
+        "queue",
+        "Queue / Executing",
+        "Runnable or currently executing work.",
+      ),
+      makeColumn(
+        "waiting",
+        "Waiting / Blocked",
+        "Tasks waiting on people, approvals, or dependencies.",
+      ),
+      makeColumn(
+        "review",
+        "Review",
+        "Work Edwin believes is ready for inspection.",
+      ),
+      makeColumn("done", "Done", "Completed and archived work."),
+    ];
+  }, [activeTaskId, tasks]);
   const activeQueueTaskCompletedCount =
     activeQueueTask?.completedCriteria?.length ?? 0;
   const activeQueueTaskCriteriaCount = activeQueueTask?.criteria?.length ?? 0;
@@ -316,6 +638,7 @@ export function TasksPanel({
       const nextTasks = result?.tasks ?? [];
       const nextActiveTaskId = result?.activeTaskId;
       setTasks(nextTasks);
+      setTaskEvents(Array.isArray(result?.taskEvents) ? result.taskEvents : []);
       setActiveTaskId(nextActiveTaskId);
       setSelectedTaskId((current) => {
         if (current && nextTasks.some((task) => task.id === current)) {
@@ -464,6 +787,19 @@ export function TasksPanel({
         setDelayMs: setEditDelayMs,
         setEditorDirty,
       });
+      const assignment = selectedTask.assignment;
+      setEditAssigneeType(assignment?.assigneeType ?? "agent");
+      setEditAssigneeId(assignment?.assigneeId ?? "");
+      setEditExecutorKind(assignment?.executorKind ?? "edwin");
+      setEditExecutorId(assignment?.executorId ?? "");
+      setEditApprovalState(assignment?.approvalState ?? "not_required");
+      setEditRunState(assignment?.runState ?? "not_started");
+      setEditRunId(assignment?.runId ?? "");
+      setEditAssignmentPrompt(assignment?.prompt ?? "");
+      setEditAssignmentArtifacts((assignment?.artifacts ?? []).join("\n"));
+      setEditAssignmentLogPath(assignment?.logPath ?? "");
+      setEditAssignmentResultSummary(assignment?.resultSummary ?? "");
+      setEditStepsText(formatTaskSteps(selectedTask.steps));
     }
   }, [editorDirty, selectedTask]);
 
@@ -474,69 +810,80 @@ export function TasksPanel({
     selectedTask?.blockedReason,
     selectedTask?.needsUserReason,
     selectedTask?.id,
+    sessionKey,
   ]);
 
-  useEffect(() => {
-    if (!selectedTask) {
-      return;
-    }
-    if (isTaskCompleted(selectedTask)) {
-      setShowCompletedTasks(true);
-    } else if (isTaskBlocked(selectedTask)) {
-      setShowBlockedTasks(true);
-    } else if (isTaskNeedsUser(selectedTask)) {
-      setShowNeedsUserTasks(true);
-    }
-  }, [selectedTask]);
-
-  const createTask = useCallback(async () => {
-    if (!request || !createGoal.trim()) return;
-    setSaving(true);
-    setError(null);
-    setStatus(null);
-    try {
-      const parsedMaxIterations = Number.parseInt(createMaxIterations, 10);
-      const parsedDelayMs = Number.parseInt(createDelayMs, 10);
-      await requestTaskQueue<TaskQueueResult>("create", {
-        taskGoal: createGoal,
-        taskDefinitionOfDone: createDefinitionOfDone,
-        taskCriteria: parseCriteria(createCriteriaText),
-        taskAutoContinueEnabled: createAutoContinueEnabled,
-        taskMaxIterations: Number.isFinite(parsedMaxIterations)
-          ? parsedMaxIterations
-          : undefined,
-        taskDelayMs: Number.isFinite(parsedDelayMs) ? parsedDelayMs : undefined,
-      });
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem(draftStorageKey);
+  const createTask = useCallback(
+    async (parentTaskId?: string) => {
+      if (!request || !createGoal.trim()) return;
+      setSaving(true);
+      setError(null);
+      setStatus(null);
+      try {
+        const parsedMaxIterations = Number.parseInt(createMaxIterations, 10);
+        const parsedDelayMs = Number.parseInt(createDelayMs, 10);
+        const taskId =
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `task-${Date.now()}`;
+        await requestTaskQueue<TaskQueueResult>("create", {
+          taskId,
+          taskGoal: createGoal,
+          parentTaskId,
+          taskDefinitionOfDone: createDefinitionOfDone,
+          taskCriteria: parseCriteria(createCriteriaText),
+          taskAutoContinueEnabled: createAutoContinueEnabled,
+          taskMaxIterations: Number.isFinite(parsedMaxIterations)
+            ? parsedMaxIterations
+            : undefined,
+          taskDelayMs: Number.isFinite(parsedDelayMs)
+            ? parsedDelayMs
+            : undefined,
+        });
+        if (createColumnId !== "queue") {
+          await requestTaskQueue<TaskQueueResult>("move", {
+            taskId,
+            boardColumn: createColumnId,
+          });
+        }
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem(draftStorageKey);
+        }
+        setCreateGoal("");
+        setCreateDefinitionOfDone("");
+        setCreateCriteriaText("");
+        setCreateAutoContinueEnabled(true);
+        setCreateMaxIterations("25");
+        setCreateDelayMs("1500");
+        setStatus(
+          parentTaskId
+            ? `Child task queued in ${getBoardColumnTitle(createColumnId)}.`
+            : `Task queued in ${getBoardColumnTitle(createColumnId)}.`,
+        );
+        setTasksView("board");
+        await refresh();
+        await notifyTasksChanged();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setSaving(false);
       }
-      setCreateGoal("");
-      setCreateDefinitionOfDone("");
-      setCreateCriteriaText("");
-      setCreateAutoContinueEnabled(true);
-      setCreateMaxIterations("25");
-      setCreateDelayMs("1500");
-      setStatus("Task queued.");
-      await refresh();
-      await notifyTasksChanged();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSaving(false);
-    }
-  }, [
-    createAutoContinueEnabled,
-    createCriteriaText,
-    createDefinitionOfDone,
-    createDelayMs,
-    createGoal,
-    createMaxIterations,
-    draftStorageKey,
-    notifyTasksChanged,
-    refresh,
-    request,
-    requestTaskQueue,
-  ]);
+    },
+    [
+      createAutoContinueEnabled,
+      createCriteriaText,
+      createDefinitionOfDone,
+      createDelayMs,
+      createGoal,
+      createColumnId,
+      createMaxIterations,
+      draftStorageKey,
+      notifyTasksChanged,
+      refresh,
+      request,
+      requestTaskQueue,
+    ],
+  );
 
   const selectQueueTask = useCallback(
     async (taskId: string) => {
@@ -567,11 +914,27 @@ export function TasksPanel({
     try {
       const parsedMaxIterations = Number.parseInt(editMaxIterations, 10);
       const parsedDelayMs = Number.parseInt(editDelayMs, 10);
+      const taskAssignment: TaskAssignment = {
+        assigneeType: editAssigneeType.trim() || undefined,
+        assigneeId: editAssigneeId.trim() || undefined,
+        executorKind: editExecutorKind,
+        executorId: editExecutorId.trim() || undefined,
+        approvalState: editApprovalState,
+        runState: editRunState,
+        runId: editRunId.trim() || undefined,
+        sessionKey,
+        prompt: editAssignmentPrompt.trim() || undefined,
+        artifacts: parseCriteria(editAssignmentArtifacts),
+        logPath: editAssignmentLogPath.trim() || undefined,
+        resultSummary: editAssignmentResultSummary.trim() || undefined,
+      };
       await requestTaskQueue<TaskQueueResult>("update", {
         taskId: selectedTask.id,
         taskGoal: editGoal,
         taskDefinitionOfDone: editDefinitionOfDone,
         taskCriteria: parseCriteria(editCriteriaText),
+        taskAssignment,
+        taskSteps: parseTaskSteps(editStepsText),
         taskAutoContinueEnabled: editAutoContinueEnabled,
         taskMaxIterations: Number.isFinite(parsedMaxIterations)
           ? parsedMaxIterations
@@ -588,12 +951,24 @@ export function TasksPanel({
       setSaving(false);
     }
   }, [
+    editAssignmentArtifacts,
+    editAssignmentLogPath,
+    editAssignmentPrompt,
+    editAssignmentResultSummary,
+    editApprovalState,
+    editAssigneeId,
+    editAssigneeType,
     editAutoContinueEnabled,
     editCriteriaText,
     editDefinitionOfDone,
     editDelayMs,
+    editExecutorId,
+    editExecutorKind,
+    editStepsText,
     editGoal,
     editMaxIterations,
+    editRunId,
+    editRunState,
     notifyTasksChanged,
     refresh,
     request,
@@ -628,6 +1003,30 @@ export function TasksPanel({
     if (!selectedTask?.id) return;
     await deleteTask(selectedTask.id);
   }, [deleteTask, selectedTask?.id]);
+
+  const moveTaskToColumn = useCallback(
+    async (taskId: string, boardColumn: BoardColumnId) => {
+      if (!request) return;
+      setSaving(true);
+      setError(null);
+      setStatus(null);
+      try {
+        await requestTaskQueue<TaskQueueResult>("move", {
+          taskId,
+          boardColumn,
+        });
+        setSelectedTaskId(taskId);
+        setStatus(`Task moved to ${boardColumn}.`);
+        await refresh();
+        await notifyTasksChanged();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setSaving(false);
+      }
+    },
+    [notifyTasksChanged, refresh, request, requestTaskQueue],
+  );
 
   const moveSelectedTask = useCallback(
     async (direction: -1 | 1) => {
@@ -728,6 +1127,7 @@ export function TasksPanel({
 
   const selectTaskInQueue = useCallback((task: TaskRecord) => {
     setSelectedTaskId(task.id);
+    setTasksView("task");
     loadTaskIntoEditor(task, {
       setGoal: setEditGoal,
       setDefinitionOfDone: setEditDefinitionOfDone,
@@ -739,8 +1139,17 @@ export function TasksPanel({
     });
   }, []);
 
+  const openAddTaskPage = useCallback((columnId: BoardColumnId) => {
+    setCreateColumnId(columnId);
+    setTasksView("add");
+  }, []);
+
+  const goBackToBoard = useCallback(() => {
+    setTasksView("board");
+  }, []);
+
   const renderTaskRows = useCallback(
-    (sectionTasks: TaskRecord[]) => {
+    (sectionTasks: TaskRecord[], currentColumnId?: BoardColumnId) => {
       return sectionTasks.map((task) => {
         const isSelected = task.id === selectedTaskId;
         return (
@@ -756,12 +1165,44 @@ export function TasksPanel({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="font-medium truncate">
-                    {task.goal ?? task.id ?? "Untitled task"}
+                    {getTaskTitle(task)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
                     {(task.completedCriteria ?? []).length}/
                     {(task.criteria ?? []).length} complete
                   </div>
+                  {childTasksByParent.get(task.id ?? "")?.length ? (
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      Children:{" "}
+                      {childTasksByParent
+                        .get(task.id ?? "")
+                        ?.filter(isTaskCompleted).length ?? 0}
+                      /{childTasksByParent.get(task.id ?? "")?.length ?? 0} done
+                      {childTasksByParent
+                        .get(task.id ?? "")
+                        ?.some(
+                          (child) =>
+                            isTaskBlocked(child) || isTaskNeedsUser(child),
+                        )
+                        ? " · blocked/waiting"
+                        : ""}
+                    </div>
+                  ) : null}
+                  {childTasksByParent.get(task.id ?? "")?.length ? (
+                    <div className="mt-2 space-y-1 border-l pl-2 text-xs text-muted-foreground">
+                      {childTasksByParent.get(task.id ?? "")?.map((child) => (
+                        <div key={child.id ?? getTaskTitle(child)}>
+                          ↳ {getTaskTitle(child)} ·{" "}
+                          {getTaskStatusLabel(child, activeTaskId)}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  {getTaskAssigneeLabel(task) && (
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      Assignee: {getTaskAssigneeLabel(task)}
+                    </div>
+                  )}
                   {task.blockedReason && (
                     <div className="mt-1 text-xs text-amber-600 dark:text-amber-400 truncate">
                       Blocked: {task.blockedReason}
@@ -785,23 +1226,57 @@ export function TasksPanel({
                 </div>
               </div>
             </button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              className="mt-1 shrink-0"
-              aria-label={`Delete ${task.goal ?? task.id ?? "task"}`}
-              title={`Delete ${task.goal ?? task.id ?? "task"}`}
-              onClick={() => task.id && deleteTask(task.id)}
-              disabled={saving || !task.id}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <div className="mt-1 flex shrink-0 flex-col gap-2">
+              <Select
+                value={
+                  currentColumnId ?? getTaskBoardColumn(task, activeTaskId)
+                }
+                onValueChange={(value) =>
+                  task.id && moveTaskToColumn(task.id, value as BoardColumnId)
+                }
+                disabled={saving || !task.id}
+              >
+                <SelectTrigger
+                  className="h-7 w-[116px] text-xs"
+                  aria-label={`Move ${getTaskTitle(task)} to column`}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="inbox">Inbox</SelectItem>
+                  <SelectItem value="ready">Ready</SelectItem>
+                  <SelectItem value="queue">Queue</SelectItem>
+                  <SelectItem value="waiting">Waiting</SelectItem>
+                  <SelectItem value="review">Review</SelectItem>
+                  <SelectItem value="done">Done</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                className="self-end"
+                aria-label={`Delete ${getTaskTitle(task)}`}
+                title={`Delete ${getTaskTitle(task)}`}
+                onClick={() => task.id && deleteTask(task.id)}
+                disabled={saving || !task.id}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         );
       });
     },
-    [activeTaskId, deleteTask, saving, selectTaskInQueue, selectedTaskId],
+    [
+      activeTaskId,
+      childTasksByParent,
+      deleteTask,
+      moveTaskToColumn,
+      saving,
+      selectTaskInQueue,
+      selectedTaskId,
+    ],
   );
 
   return (
@@ -903,150 +1378,103 @@ export function TasksPanel({
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Task Queue</CardTitle>
-            <CardDescription>
-              Keep the workable queue focused while tucking finished or waiting
-              tasks out of the way.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {tasks.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No tasks in this session yet.
-              </p>
-            ) : (
-              <>
-                <div className="space-y-3">
-                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Working queue
-                  </div>
-                  {workingTasks.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      No active or incomplete tasks right now.
-                    </p>
-                  ) : (
-                    renderTaskRows(workingTasks)
-                  )}
-                </div>
-
-                {blockedTasks.length > 0 && (
-                  <div className="space-y-3 border-t pt-4">
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between rounded-md text-left"
-                      onClick={() => setShowBlockedTasks((current) => !current)}
-                      aria-expanded={showBlockedTasks}
-                    >
-                      <div>
-                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Blocked tasks
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {blockedTasks.length} waiting on something else
-                        </div>
-                      </div>
-                      {showBlockedTasks ? (
-                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </button>
-
-                    {showBlockedTasks && (
-                      <div className="space-y-3">
-                        {renderTaskRows(blockedTasks)}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {needsUserTasks.length > 0 && (
-                  <div className="space-y-3 border-t pt-4">
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between rounded-md text-left"
-                      onClick={() =>
-                        setShowNeedsUserTasks((current) => !current)
-                      }
-                      aria-expanded={showNeedsUserTasks}
-                    >
-                      <div>
-                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Needs user
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {needsUserTasks.length} waiting on Jake or another
-                          user
-                        </div>
-                      </div>
-                      {showNeedsUserTasks ? (
-                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </button>
-
-                    {showNeedsUserTasks && (
-                      <div className="space-y-3">
-                        {renderTaskRows(needsUserTasks)}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {completedTasks.length > 0 && (
-                  <div className="space-y-3 border-t pt-4">
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between rounded-md text-left"
-                      onClick={() =>
-                        setShowCompletedTasks((current) => !current)
-                      }
-                      aria-expanded={showCompletedTasks}
-                    >
-                      <div>
-                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Completed tasks
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {completedTasks.length} finished{" "}
-                          {completedTasks.length === 1 ? "task" : "tasks"}
-                        </div>
-                      </div>
-                      {showCompletedTasks ? (
-                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </button>
-
-                    {showCompletedTasks && (
-                      <div className="space-y-3">
-                        {renderTaskRows(completedTasks)}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-
+      {tasksView === "board" && (
         <div className="space-y-6">
+          <Card className="min-h-[520px]">
+            <CardHeader>
+              <CardTitle>Task Board</CardTitle>
+              <CardDescription>
+                GTD-style board over the canonical Edwin task queue. The current
+                execution queue is the Queue / Executing column.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {tasks.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No tasks in this session yet.
+                </p>
+              ) : (
+                <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+                  {boardColumns.map((column) => (
+                    <div
+                      key={column.id}
+                      className="rounded-lg border bg-muted/20 p-3"
+                    >
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold">
+                            {column.title}
+                          </div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            {column.description}
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Badge variant="outline">{column.tasks.length}</Badge>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openAddTaskPage(column.id)}
+                          >
+                            <Plus className="mr-1 h-3.5 w-3.5" />
+                            Add
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        {column.tasks.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">
+                            No tasks.
+                          </p>
+                        ) : (
+                          renderTaskRows(column.tasks, column.id)
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {tasksView === "add" && (
+        <div className="mx-auto w-full max-w-5xl">
           <Card>
             <CardHeader>
+              <Button
+                type="button"
+                variant="ghost"
+                className="mb-2 w-fit px-0"
+                onClick={goBackToBoard}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Tasks
+              </Button>
               <CardTitle className="flex items-center gap-2">
                 <Plus className="h-5 w-5" />
                 New Task
               </CardTitle>
               <CardDescription>
-                Create a new queued task for this session.
+                Create a new task in the current session scope.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+                Queue:{" "}
+                <strong className="text-foreground">{createColumnId}</strong> ·
+                Scope:{" "}
+                <strong className="text-foreground">
+                  {getSessionTitle(
+                    currentSession ?? {
+                      key: sessionKey,
+                      displayName: sessionKey,
+                    },
+                  )}
+                </strong>
+              </div>
               <div className="space-y-2">
                 <label
                   htmlFor="create-task-goal"
@@ -1132,9 +1560,18 @@ export function TasksPanel({
                   />
                 </div>
               </div>
-              <div className="flex justify-end">
+              <div className="flex flex-wrap justify-end gap-2">
                 <Button
-                  onClick={createTask}
+                  variant="outline"
+                  onClick={() =>
+                    selectedTask?.id && createTask(selectedTask.id)
+                  }
+                  disabled={saving || !createGoal.trim() || !selectedTask?.id}
+                >
+                  {saving ? "Saving..." : "Queue as child"}
+                </Button>
+                <Button
+                  onClick={() => createTask()}
                   disabled={saving || !createGoal.trim()}
                 >
                   {saving ? "Saving..." : "Queue task"}
@@ -1142,9 +1579,46 @@ export function TasksPanel({
               </div>
             </CardContent>
           </Card>
+        </div>
+      )}
 
+      {tasksView === "task" && (
+        <div className="mx-auto w-full max-w-5xl">
           <Card>
             <CardHeader>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="px-0"
+                  onClick={goBackToBoard}
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Tasks
+                </Button>
+                {selectedTask && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openAddTaskPage("ready")}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add child task
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTasksView("run")}
+                    >
+                      <CircleDot className="mr-2 h-4 w-4" />
+                      Run detail
+                    </Button>
+                  </div>
+                )}
+              </div>
               <CardTitle>Selected Task</CardTitle>
               <CardDescription>
                 Edit the selected task, control its place in the queue, and
@@ -1304,6 +1778,224 @@ export function TasksPanel({
                       />
                     </div>
                   </div>
+                  <div className="rounded-lg border bg-muted/20 p-4 space-y-4">
+                    <div>
+                      <div className="text-sm font-semibold">Assignment</div>
+                      <div className="text-xs text-muted-foreground">
+                        Choose who owns this task and which executor should run
+                        it.
+                      </div>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          Assignee type
+                        </label>
+                        <Input
+                          value={editAssigneeType}
+                          onChange={(e) => {
+                            setEditAssigneeType(e.target.value);
+                            setEditorDirty(true);
+                          }}
+                          placeholder="agent, human, team"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          Assignee ID
+                        </label>
+                        <Input
+                          aria-label="Assignee ID"
+                          value={editAssigneeId}
+                          onChange={(e) => {
+                            setEditAssigneeId(e.target.value);
+                            setEditorDirty(true);
+                          }}
+                          placeholder="edwin-main, jake"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Executor</label>
+                        <Select
+                          value={editExecutorKind}
+                          onValueChange={(value) => {
+                            setEditExecutorKind(value as TaskExecutorKind);
+                            setEditorDirty(true);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="edwin">Edwin</SelectItem>
+                            <SelectItem value="human">Human</SelectItem>
+                            <SelectItem value="workflow">Workflow</SelectItem>
+                            <SelectItem value="subagent">Subagent</SelectItem>
+                            <SelectItem value="codex">Codex</SelectItem>
+                            <SelectItem value="claude-code">
+                              Claude Code
+                            </SelectItem>
+                            <SelectItem value="opencode">OpenCode</SelectItem>
+                            <SelectItem value="custom">Custom</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          Executor ID
+                        </label>
+                        <Input
+                          aria-label="Executor ID"
+                          value={editExecutorId}
+                          onChange={(e) => {
+                            setEditExecutorId(e.target.value);
+                            setEditorDirty(true);
+                          }}
+                          placeholder="codex-cli, workflow name"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Approval</label>
+                        <Select
+                          value={editApprovalState}
+                          onValueChange={(value) => {
+                            setEditApprovalState(value as TaskApprovalState);
+                            setEditorDirty(true);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="not_required">
+                              Not required
+                            </SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="approved">Approved</SelectItem>
+                            <SelectItem value="rejected">Rejected</SelectItem>
+                            <SelectItem value="expired">Expired</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Run state</label>
+                        <Select
+                          value={editRunState}
+                          onValueChange={(value) => {
+                            setEditRunState(value as TaskRunState);
+                            setEditorDirty(true);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="not_started">
+                              Not started
+                            </SelectItem>
+                            <SelectItem value="queued">Queued</SelectItem>
+                            <SelectItem value="running">Running</SelectItem>
+                            <SelectItem value="succeeded">Succeeded</SelectItem>
+                            <SelectItem value="failed">Failed</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Run ID</label>
+                        <Input
+                          value={editRunId}
+                          onChange={(e) => {
+                            setEditRunId(e.target.value);
+                            setEditorDirty(true);
+                          }}
+                          placeholder="run/session id"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Log path</label>
+                        <Input
+                          value={editAssignmentLogPath}
+                          onChange={(e) => {
+                            setEditAssignmentLogPath(e.target.value);
+                            setEditorDirty(true);
+                          }}
+                          placeholder="runs/<id>/log.txt"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        Executor prompt
+                      </label>
+                      <Textarea
+                        aria-label="Executor prompt"
+                        value={editAssignmentPrompt}
+                        onChange={(e) => {
+                          setEditAssignmentPrompt(e.target.value);
+                          setEditorDirty(true);
+                        }}
+                        rows={3}
+                        placeholder="Prompt or handoff for the assigned executor."
+                      />
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          Artifacts (one per line)
+                        </label>
+                        <Textarea
+                          aria-label="Artifacts (one per line)"
+                          value={editAssignmentArtifacts}
+                          onChange={(e) => {
+                            setEditAssignmentArtifacts(e.target.value);
+                            setEditorDirty(true);
+                          }}
+                          rows={3}
+                          placeholder="docs/file.md
+runs/run-id/result.json"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          Result summary
+                        </label>
+                        <Textarea
+                          value={editAssignmentResultSummary}
+                          onChange={(e) => {
+                            setEditAssignmentResultSummary(e.target.value);
+                            setEditorDirty(true);
+                          }}
+                          rows={3}
+                          placeholder="Latest execution result or handoff summary."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border bg-muted/20 p-4 space-y-4">
+                    <div>
+                      <div className="text-sm font-semibold">Steps</div>
+                      <div className="text-xs text-muted-foreground">
+                        One step per line: title | executor | status. Executors
+                        can be edwin, human, workflow, subagent, codex,
+                        claude-code, opencode, or custom.
+                      </div>
+                    </div>
+                    <Textarea
+                      aria-label="Task steps"
+                      value={editStepsText}
+                      onChange={(e) => {
+                        setEditStepsText(e.target.value);
+                        setEditorDirty(true);
+                      }}
+                      rows={5}
+                      placeholder={
+                        "Design schema | edwin | active\nImplement slice | codex | active\nReview result | human | review"
+                      }
+                    />
+                  </div>
                   <div className="flex justify-end">
                     <Button
                       onClick={updateSelectedTask}
@@ -1454,7 +2146,100 @@ export function TasksPanel({
             </CardContent>
           </Card>
         </div>
-      </div>
+      )}
+
+      {tasksView === "run" && (
+        <div className="mx-auto w-full max-w-5xl">
+          <Card>
+            <CardHeader>
+              <Button
+                type="button"
+                variant="ghost"
+                className="mb-2 w-fit px-0"
+                onClick={goBackToBoard}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Tasks
+              </Button>
+              <CardTitle className="flex items-center gap-2">
+                <CircleDot className="h-5 w-5" />
+                Task Run Detail
+              </CardTitle>
+              <CardDescription>
+                Live execution summary for the selected task: current step,
+                criteria progress, and recent activity.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!selectedTask ? (
+                <p className="text-sm text-muted-foreground">
+                  Select a task from the queue to see what is happening.
+                </p>
+              ) : (
+                <>
+                  <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Currently doing
+                        </div>
+                        <div className="mt-1 text-sm font-medium">
+                          {selectedTaskCurrentStep}
+                        </div>
+                      </div>
+                      <Badge
+                        variant={
+                          selectedTask.id === activeTaskId
+                            ? "default"
+                            : "secondary"
+                        }
+                      >
+                        {getTaskStatusLabel(selectedTask, activeTaskId)}
+                      </Badge>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Criteria progress</span>
+                        <span>
+                          {selectedTaskProgress.completed}/
+                          {selectedTaskProgress.total} ·{" "}
+                          {selectedTaskProgress.percent}%
+                        </span>
+                      </div>
+                      <div
+                        className="h-2 overflow-hidden rounded-full bg-muted"
+                        aria-label={`Task progress ${selectedTaskProgress.percent}%`}
+                      >
+                        <div
+                          className="h-full rounded-full bg-primary transition-all"
+                          style={{ width: `${selectedTaskProgress.percent}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Recent activity
+                    </div>
+                    <div className="space-y-2">
+                      {selectedTaskActivity.map((entry, index) => (
+                        <div
+                          key={`${entry}-${index}`}
+                          className="flex gap-2 rounded-md border p-2 text-sm"
+                        >
+                          <CircleDot className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <span>{entry}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

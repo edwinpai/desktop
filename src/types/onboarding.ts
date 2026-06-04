@@ -16,7 +16,11 @@ import type { EdwinPAIConfig } from "./api";
 export enum OnboardingStep {
   Welcome = "Welcome",
   Gateway = "Gateway",
+  Security = "Security",
+  VaultHealth = "VaultHealth",
   ApiKey = "ApiKey",
+  SecretMigration = "SecretMigration",
+  CredentialProbe = "CredentialProbe",
   Identity = "Identity",
   TestChat = "TestChat",
   Channels = "Channels",

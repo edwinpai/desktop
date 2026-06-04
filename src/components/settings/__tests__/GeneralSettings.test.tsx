@@ -116,13 +116,13 @@ describe("GeneralSettings", () => {
       );
     });
 
-    it("displays client mode when configured", async () => {
+    it("displays connect mode when configured", async () => {
       mockInvoke.mockResolvedValue({ ...mockConfig, mode: "client" });
       render(<GeneralSettings />);
 
       await waitFor(
         () => {
-          const clientCard = screen.getByText("Client Mode").closest("button");
+          const clientCard = screen.getByText("Connect Mode").closest("button");
           expect(clientCard).toHaveClass("border-blue-500");
         },
         { timeout: 1000 },
@@ -144,7 +144,7 @@ describe("GeneralSettings", () => {
       );
     });
 
-    it("shows client-specific settings in client mode", async () => {
+    it("shows client-specific settings in connect mode", async () => {
       mockInvoke.mockResolvedValue({ ...mockConfig, mode: "client" });
       render(<GeneralSettings />);
 
@@ -241,16 +241,16 @@ describe("GeneralSettings", () => {
       );
     });
 
-    it("calls set_mode when switching to client mode", async () => {
+    it("calls set_mode when switching to connect mode", async () => {
       const user = userEvent.setup();
       mockInvoke.mockResolvedValueOnce(mockConfig); // Initial get_config
       mockInvoke.mockResolvedValueOnce({ ...mockConfig, mode: "client" }); // set_mode
 
       render(<GeneralSettings />);
 
-      await waitFor(() => screen.getByText("Client Mode"), { timeout: 1000 });
+      await waitFor(() => screen.getByText("Connect Mode"), { timeout: 1000 });
 
-      const clientButton = screen.getByText("Client Mode").closest("button");
+      const clientButton = screen.getByText("Connect Mode").closest("button");
       if (clientButton) await user.click(clientButton);
 
       await waitFor(
@@ -263,7 +263,7 @@ describe("GeneralSettings", () => {
       );
     });
 
-    it("calls stop_gateway before switching from gateway to client mode", async () => {
+    it("calls stop_gateway before switching from gateway to connect mode", async () => {
       const user = userEvent.setup();
       mockInvoke.mockResolvedValueOnce(mockConfig); // get_config
       mockInvoke.mockResolvedValueOnce(undefined); // stop_gateway
@@ -271,16 +271,14 @@ describe("GeneralSettings", () => {
 
       render(<GeneralSettings />);
 
-      await waitFor(() => screen.getByText("Client Mode"), { timeout: 1000 });
+      await waitFor(() => screen.getByText("Connect Mode"), { timeout: 1000 });
 
-      const clientButton = screen.getByText("Client Mode").closest("button");
+      const clientButton = screen.getByText("Connect Mode").closest("button");
       if (clientButton) await user.click(clientButton);
 
       await waitFor(
         () => {
-          expect(mockInvoke).toHaveBeenCalledWith("stop_gateway", {
-            request: {},
-          });
+          expect(mockInvoke).toHaveBeenCalledWith("stop_gateway_real");
         },
         { timeout: 1000 },
       );
@@ -405,9 +403,9 @@ describe("GeneralSettings", () => {
 
       render(<GeneralSettings />);
 
-      await waitFor(() => screen.getByText("Client Mode"), { timeout: 1000 });
+      await waitFor(() => screen.getByText("Connect Mode"), { timeout: 1000 });
 
-      const clientButton = screen.getByText("Client Mode").closest("button");
+      const clientButton = screen.getByText("Connect Mode").closest("button");
       if (clientButton) await user.click(clientButton);
 
       await waitFor(
@@ -430,9 +428,9 @@ describe("GeneralSettings", () => {
 
       render(<GeneralSettings />);
 
-      await waitFor(() => screen.getByText("Client Mode"), { timeout: 1000 });
+      await waitFor(() => screen.getByText("Connect Mode"), { timeout: 1000 });
 
-      const clientButton = screen.getByText("Client Mode").closest("button");
+      const clientButton = screen.getByText("Connect Mode").closest("button");
       if (clientButton) {
         await user.click(clientButton);
         expect(clientButton).toBeDisabled();

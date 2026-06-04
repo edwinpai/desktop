@@ -3,11 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Search, Trash2, RotateCcw } from "lucide-react";
+import { Plus, Search, Trash2, RotateCcw, Pencil } from "lucide-react";
+import { RenameSessionDialog } from "@/components/sessions/RenameSessionDialog";
 
 interface Session {
   key: string;
   label?: string;
+  userLabel?: string;
   displayName?: string;
   derivedTitle?: string;
   lastMessagePreview?: string;
@@ -22,13 +24,21 @@ interface SessionsPanelProps {
   currentSessionKey: string;
   onSelectSession?: (key: string) => void;
   onNewSession?: () => void;
+  onRenameSession?: (key: string, userLabel: string | null) => void;
   onResetSession?: (key: string) => void;
   onDeleteSession?: (key: string) => void;
 }
 
 function getSessionTitle(session: Session): string {
+  const displayName = session.displayName?.trim();
+  const isGenericDesktopName = displayName === "EdwinPAI Desktop";
+
   return (
-    session.displayName || session.label || session.derivedTitle || session.key
+    session.userLabel ||
+    session.derivedTitle ||
+    session.label ||
+    (!isGenericDesktopName ? displayName : undefined) ||
+    session.key
   );
 }
 
@@ -42,10 +52,12 @@ export function SessionsPanel({
   currentSessionKey,
   onSelectSession,
   onNewSession,
+  onRenameSession,
   onResetSession,
   onDeleteSession,
 }: SessionsPanelProps) {
   const [filter, setFilter] = useState("");
+  const [renameTarget, setRenameTarget] = useState<Session | null>(null);
 
   const filtered = useMemo(() => {
     if (!filter.trim()) return sessions;
@@ -131,6 +143,19 @@ export function SessionsPanel({
                         : "opacity-0 group-hover:opacity-100"
                     } transition-opacity`}
                   >
+                    {onRenameSession && (
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRenameTarget(session);
+                        }}
+                        title="Rename session"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    )}
                     {onResetSession && (
                       <Button
                         variant="ghost"
@@ -184,6 +209,16 @@ export function SessionsPanel({
           })}
         </div>
       </ScrollArea>
+      <RenameSessionDialog
+        open={renameTarget !== null}
+        currentLabel={renameTarget?.userLabel ?? ""}
+        onOpenChange={(open) => {
+          if (!open) setRenameTarget(null);
+        }}
+        onRename={(userLabel) => {
+          if (renameTarget) onRenameSession?.(renameTarget.key, userLabel);
+        }}
+      />
     </div>
   );
 }

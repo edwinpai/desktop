@@ -7,7 +7,7 @@ import {
   useEffect,
   useCallback,
 } from "react";
-import { Send, Square, Paperclip, X, FileText, Image } from "lucide-react";
+import { Send, Square, Paperclip, X, FileText } from "lucide-react";
 
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,40 @@ export interface InputAttachment {
 export interface ChatDraft {
   value: string;
   attachments: InputAttachment[];
+}
+
+function attachmentDataUrl(attachment: InputAttachment) {
+  if (attachment.content.startsWith("data:")) return attachment.content;
+  return `data:${attachment.mimeType};base64,${attachment.content}`;
+}
+
+function extensionForMimeType(mimeType: string) {
+  const subtype = mimeType.split("/")[1]?.split(";")[0]?.toLowerCase();
+  if (!subtype) return "bin";
+  if (subtype === "jpeg") return "jpg";
+  if (subtype === "svg+xml") return "svg";
+  return subtype.replace(/[^a-z0-9]/g, "") || "bin";
+}
+
+function attachmentFileName(file: File, index: number) {
+  const name = file.name.trim();
+  const genericClipboardNames = new Set(["image.png", "image.jpg", "image.jpeg"]);
+  if (name && !genericClipboardNames.has(name.toLowerCase())) return name;
+
+  const type = file.type || "application/octet-stream";
+  const prefix = type.startsWith("image/") ? "pasted-screenshot" : "pasted-file";
+  const ext = extensionForMimeType(type);
+  return `${prefix}-${Date.now()}-${index + 1}.${ext}`;
+}
+
+function dedupeClipboardFiles(files: File[]) {
+  const seen = new Set<string>();
+  return files.filter((file) => {
+    const key = `${file.type}:${file.size}:${file.name}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 const DRAFT_PERSIST_DEBOUNCE_MS = 300;
@@ -73,6 +107,7 @@ export function InputBar({
   const [attachments, setAttachments] = useState<InputAttachment[]>(
     () => draft?.attachments ?? [],
   );
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashQuery, setSlashQuery] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -223,44 +258,129 @@ export function InputBar({
     }
   };
 
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+  // Gateway WebSocket frames are currently capped at 512 KiB. Keep each
+  // base64 attachment comfortably below that after JSON overhead.
+  const MAX_ATTACHMENT_BYTES = 350 * 1024;
+  const MAX_SOURCE_FILE_SIZE = 25 * 1024 * 1024;
 
-  const addFilesAsAttachments = async (files: File[]) => {
-    const validFiles = files.filter((file) => {
-      if (file.size > MAX_FILE_SIZE) {
-        console.warn(`File "${file.name}" exceeds 10 MB limit, skipping`);
-        return false;
-      }
-      return true;
+  const resizeImageFile = async (file: File): Promise<{ content: string; mimeType: string }> => {
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ""));
+      reader.onerror = () => reject(reader.error ?? new Error("Failed to read file"));
+      reader.readAsDataURL(file);
     });
 
-    const selected = await Promise.all(
-      validFiles.map(
-        (file) =>
-          new Promise<InputAttachment>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              const result = String(reader.result ?? "");
-              const base64 = result.includes(",")
-                ? (result.split(",")[1] ?? "")
-                : result;
-              const isImage = file.type.startsWith("image/");
-              resolve({
-                type: isImage ? "image" : "file",
-                mimeType: file.type || "application/octet-stream",
-                fileName: file.name,
-                content: base64,
-              });
-            };
-            reader.onerror = () =>
-              reject(reader.error ?? new Error("Failed to read file"));
-            reader.readAsDataURL(file);
-          }),
-      ),
-    );
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new window.Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Failed to decode pasted image"));
+      img.src = dataUrl;
+    });
+
+    let width = image.naturalWidth || image.width;
+    let height = image.naturalHeight || image.height;
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx || width <= 0 || height <= 0) {
+      throw new Error("Failed to prepare pasted image");
+    }
+
+    let maxDimension = Math.min(1600, Math.max(width, height));
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const scale = Math.min(1, maxDimension / Math.max(width, height));
+      canvas.width = Math.max(1, Math.round(width * scale));
+      canvas.height = Math.max(1, Math.round(height * scale));
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+      for (const quality of [0.82, 0.7, 0.58, 0.46]) {
+        const output = canvas.toDataURL("image/jpeg", quality);
+        const base64 = output.split(",")[1] ?? "";
+        if (base64.length <= MAX_ATTACHMENT_BYTES) {
+          return { content: base64, mimeType: "image/jpeg" };
+        }
+      }
+      maxDimension = Math.floor(maxDimension * 0.75);
+    }
+
+    const output = canvas.toDataURL("image/jpeg", 0.4);
+    return { content: output.split(",")[1] ?? "", mimeType: "image/jpeg" };
+  };
+
+  const addFilesAsAttachments = async (files: File[]) => {
+    setAttachmentError(null);
+    const uniqueFiles = dedupeClipboardFiles(files);
+    const selected: InputAttachment[] = [];
+    const skipped: string[] = [];
+
+    for (const [index, file] of uniqueFiles.entries()) {
+      if (file.size > MAX_SOURCE_FILE_SIZE) {
+        skipped.push(`${file.name || "attachment"} is too large`);
+        continue;
+      }
+
+      const isImage = file.type.startsWith("image/");
+      try {
+        if (isImage) {
+          if (file.size <= MAX_ATTACHMENT_BYTES) {
+            const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                const result = String(reader.result ?? "");
+                resolve(result.includes(",") ? (result.split(",")[1] ?? "") : result);
+              };
+              reader.onerror = () => reject(reader.error ?? new Error("Failed to read file"));
+              reader.readAsDataURL(file);
+            });
+            selected.push({
+              type: "image",
+              mimeType: file.type || "image/png",
+              fileName: attachmentFileName(file, index),
+              content: base64,
+            });
+          } else {
+            const resized = await resizeImageFile(file);
+            selected.push({
+              type: "image",
+              mimeType: resized.mimeType,
+              fileName: attachmentFileName(file, index).replace(/\.[^.]+$/, ".jpg"),
+              content: resized.content,
+            });
+          }
+          continue;
+        }
+
+        if (file.size > MAX_ATTACHMENT_BYTES) {
+          skipped.push(`${file.name || "attachment"} exceeds the chat attachment limit`);
+          continue;
+        }
+
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = String(reader.result ?? "");
+            resolve(result.includes(",") ? (result.split(",")[1] ?? "") : result);
+          };
+          reader.onerror = () => reject(reader.error ?? new Error("Failed to read file"));
+          reader.readAsDataURL(file);
+        });
+        selected.push({
+          type: "file",
+          mimeType: file.type || "application/octet-stream",
+          fileName: attachmentFileName(file, index),
+          content: base64,
+        });
+      } catch (err) {
+        skipped.push(err instanceof Error ? err.message : `Failed to attach ${file.name}`);
+      }
+    }
 
     if (selected.length > 0) {
       setAttachments((prev) => [...prev, ...selected]);
+    }
+    if (skipped.length > 0) {
+      setAttachmentError(skipped.join("; "));
     }
   };
 
@@ -408,6 +528,12 @@ export function InputBar({
         )}
       </div>
 
+      {attachmentError && (
+        <div className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 px-2 py-1 text-xs text-destructive">
+          {attachmentError}
+        </div>
+      )}
+
       {attachments.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
           {attachments.map((attachment, index) => (
@@ -416,7 +542,11 @@ export function InputBar({
               className="flex items-center gap-2 rounded-md border px-2 py-1 text-xs bg-muted/40"
             >
               {attachment.mimeType.startsWith("image/") ? (
-                <Image className="h-3 w-3 text-muted-foreground shrink-0" />
+                <img
+                  src={attachmentDataUrl(attachment)}
+                  alt={`Preview ${attachment.fileName}`}
+                  className="h-10 w-14 rounded border object-cover shrink-0"
+                />
               ) : (
                 <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
               )}

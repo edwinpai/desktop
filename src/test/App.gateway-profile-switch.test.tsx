@@ -6,12 +6,32 @@ import App from "../App";
 
 const mockReconnect = vi.fn();
 const mockClearMessages = vi.fn();
+const mockUseWebSocketChat = vi.fn();
 
 vi.mock("@/lib/config", () => ({
   readConfig: vi.fn().mockResolvedValue({
     activeGatewayProfileId: "default",
     gatewayUrl: "http://localhost:18789",
+    gatewayProfiles: [
+      {
+        id: "default",
+        name: "Default Gateway",
+        kind: "local",
+        gatewayUrl: "http://localhost:18789",
+        gatewayPort: 18789,
+        gatewayToken: "local-token",
+      },
+      {
+        id: "vps",
+        name: "VPS Gateway",
+        kind: "remote",
+        gatewayUrl: "https://vps.example",
+        gatewayPort: 443,
+        gatewayToken: "vps-token",
+      },
+    ],
   }),
+  updateConfig: vi.fn(),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -30,33 +50,36 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 vi.mock("@/hooks/useWebSocketChat", () => ({
-  useWebSocketChat: () => ({
-    messages: [],
-    sendMessage: vi.fn(),
-    abortRun: vi.fn(),
-    isStreaming: false,
-    runStatus: "idle",
-    currentToolUses: [],
-    toolEvents: [],
-    isConnected: true,
-    reconnect: mockReconnect,
-    clearMessages: mockClearMessages,
-    request: vi.fn().mockResolvedValue({
-      config: { messages: { channels: {} }, memory: {} },
-    }),
-    error: null,
-    listSessions: vi.fn().mockResolvedValue({ sessions: [] }),
-    listAgents: vi.fn().mockResolvedValue({
-      agents: [],
-      defaultId: "main",
-      mainKey: "main",
-      scope: "global",
-    }),
-    listModels: vi.fn().mockResolvedValue({ models: [] }),
-    patchSession: vi.fn().mockResolvedValue({}),
-    resetSession: vi.fn().mockResolvedValue({}),
-    deleteSession: vi.fn().mockResolvedValue({}),
-  }),
+  useWebSocketChat: (options: unknown) => {
+    mockUseWebSocketChat(options);
+    return {
+      messages: [],
+      sendMessage: vi.fn(),
+      abortRun: vi.fn(),
+      isStreaming: false,
+      runStatus: "idle",
+      currentToolUses: [],
+      toolEvents: [],
+      isConnected: true,
+      reconnect: mockReconnect,
+      clearMessages: mockClearMessages,
+      request: vi.fn().mockResolvedValue({
+        config: { messages: { channels: {} }, memory: {} },
+      }),
+      error: null,
+      listSessions: vi.fn().mockResolvedValue({ sessions: [] }),
+      listAgents: vi.fn().mockResolvedValue({
+        agents: [],
+        defaultId: "main",
+        mainKey: "main",
+        scope: "global",
+      }),
+      listModels: vi.fn().mockResolvedValue({ models: [] }),
+      patchSession: vi.fn().mockResolvedValue({}),
+      resetSession: vi.fn().mockResolvedValue({}),
+      deleteSession: vi.fn().mockResolvedValue({}),
+    };
+  },
 }));
 
 vi.mock("@/hooks/useDesktopNotifications", () => ({
@@ -103,9 +126,26 @@ Object.defineProperty(window, "localStorage", { value: localStorageMock });
 describe("App gateway profile switching", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.sessionStorage.clear();
     localStorageMock.clear();
     localStorageMock.setItem("edwinpai_onboarding_complete", "true");
     localStorageMock.setItem("edwinpai_mode", "gateway");
+  });
+
+  it("uses a per-window gateway profile override without changing the global default", async () => {
+    window.sessionStorage.setItem("edwinpai_active_gateway_profile_id", "vps");
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(mockUseWebSocketChat).toHaveBeenCalledWith(
+        expect.objectContaining({
+          wsUrl: "wss://vps.example",
+          authToken: "vps-token",
+          historyScopeKey: "vps:https://vps.example",
+        }),
+      );
+    });
   });
 
   it("reconnects and clears session state after a gateway profile switch is saved", async () => {

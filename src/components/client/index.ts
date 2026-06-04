@@ -7,7 +7,7 @@
 export { GatewayDiscovery } from "./GatewayDiscovery";
 export { AccessControl } from "./AccessControl";
 export { AccessControlPanel } from "./AccessControlPanel";
-export { ClientModeFlow } from "./ClientModeFlow";
+export { ClientModeFlow, ConnectModeFlow } from "./ClientModeFlow";
 export { ConnectionStatus } from "./ConnectionStatus";
 export { DiscoveryList } from "./DiscoveryList";
 export { InvitationManager } from "./InvitationManager";

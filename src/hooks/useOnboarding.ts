@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+
 import type {
   OnboardingProgress,
   OnboardingStepType,
@@ -35,7 +36,7 @@ export interface UseOnboardingReturn {
   loadProgress: () => OnboardingProgress | null;
 }
 
-const TOTAL_STEPS = 7; // Welcome, ApiKey, Identity, Gateway, TestChat, Channels, Done
+const TOTAL_STEPS = 11; // Welcome, Gateway, Security, VaultHealth, ApiKey, SecretMigration, CredentialProbe, Identity, TestChat, Channels, Done
 
 /**
  * Hook for managing onboarding wizard state

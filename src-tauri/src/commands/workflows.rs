@@ -88,6 +88,8 @@ struct ApprovalFile {
     timestamp: String,
     status: String,
     approver: Option<String>,
+    #[serde(default)]
+    approval_surface: Option<String>,
     approved_at: Option<String>,
 }
 
@@ -295,7 +297,9 @@ fn detect_runner_path() -> Option<PathBuf> {
         home.join(".edwinpai/workspace/plugins/workflows/run.sh"),
     ];
 
-    common_candidates.into_iter().find(|candidate| candidate.exists())
+    common_candidates
+        .into_iter()
+        .find(|candidate| candidate.exists())
 }
 
 fn tail_lines(content: &str, limit: usize) -> String {
@@ -333,7 +337,8 @@ pub async fn workflow_list() -> Result<WorkflowListResult, String> {
         match fs::read_to_string(&path) {
             Ok(raw) => match serde_yaml::from_str::<YamlValue>(&raw) {
                 Ok(parsed) => {
-                    let yaml_name = extract_yaml_string(yaml_field(&parsed, "name")).unwrap_or_else(|| workflow_name.clone());
+                    let yaml_name = extract_yaml_string(yaml_field(&parsed, "name"))
+                        .unwrap_or_else(|| workflow_name.clone());
                     workflows.push(WorkflowSummary {
                         id: workflow_name.clone(),
                         name: yaml_name.clone(),
@@ -384,7 +389,10 @@ pub async fn workflow_status(workflow: String) -> Result<WorkflowStatusResult, S
     } else {
         None
     };
-    let last_run = state.as_ref().and_then(|value| value.get("lastRun")).cloned();
+    let last_run = state
+        .as_ref()
+        .and_then(|value| value.get("lastRun"))
+        .cloned();
 
     Ok(WorkflowStatusResult {
         workflow_name: name,
@@ -488,7 +496,12 @@ pub async fn workflow_pending() -> Result<Vec<WorkflowPendingApproval>, String> 
     Ok(approvals)
 }
 
-fn update_approval_status(approval_id: &str, status: &str, actor: &str) -> Result<bool, String> {
+fn update_approval_status(
+    approval_id: &str,
+    status: &str,
+    actor: &str,
+    approval_surface: &str,
+) -> Result<bool, String> {
     let approval_id = ensure_safe_name(approval_id)?;
     let path = workflow_approvals_dir()?.join(format!("{}.json", approval_id));
     if !path.exists() {
@@ -499,6 +512,7 @@ fn update_approval_status(approval_id: &str, status: &str, actor: &str) -> Resul
     let mut approval = serde_json::from_str::<ApprovalFile>(&raw).map_err(|err| err.to_string())?;
     approval.status = status.to_string();
     approval.approver = Some(actor.to_string());
+    approval.approval_surface = Some(approval_surface.to_string());
     approval.approved_at = Some(chrono::Utc::now().to_rfc3339());
     let updated = serde_json::to_string_pretty(&approval).map_err(|err| err.to_string())?;
     fs::write(path, updated).map_err(|err| err.to_string())?;
@@ -507,12 +521,12 @@ fn update_approval_status(approval_id: &str, status: &str, actor: &str) -> Resul
 
 #[tauri::command]
 pub async fn workflow_approve(approval_id: String) -> Result<bool, String> {
-    update_approval_status(&approval_id, "approved", "desktop-owner")
+    update_approval_status(&approval_id, "approved", "owner-admin", "desktop")
 }
 
 #[tauri::command]
 pub async fn workflow_deny(approval_id: String) -> Result<bool, String> {
-    update_approval_status(&approval_id, "denied", "desktop-owner")
+    update_approval_status(&approval_id, "denied", "owner-admin", "desktop")
 }
 
 #[tauri::command]
@@ -561,7 +575,8 @@ pub async fn workflow_load_file(filename: String) -> Result<WorkflowFileContentR
 #[tauri::command]
 pub async fn workflow_save_file(filename: String, content: String) -> Result<bool, String> {
     let safe_filename = ensure_safe_filename(&filename)?;
-    serde_yaml::from_str::<YamlValue>(&content).map_err(|err| format!("YAML parse error: {err}"))?;
+    serde_yaml::from_str::<YamlValue>(&content)
+        .map_err(|err| format!("YAML parse error: {err}"))?;
     let path = workflow_file_path(&safe_filename)?;
     fs::write(path, content).map_err(|err| err.to_string())?;
     Ok(true)
@@ -574,7 +589,9 @@ pub async fn workflow_create_file(filename: String) -> Result<WorkflowFileConten
     if path.exists() {
         return Err("Workflow file already exists".to_string());
     }
-    let content = "name: \n\ndescription: \n\nsteps:\n  - id: example\n    exec: \"echo 'hello'\"\n".to_string();
+    let content =
+        "name: \n\ndescription: \n\nsteps:\n  - id: example\n    exec: \"echo 'hello'\"\n"
+            .to_string();
     fs::write(&path, &content).map_err(|err| err.to_string())?;
     Ok(WorkflowFileContentResult {
         filename: safe_filename,

@@ -5,7 +5,7 @@
  * updating port, bind mode, and auth token via config.patch.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -65,6 +65,24 @@ function normalizeBindForUi(bind: string | undefined): string {
   return bind;
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function fetchGatewayConfigWithRetry(target: GatewayTarget) {
+  try {
+    return await fetchGatewayConfig(target);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    // SSH-tunneled profiles can report connected just before the local port is
+    // ready for the first Settings auto-refresh. Retry once so we do not leave
+    // a stale WebSocket error that disappears when the user clicks Refresh.
+    if (/WebSocket connection failed|Connection closed|Timed out/i.test(message)) {
+      await sleep(750);
+      return await fetchGatewayConfig(target);
+    }
+    throw err;
+  }
+}
+
 export function GatewayConfigCard({
   gatewayUrl,
   gatewayToken,
@@ -83,16 +101,16 @@ export function GatewayConfigCard({
   const [gatewayRunning, setGatewayRunning] = useState<boolean | null>(null);
   const [lifecycleAction, setLifecycleAction] = useState<string | null>(null);
 
-  const target: GatewayTarget = {
+  const target: GatewayTarget = useMemo(() => ({
     url: gatewayUrl || "http://localhost:18789",
     token: gatewayToken || undefined,
     kind: inferGatewayKind(gatewayUrl || "http://localhost:18789"),
-  };
+  }), [gatewayUrl, gatewayToken]);
 
   const fetchConfig = useCallback(async () => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
     try {
-      const config = await fetchGatewayConfig(target);
+      const config = await fetchGatewayConfigWithRetry(target);
       const gw = (config.gateway ?? {}) as Record<string, unknown>;
       const auth = (gw.auth ?? {}) as Record<string, unknown>;
 
@@ -113,7 +131,7 @@ export function GatewayConfigCard({
       }));
       setGatewayRunning(false);
     }
-  }, [gatewayUrl, gatewayToken]);
+  }, [target]);
 
   useEffect(() => {
     fetchConfig();

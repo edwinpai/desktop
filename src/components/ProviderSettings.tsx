@@ -1,8 +1,8 @@
 /**
  * ProviderSettings - Configure AI provider API keys
  *
- * Writes keys to the connected gateway via config.patch (models.providers.<name>.apiKey).
- * Also writes to local auth-profiles.json as a fallback for local gateways.
+ * Stores keys in Desktop Vault / OS keychain by default.
+ * Writes provider metadata (not raw keys) to the connected gateway via config.patch.
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -28,6 +28,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Info, CheckCircle, RefreshCw } from "lucide-react";
 import { readConfig } from "@/lib/config";
+import { vaultCredentialForProvider } from "@/lib/vault-credentials";
 import {
   fetchGatewayConfig,
   patchGatewayConfig,
@@ -40,26 +41,26 @@ interface ProviderEntry {
   provider: string;
   hasKey: boolean;
   maskedKey?: string;
-  source: "gateway" | "local" | "env";
+  source: "gateway" | "vault" | "env";
+  vaultCredentialId?: string;
 }
 
 const PROVIDERS = [
+  { value: "openai-codex", label: "OpenAI Codex OAuth (ChatGPT)" },
   { value: "anthropic", label: "Anthropic (Claude)" },
-  { value: "openai", label: "OpenAI (GPT)" },
+  { value: "openai", label: "OpenAI API key" },
   { value: "google", label: "Google (Gemini)" },
   { value: "openrouter", label: "OpenRouter" },
 ];
 
-function maskKey(key: string): string {
-  if (key.length <= 8) return "••••••••";
-  return key.slice(0, 4) + "••••" + key.slice(-4);
-}
 
 export function ProviderSettings() {
   const [providers, setProviders] = useState<ProviderEntry[]>([]);
-  const [selectedProvider, setSelectedProvider] = useState("anthropic");
+  const [selectedProvider, setSelectedProvider] = useState("openai-codex");
   const [apiKey, setApiKey] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isOAuthLogin, setIsOAuthLogin] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isRemoteGateway, setIsRemoteGateway] = useState(false);
@@ -104,36 +105,44 @@ export function ProviderSettings() {
         if (providersConfig) {
           for (const [name, config] of Object.entries(providersConfig)) {
             const key = config?.apiKey as string | undefined;
+            const descriptor = vaultCredentialForProvider(name);
+            const isVaultCredential = key === descriptor.id;
             entries.push({
               provider: name,
               hasKey: !!key,
-              maskedKey: key ? maskKey(key) : undefined,
+              // Gateway should only ever store Vault credential ids or placeholders here.
+              maskedKey: key ? `vault:${key}` : undefined,
               source: "gateway",
+              vaultCredentialId: isVaultCredential ? descriptor.id : undefined,
             });
           }
         }
       }
 
-      // Merge with local auth-profiles (for providers not in gateway config)
+      // Merge with Desktop Vault (metadata only; no secrets).
       try {
-        const result = await invoke<{
-          providers: { provider: string; maskedKey: string }[];
-        }>("list_providers");
-        for (const local of result.providers) {
-          if (!entries.find((e) => e.provider === local.provider)) {
+        const vaultEntries = await invoke<
+          { id: string; provider: string; entryType: string }[]
+        >("vault_list", { profileId: "default" });
+        for (const provider of PROVIDERS.map((p) => p.value)) {
+          const descriptor = vaultCredentialForProvider(provider);
+          const has = vaultEntries.some((e) => e.id === descriptor.id);
+          if (has && !entries.find((e) => e.provider === provider)) {
             entries.push({
-              provider: local.provider,
+              provider,
               hasKey: true,
-              maskedKey: local.maskedKey,
-              source: "local",
+              maskedKey: `vault:${descriptor.id}`,
+              source: "vault",
+              vaultCredentialId: descriptor.id,
             });
           }
         }
       } catch {
-        // Local providers unavailable
+        // Vault providers unavailable
       }
 
       setProviders(entries);
+      setError(null);
     } catch (err) {
       console.error("Failed to load providers:", err);
     } finally {
@@ -145,9 +154,122 @@ export function ProviderSettings() {
     loadProviders();
   }, [loadProviders]);
 
+  const patchProviderMetadata = useCallback(
+    async (provider: string) => {
+      const target = await buildTarget();
+      const vaultCredential = vaultCredentialForProvider(provider);
+      const providerPatch =
+        vaultCredential.provider === "openai-codex"
+          ? {
+              baseUrl: "https://chatgpt.com/backend-api",
+              api: "openai-codex-responses",
+              apiKey: vaultCredential.id,
+              auth: vaultCredential.authMode ?? "oauth",
+              models: [
+                {
+                  id: "gpt-5.5",
+                  name: "GPT-5.5",
+                  reasoning: true,
+                  input: ["text", "image"],
+                  cost: {
+                    input: 0,
+                    output: 0,
+                    cacheRead: 0,
+                    cacheWrite: 0,
+                  },
+                  contextWindow: 272000,
+                  maxTokens: 128000,
+                },
+              ],
+            }
+          : {
+              apiKey: vaultCredential.id,
+              auth: vaultCredential.authMode ?? "api-key",
+            };
+
+      await patchGatewayConfig(target, {
+        ...(vaultCredential.defaultModel
+          ? {
+              agents: {
+                defaults: { model: { primary: vaultCredential.defaultModel } },
+              },
+            }
+          : {}),
+        models: {
+          providers: {
+            [vaultCredential.provider]: providerPatch,
+          },
+        },
+      });
+    },
+    [buildTarget],
+  );
+
+  const handleOpenAICodexOAuthLogin = async () => {
+    setIsOAuthLogin(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const result = await invoke<{
+        credentialId: string;
+        accountId: string;
+        expires: number;
+      }>("login_openai_codex_oauth_to_vault", {
+        profileId: "default",
+      });
+      await patchProviderMetadata("openai-codex");
+      setSuccess(
+        `OpenAI Codex OAuth connected as ${result.accountId}. Stored in Desktop Vault as ${result.credentialId}; ${gatewayLabel} metadata updated.`,
+      );
+      await loadProviders();
+    } catch (err) {
+      setError(
+        `OpenAI Codex OAuth failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    } finally {
+      setIsOAuthLogin(false);
+    }
+  };
+
+  const handleImportOpenAICodexOAuth = async () => {
+    setIsImporting(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const result = await invoke<{
+        imported: boolean;
+        credentialId: string;
+        profileId: string;
+        removedSource: boolean;
+      }>("import_openai_codex_oauth_profile_to_vault", {
+        profileId: "default",
+        removeSource: true,
+      });
+      await patchProviderMetadata("openai-codex");
+      setSuccess(
+        `Imported ${result.profileId} into Desktop Vault as ${result.credentialId}; legacy source ${result.removedSource ? "removed" : "kept"}.`,
+      );
+      await loadProviders();
+    } catch (err) {
+      setError(
+        `Failed to import OpenAI Codex OAuth profile: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const handleAddProvider = async () => {
-    if (!apiKey.trim()) {
+    const vaultCredential = vaultCredentialForProvider(selectedProvider);
+    const isOAuthProvider = vaultCredential.authMode === "oauth";
+    if (!isOAuthProvider && !apiKey.trim()) {
       setError("API key is required");
+      return;
+    }
+    if (isOAuthProvider && !apiKey.trim()) {
+      setError(
+        "Desktop OAuth flow is not wired yet. Use this provider to patch metadata only after importing/storing the OAuth payload in Vault.",
+      );
       return;
     }
 
@@ -156,39 +278,26 @@ export function ProviderSettings() {
     setSuccess(null);
 
     try {
-      const target = await buildTarget();
-
-      // Write to gateway config via config.patch (primary path)
-      const patch = {
-        models: {
-          providers: {
-            [selectedProvider]: {
-              apiKey: apiKey.trim(),
-            },
-          },
+      await invoke("vault_store", {
+        profileId: "default",
+        id: vaultCredential.id,
+        name: vaultCredential.name,
+        entryType: vaultCredential.entryType,
+        provider: vaultCredential.provider,
+        credential: apiKey.trim(),
+        metadata: {
+          source: "provider-settings",
+          gatewayKind: isRemoteGateway ? "remote" : "local",
+          authMode: vaultCredential.authMode ?? "api-key",
         },
-      };
+      });
 
-      await patchGatewayConfig(target, patch);
-
-      // Only write to local auth-profiles for local gateways
-      if (!isRemoteGateway) {
-        try {
-          await invoke("add_provider", {
-            request: {
-              provider: selectedProvider,
-              apiKey: apiKey.trim(),
-              label: null,
-            },
-          });
-        } catch {
-          // Local save is best-effort for local gateways
-        }
-      }
+      // Write provider metadata only. Raw API keys/OAuth tokens belong in Desktop Vault.
+      await patchProviderMetadata(selectedProvider);
 
       setApiKey("");
       setSuccess(
-        `${selectedProvider} API key saved to ${gatewayLabel}. Config applied.`,
+        `${vaultCredential.name} saved to Desktop Vault. ${gatewayLabel} metadata updated without raw secrets.`,
       );
       await loadProviders();
     } catch (err) {
@@ -200,48 +309,37 @@ export function ProviderSettings() {
     }
   };
 
-  const handleRemoveProvider = async (provider: string) => {
+  const selectedVaultCredential = vaultCredentialForProvider(selectedProvider);
+  const selectedProviderIsOAuth = selectedVaultCredential.authMode === "oauth";
+
+  const handleRemoveProvider = async (entry: ProviderEntry) => {
     setError(null);
     setSuccess(null);
 
     try {
-      const target = await buildTarget();
+      const descriptor = vaultCredentialForProvider(entry.provider);
+      const credentialId = entry.vaultCredentialId ?? descriptor.id;
+      const removedVault = await invoke<boolean>("vault_delete", {
+        profileId: "default",
+        id: credentialId,
+      }).catch(() => false);
 
-      // Remove from gateway config
-      // config.patch with null/empty to clear — but gateway doesn't support deleting keys via patch
-      // Instead, set apiKey to empty string
-      const patch = {
-        models: {
-          providers: {
-            [provider]: {
-              apiKey: "",
-            },
-          },
-        },
-      };
-
-      await patchGatewayConfig(target, patch);
-
-      // Only remove from local auth-profiles for local gateways
-      if (!isRemoteGateway) {
-        try {
-          const result = await invoke<{
-            providers: { id: string; provider: string }[];
-          }>("list_providers");
-          const local = result.providers.find((p) => p.provider === provider);
-          if (local) {
-            await invoke("remove_provider", { id: local.id });
-          }
-        } catch {
-          // Best effort for local
-        }
+      let removedGateway = false;
+      if (entry.source === "gateway") {
+        const target = await buildTarget();
+        await patchGatewayConfig(target, {
+          models: { providers: { [entry.provider]: null } },
+        });
+        removedGateway = true;
       }
 
-      setSuccess(`${provider} removed from ${gatewayLabel}.`);
+      setSuccess(
+        `${entry.provider} removed${removedVault ? " from Desktop Vault" : ""}${removedGateway ? ` and ${gatewayLabel} metadata` : ""}.`,
+      );
       await loadProviders();
     } catch (err) {
       setError(
-        `Failed to remove from gateway (${gatewayLabel}): ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to remove provider: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   };
@@ -307,9 +405,9 @@ export function ProviderSettings() {
                         <CheckCircle className="h-3 w-3 mr-1" /> gateway
                       </Badge>
                     )}
-                    {p.source === "local" && (
+                    {p.source === "vault" && (
                       <Badge variant="outline" className="text-xs">
-                        local only
+                        vault
                       </Badge>
                     )}
                   </div>
@@ -317,7 +415,7 @@ export function ProviderSettings() {
                     variant="ghost"
                     size="sm"
                     className="text-destructive hover:text-destructive"
-                    onClick={() => handleRemoveProvider(p.provider)}
+                    onClick={() => handleRemoveProvider(p)}
                   >
                     Remove
                   </Button>
@@ -335,7 +433,7 @@ export function ProviderSettings() {
 
         {/* Add provider form */}
         <div className="pt-2 border-t space-y-3">
-          <Label>Add Provider</Label>
+          <Label>Configure Provider</Label>
           <div className="flex gap-2">
             <Select
               value={selectedProvider}
@@ -352,20 +450,55 @@ export function ProviderSettings() {
                 ))}
               </SelectContent>
             </Select>
-            <Input
-              type="password"
-              placeholder="Paste API key..."
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              className="flex-1"
-            />
-            <Button
-              onClick={handleAddProvider}
-              disabled={isAdding || !apiKey.trim()}
-            >
-              {isAdding ? "Saving..." : "Add"}
-            </Button>
+            {!selectedProviderIsOAuth && (
+              <>
+                <Input
+                  type="password"
+                  placeholder="Paste API key..."
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={handleAddProvider}
+                  disabled={isAdding || !apiKey.trim()}
+                >
+                  {isAdding ? "Saving..." : "Add"}
+                </Button>
+              </>
+            )}
           </div>
+          {selectedProvider === "openai-codex" && (
+            <div className="rounded-md border bg-muted/30 p-3 text-sm space-y-2">
+              <p className="text-muted-foreground">
+                Sign in with ChatGPT. Desktop opens the OAuth flow, stores the
+                resulting token payload in OS-backed Vault as
+                <code className="mx-1">openai-codex-oauth</code>, and patches
+                gateway metadata without raw secrets.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleOpenAICodexOAuthLogin}
+                  disabled={isOAuthLogin || isImporting}
+                >
+                  {isOAuthLogin ? "Waiting for browser..." : "Sign in with ChatGPT"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleImportOpenAICodexOAuth}
+                  disabled={isImporting || isOAuthLogin}
+                  title="Only needed if you previously authenticated with the legacy CLI."
+                >
+                  {isImporting
+                    ? "Importing..."
+                    : "Import legacy CLI profile"}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Feedback */}

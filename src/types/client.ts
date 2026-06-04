@@ -1,6 +1,10 @@
 /**
  * Client Mode - TypeScript Type Definitions
  *
+ * Runtime ontology note: Client Mode means a restricted/non-owner connection
+ * relationship to a Gateway. It is separate from communication channels
+ * (Matrix/Signal/etc.) and from interface surfaces such as Desktop.
+ *
  * Defines type contracts for:
  * - Client connection management
  * - Gateway discovery and peer management
@@ -106,7 +110,10 @@ export type PeerDiscoveryMethod = "mdns" | "manual" | "invitation";
 // ============================================================================
 
 /**
- * Client mode configuration
+ * Client mode configuration.
+ *
+ * This represents the non-owner/restricted connection relationship to a
+ * Gateway, not a chat channel and not the Desktop interface itself.
  */
 export interface ClientConfig {
   /** Gateway address */

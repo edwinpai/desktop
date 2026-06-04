@@ -1,4 +1,5 @@
-import { invoke } from "@tauri-apps/api/core";
+import { readConfig } from "@/lib/config";
+import { buildGatewayTarget, callGatewayMethod } from "@/lib/gateway-context";
 
 export interface WorkflowSummary {
   id: string;
@@ -64,71 +65,104 @@ export interface WorkflowLogsResult {
   content: string;
 }
 
+async function gatewayTarget() {
+  const cfg = await readConfig();
+  return buildGatewayTarget({
+    gatewayUrl: cfg.gatewayUrl,
+    gatewayPort: cfg.gatewayPort,
+    gatewayToken: cfg.gatewayToken,
+  });
+}
+
+async function callWorkflowGateway<T>(
+  method: string,
+  params: Record<string, unknown> = {},
+): Promise<T> {
+  return (await callGatewayMethod(
+    await gatewayTarget(),
+    method,
+    params,
+    15000,
+    `Timed out calling ${method}`,
+  )) as T;
+}
+
 export async function listWorkflows(): Promise<WorkflowListResult> {
-  return await invoke<WorkflowListResult>("workflow_list");
+  return await callWorkflowGateway<WorkflowListResult>("workflows.list");
 }
 
 export async function getWorkflowStatus(
   workflow: string,
 ): Promise<WorkflowStatusResult> {
-  return await invoke<WorkflowStatusResult>("workflow_status", { workflow });
+  return await callWorkflowGateway<WorkflowStatusResult>(
+    "workflows.status",
+    { workflow },
+  );
 }
 
 export async function getWorkflowHistory(
   workflow: string,
 ): Promise<WorkflowHistoryResult> {
-  return await invoke<WorkflowHistoryResult>("workflow_history", { workflow });
+  return await callWorkflowGateway<WorkflowHistoryResult>(
+    "workflows.history",
+    { workflow },
+  );
 }
 
 export async function runWorkflow(
   workflow: string,
 ): Promise<WorkflowRunResult> {
-  return await invoke<WorkflowRunResult>("workflow_run", { workflow });
+  return await callWorkflowGateway<WorkflowRunResult>("workflows.run", { workflow });
 }
 
 export async function listPendingWorkflowApprovals(): Promise<
   WorkflowPendingApproval[]
 > {
-  return await invoke<WorkflowPendingApproval[]>("workflow_pending");
+  return await callWorkflowGateway<WorkflowPendingApproval[]>("workflows.pending");
 }
 
 export async function approveWorkflow(approvalId: string): Promise<boolean> {
-  return await invoke<boolean>("workflow_approve", { approvalId });
+  return await callWorkflowGateway<boolean>("workflows.approve", { approvalId });
 }
 
 export async function denyWorkflow(approvalId: string): Promise<boolean> {
-  return await invoke<boolean>("workflow_deny", { approvalId });
+  return await callWorkflowGateway<boolean>("workflows.deny", { approvalId });
 }
 
 export async function readWorkflowLogs(
   workflow: string,
 ): Promise<WorkflowLogsResult> {
-  return await invoke<WorkflowLogsResult>("workflow_logs", { workflow });
+  return await callWorkflowGateway<WorkflowLogsResult>("workflows.logs", { workflow });
 }
 
 export async function listWorkflowFiles(): Promise<WorkflowFileListResult> {
-  return await invoke<WorkflowFileListResult>("workflow_list_files");
+  return await callWorkflowGateway<WorkflowFileListResult>("workflows.files.list");
 }
 
 export async function loadWorkflowFile(
   filename: string,
 ): Promise<WorkflowFileContentResult> {
-  return await invoke<WorkflowFileContentResult>("workflow_load_file", {
-    filename,
-  });
+  return await callWorkflowGateway<WorkflowFileContentResult>(
+    "workflows.files.load",
+    { filename },
+  );
 }
 
 export async function saveWorkflowFile(
   filename: string,
   content: string,
 ): Promise<boolean> {
-  return await invoke<boolean>("workflow_save_file", { filename, content });
+  return await callWorkflowGateway<boolean>(
+    "workflows.files.save",
+    { filename, content },
+  );
 }
 
 export async function createWorkflowFile(
   filename: string,
 ): Promise<WorkflowFileContentResult> {
-  return await invoke<WorkflowFileContentResult>("workflow_create_file", {
-    filename,
-  });
+  return await callWorkflowGateway<WorkflowFileContentResult>(
+    "workflows.files.create",
+    { filename },
+  );
 }

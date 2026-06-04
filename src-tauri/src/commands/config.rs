@@ -1,7 +1,10 @@
 // Desktop Configuration Management (Phase 3/4)
 //
 // Handles persistent configuration storage using Tauri fs API.
-// Config location: ~/.edwinpai/desktop-config.json
+// Config location: ~/.edwinpai/desktop-config.json by default.
+// Dev/test instances can be isolated with:
+// - EDWINPAI_DESKTOP_CONFIG=/absolute/path/to/desktop-config.json
+// - EDWINPAI_DESKTOP_INSTANCE_ID=dev2 -> ~/.edwinpai/desktop-config.dev2.json
 //
 // Configuration includes:
 // - Gateway settings (port, auto-start)
@@ -28,14 +31,30 @@ pub struct DesktopConfig {
     pub last_client_session: Option<ClientSessionConfig>,
 }
 
-/// Operating mode (gateway or client)
+/// Persisted Desktop operating mode.
+///
+/// Runtime ontology note: `Client` serializes as `"client"` for historical
+/// config compatibility. Product/UI copy should call this Connect Mode. Do not
+/// change the stored value without a config migration.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum OperatingMode {
     /// Local EdwinPAI instance (default)
     Gateway,
-    /// Connected to remote gateway
+    /// Connect Mode: Desktop connects to an existing Gateway.
+    ///
+    /// Accept `"connect"` at input boundaries, but continue serializing as
+    /// `"client"` until a post-beta config migration changes storage.
+    #[serde(alias = "connect")]
     Client,
+}
+
+impl OperatingMode {
+    /// Returns true when the persisted mode represents product/UI Connect Mode.
+    #[allow(dead_code)]
+    pub fn is_connect_mode(self) -> bool {
+        matches!(self, Self::Client)
+    }
 }
 
 impl Default for OperatingMode {
@@ -44,7 +63,11 @@ impl Default for OperatingMode {
     }
 }
 
-/// Client session configuration for reconnection
+/// Historical Client Mode session configuration for reconnection.
+///
+/// Prefer the `ConnectSessionConfig` alias in new comments/domain code. The
+/// serialized shape and `lastClientSession` config field remain unchanged for
+/// beta compatibility.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClientSessionConfig {
@@ -59,6 +82,13 @@ pub struct ClientSessionConfig {
     /// Permission level for this session
     pub permission: String, // "owner" | "member" | "guest"
 }
+
+/// Connect Mode session configuration alias.
+///
+/// Alias only: persisted config still uses `lastClientSession` and the same JSON
+/// shape as `ClientSessionConfig`.
+#[allow(dead_code)]
+pub type ConnectSessionConfig = ClientSessionConfig;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -99,13 +129,21 @@ pub struct SubscriptionConfig {
     pub auto_renew_reminder_days: u32,
 }
 
+fn default_gateway_port() -> u16 {
+    std::env::var("EDWINPAI_DESKTOP_INSTANCE_GATEWAY_PORT")
+        .or_else(|_| std::env::var("EDWINPAI_DESKTOP_GATEWAY_PORT"))
+        .ok()
+        .and_then(|value| value.parse::<u16>().ok())
+        .unwrap_or(18789)
+}
+
 impl Default for DesktopConfig {
     fn default() -> Self {
         Self {
             version: env!("CARGO_PKG_VERSION").to_string(),
             mode: OperatingMode::default(),
             gateway: GatewayConfig {
-                port: 18789,
+                port: default_gateway_port(),
                 auto_start: true,
                 auto_restart: true,
                 max_restarts: 5,
@@ -155,12 +193,35 @@ impl ConfigManager {
         })
     }
 
-    /// Get config file path: ~/.edwinpai/desktop-config.json
+    /// Get config file path.
+    ///
+    /// Production uses ~/.edwinpai/desktop-config.json.
+    /// Development/test instances can opt into isolated state with either:
+    /// - EDWINPAI_DESKTOP_CONFIG=/absolute/path/to/desktop-config.json
+    /// - EDWINPAI_DESKTOP_INSTANCE_ID=dev2 -> ~/.edwinpai/desktop-config.dev2.json
     fn get_config_path() -> Result<PathBuf, String> {
+        if let Ok(path) = std::env::var("EDWINPAI_DESKTOP_CONFIG") {
+            let trimmed = path.trim();
+            if !trimmed.is_empty() {
+                return Ok(PathBuf::from(trimmed));
+            }
+        }
+
         let home_dir = dirs::home_dir()
             .ok_or("Failed to determine home directory")?;
 
         let config_dir = home_dir.join(".edwinpai");
+
+        if let Ok(instance_id) = std::env::var("EDWINPAI_DESKTOP_INSTANCE_ID") {
+            let sanitized: String = instance_id
+                .chars()
+                .filter(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_'))
+                .collect();
+            if !sanitized.is_empty() {
+                return Ok(config_dir.join(format!("desktop-config.{}.json", sanitized)));
+            }
+        }
+
         Ok(config_dir.join("desktop-config.json"))
     }
 
@@ -703,6 +764,57 @@ mod tests {
 
         assert_eq!(gateway_json, "\"gateway\"");
         assert_eq!(client_json, "\"client\"");
+    }
+
+    #[test]
+    fn test_connect_mode_input_alias_deserializes_to_client() {
+        let mode: OperatingMode = serde_json::from_str("\"connect\"").unwrap();
+
+        assert_eq!(mode, OperatingMode::Client);
+        assert!(mode.is_connect_mode());
+        assert_eq!(serde_json::to_string(&mode).unwrap(), "\"client\"");
+    }
+
+    #[test]
+    fn test_connect_mode_config_input_alias_persists_as_client() {
+        let json = format!(r#"{{
+            "version": "{}",
+            "mode": "connect",
+            "gateway": {{
+                "port": 18789,
+                "autoStart": true,
+                "autoRestart": true,
+                "maxRestarts": 5,
+                "healthCheckIntervalMs": 30000,
+                "logLevel": "info"
+            }},
+            "mdns": {{
+                "enabled": true,
+                "serviceName": null,
+                "advertiseOnStartup": true
+            }},
+            "ui": {{
+                "theme": "system",
+                "minimizeToTray": true,
+                "startMinimized": false,
+                "windowWidth": 1200,
+                "windowHeight": 800,
+                "windowX": null,
+                "windowY": null
+            }},
+            "subscription": {{
+                "cacheTtlSeconds": 3600,
+                "checkOnStartup": true,
+                "autoRenewReminderDays": 7
+            }}
+        }}"#, env!("CARGO_PKG_VERSION"));
+
+        let config: DesktopConfig = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(config.mode, OperatingMode::Client);
+        let serialized = serde_json::to_string(&config).unwrap();
+        assert!(serialized.contains("\"mode\":\"client\""));
+        assert!(!serialized.contains("\"mode\":\"connect\""));
     }
 
     #[tokio::test]

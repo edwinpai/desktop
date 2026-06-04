@@ -31,6 +31,21 @@ vi.mock("@/lib/config", () => ({
   getConfigPath: vi.fn().mockReturnValue("desktop-config.json"),
 }));
 
+vi.mock("@/lib/action-approvals", () => ({
+  fetchPendingActionApprovals: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/lib/gateway-context", () => ({
+  callGatewayMethod: vi.fn().mockResolvedValue({}),
+  patchGatewayConfig: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/lib/vault-policy", () => ({
+  loadPolicy: vi.fn().mockResolvedValue({ rules: [] }),
+  savePolicy: vi.fn().mockResolvedValue(undefined),
+  setRuleForCredential: vi.fn((policy) => policy),
+}));
+
 // Import after mocks
 const OnboardingWizard = await import("./OnboardingWizard").then(
   (m) => m.OnboardingWizard,
@@ -47,6 +62,10 @@ describe("ApiKeyStep", () => {
           return [{ url: "http://localhost:18789", version: null, name: null }];
         case "probe_gateway":
           return { found: true, url: "http://localhost:18789", error: null };
+        case "vault_store":
+        case "vault_list":
+        case "vault_delete":
+          return {};
         default:
           return {};
       }
@@ -73,16 +92,28 @@ describe("ApiKeyStep", () => {
     await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
     await user.click(screen.getByRole("button", { name: /^continue$/i }));
 
+    // Security model step
+    await waitFor(() =>
+      screen.getByRole("button", { name: /i understand.*continue/i }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: /i understand.*continue/i }),
+    );
+
+    // Vault health step
+    await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
+    await user.click(screen.getByRole("button", { name: /^continue$/i }));
+
     // Now on ApiKey step
     await waitFor(() => {
-      expect(screen.getByText(/configure ai provider/i)).toBeInTheDocument();
+      expect(screen.getByText(/ai provider api key/i)).toBeInTheDocument();
     });
   };
 
   it("renders API key input field", async () => {
     await navigateToApiKeyStep();
 
-    const input = screen.getByPlaceholderText(/sk-ant-/i);
+    const input = screen.getByPlaceholderText(/sk-\.\.\./i);
     expect(input).toBeInTheDocument();
     expect(input).toHaveAttribute("type", "password");
   });
@@ -99,16 +130,25 @@ describe("ApiKeyStep", () => {
     await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
     await user.click(screen.getByRole("button", { name: /^continue$/i }));
 
+    await waitFor(() =>
+      screen.getByRole("button", { name: /i understand.*continue/i }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: /i understand.*continue/i }),
+    );
+    await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
+    await user.click(screen.getByRole("button", { name: /^continue$/i }));
+
     // Now on ApiKey step
-    await waitFor(() => screen.getByPlaceholderText(/sk-ant-/i));
-    const input = screen.getByPlaceholderText(/sk-ant-/i);
-    await user.type(input, "sk-ant-test-key-123");
+    await waitFor(() => screen.getByPlaceholderText(/sk-\.\.\./i));
+    const input = screen.getByPlaceholderText(/sk-\.\.\./i);
+    await user.type(input, "sk-test-key-123");
 
     // Mock add_provider for validation
     vi.mocked(invoke).mockImplementation(async (cmd: string) => {
       switch (cmd) {
-        case "add_provider":
-          return { providers: [{ name: "anthropic" }] };
+        case "vault_store":
+          return {};
         default:
           return {};
       }
@@ -121,7 +161,7 @@ describe("ApiKeyStep", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/api key validated successfully/i),
+        screen.getByText(/api key saved to desktop vault/i),
       ).toBeInTheDocument();
     });
   });
@@ -138,8 +178,17 @@ describe("ApiKeyStep", () => {
     await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
     await user.click(screen.getByRole("button", { name: /^continue$/i }));
 
-    await waitFor(() => screen.getByPlaceholderText(/sk-ant-/i));
-    const input = screen.getByPlaceholderText(/sk-ant-/i);
+    await waitFor(() =>
+      screen.getByRole("button", { name: /i understand.*continue/i }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: /i understand.*continue/i }),
+    );
+    await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
+    await user.click(screen.getByRole("button", { name: /^continue$/i }));
+
+    await waitFor(() => screen.getByPlaceholderText(/sk-\.\.\./i));
+    const input = screen.getByPlaceholderText(/sk-\.\.\./i);
     await user.type(input, "invalid-key");
 
     // Mock add_provider to fail
@@ -183,9 +232,18 @@ describe("ApiKeyStep", () => {
     await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
     await user.click(screen.getByRole("button", { name: /^continue$/i }));
 
-    await waitFor(() => screen.getByPlaceholderText(/sk-ant-/i));
-    const input = screen.getByPlaceholderText(/sk-ant-/i);
-    await user.type(input, "sk-ant-test");
+    await waitFor(() =>
+      screen.getByRole("button", { name: /i understand.*continue/i }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: /i understand.*continue/i }),
+    );
+    await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
+    await user.click(screen.getByRole("button", { name: /^continue$/i }));
+
+    await waitFor(() => screen.getByPlaceholderText(/sk-\.\.\./i));
+    const input = screen.getByPlaceholderText(/sk-\.\.\./i);
+    await user.type(input, "sk-test");
 
     // Mock invoke to never resolve (simulates long validation)
     vi.mocked(invoke).mockImplementation(() => new Promise(() => {}));

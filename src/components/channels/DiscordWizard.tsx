@@ -359,11 +359,24 @@ export function DiscordWizard({
       setError(undefined);
 
       try {
-        // Save channel config via gateway config.patch
+        const { invoke } = await import("@tauri-apps/api/core");
+        const { vaultCredentialForChannelSecret } =
+          await import("@/lib/vault-credentials");
+        const vaultCredential = vaultCredentialForChannelSecret(channel);
+        await invoke("vault_store", {
+          profileId: "default",
+          id: vaultCredential.id,
+          name: vaultCredential.name,
+          entryType: vaultCredential.entryType,
+          provider: vaultCredential.provider,
+          credential: botToken,
+          metadata: { source: "discord-wizard" },
+        });
+
+        // Save non-secret channel config via gateway config.patch.
         const patch = {
           channels: {
             [channel]: {
-              botToken,
               enabled,
               dmPolicy,
               groupPolicy,
@@ -390,7 +403,6 @@ export function DiscordWizard({
           );
         } catch {
           // Fallback: try local IPC
-          const { invoke } = await import("@tauri-apps/api/core");
           const configResponse = await invoke<{
             config: Record<string, unknown>;
           }>("get_edwinpai_config");
@@ -403,7 +415,6 @@ export function DiscordWizard({
             channels: {
               ...((currentConfig.channels ?? {}) as Record<string, unknown>),
               [channel]: {
-                botToken,
                 enabled,
                 dmPolicy,
                 groupPolicy,
@@ -416,7 +427,9 @@ export function DiscordWizard({
 
         onComplete?.({
           enabled,
-          botToken,
+          dmPolicy,
+          groupPolicy,
+          historyLimit,
         } as unknown as import("@/types/channels").ChannelConfig);
         return true;
       } catch (err) {

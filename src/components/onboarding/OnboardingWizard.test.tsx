@@ -30,6 +30,21 @@ vi.mock("@/lib/config", () => ({
   getConfigPath: vi.fn().mockReturnValue("desktop-config.json"),
 }));
 
+vi.mock("@/lib/action-approvals", () => ({
+  fetchPendingActionApprovals: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/lib/gateway-context", () => ({
+  callGatewayMethod: vi.fn().mockResolvedValue({}),
+  patchGatewayConfig: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/lib/vault-policy", () => ({
+  loadPolicy: vi.fn().mockResolvedValue({ rules: [] }),
+  savePolicy: vi.fn().mockResolvedValue(undefined),
+  setRuleForCredential: vi.fn((policy) => policy),
+}));
+
 // Mock WebSocket for TestChatStep
 class MockWebSocket {
   static OPEN = 1;
@@ -133,8 +148,10 @@ describe("OnboardingWizard", () => {
           return [{ url: "http://localhost:18789", version: null, name: null }];
         case "probe_gateway":
           return { found: true, url: "http://localhost:18789", error: null };
-        case "add_provider":
-          return { providers: [] };
+        case "vault_store":
+        case "vault_list":
+        case "vault_delete":
+          return {};
         case "get_identity":
           return {
             publicKey: "02test",
@@ -152,6 +169,32 @@ describe("OnboardingWizard", () => {
     globalThis.WebSocket = OriginalWebSocket;
   });
 
+  const continueThroughSecurityAndVaultHealth = async (
+    user: ReturnType<typeof userEvent.setup>,
+  ) => {
+    await waitFor(() =>
+      screen.getByRole("button", { name: /i understand.*continue/i }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: /i understand.*continue/i }),
+    );
+    await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
+    await user.click(screen.getByRole("button", { name: /^continue$/i }));
+  };
+
+  const continueThroughPostCredentialVaultSteps = async (
+    user: ReturnType<typeof userEvent.setup>,
+  ) => {
+    await waitFor(() =>
+      expect(
+        screen.getAllByText(/import existing secrets/i).length,
+      ).toBeGreaterThan(0),
+    );
+    await user.click(screen.getByRole("button", { name: /^continue$/i }));
+    await waitFor(() => screen.getByText(/approved openai credential probe/i));
+    await user.click(screen.getByRole("button", { name: /^continue$/i }));
+  };
+
   it("renders welcome step initially", () => {
     render(<OnboardingWizard onComplete={vi.fn()} />);
     // Multiple "Welcome to EdwinPAI" text elements (h1 + h2)
@@ -161,7 +204,17 @@ describe("OnboardingWizard", () => {
 
   it("shows progress indicator", () => {
     render(<OnboardingWizard onComplete={vi.fn()} />);
-    expect(screen.getByText(/Step 1 of 7/i)).toBeInTheDocument();
+    expect(screen.getByText(/Step 1 of 11/i)).toBeInTheDocument();
+  });
+
+  it("allows users to skip the setup wizard", async () => {
+    const user = userEvent.setup();
+    const onComplete = vi.fn();
+    render(<OnboardingWizard onComplete={onComplete} />);
+
+    await user.click(screen.getByRole("button", { name: /skip setup wizard/i }));
+
+    expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
   it("shows progress percentage", () => {
@@ -182,7 +235,7 @@ describe("OnboardingWizard", () => {
     if (getStartedButton) await user.click(getStartedButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/Step 2 of 7/i)).toBeInTheDocument();
+      expect(screen.getByText(/Step 2 of 11/i)).toBeInTheDocument();
     });
   });
 
@@ -194,7 +247,7 @@ describe("OnboardingWizard", () => {
     await user.click(screen.getByRole("button", { name: /get started/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Step 2 of 7/i)).toBeInTheDocument();
+      expect(screen.getByText(/Step 2 of 11/i)).toBeInTheDocument();
     });
 
     // Go back to step 1
@@ -202,7 +255,7 @@ describe("OnboardingWizard", () => {
     await user.click(prevButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/Step 1 of 7/i)).toBeInTheDocument();
+      expect(screen.getByText(/Step 1 of 11/i)).toBeInTheDocument();
     });
   });
 
@@ -258,15 +311,15 @@ describe("OnboardingWizard", () => {
     const user = userEvent.setup();
     render(<OnboardingWizard onComplete={vi.fn()} />);
 
-    // Initial state: 7 step dots + 1 progress bar inner div = 8 rounded-full elements
+    // Initial state: 11 step dots + 1 progress bar inner div = 12 rounded-full elements
     const initialDots = document.querySelectorAll(".rounded-full");
-    expect(initialDots.length).toBe(8);
+    expect(initialDots.length).toBe(12);
 
     // Navigate forward
     await user.click(screen.getByRole("button", { name: /get started/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Step 2 of 7/i)).toBeInTheDocument();
+      expect(screen.getByText(/Step 2 of 11/i)).toBeInTheDocument();
     });
   });
 
@@ -287,8 +340,10 @@ describe("OnboardingWizard", () => {
     // Mock all required IPC calls
     vi.mocked(invoke).mockImplementation(async (cmd: string) => {
       switch (cmd) {
-        case "add_provider":
-          return { providers: [] };
+        case "vault_store":
+        case "vault_list":
+        case "vault_delete":
+          return {};
         case "get_identity":
           return {
             publicKey: "02test",
@@ -317,8 +372,8 @@ describe("OnboardingWizard", () => {
     await user.click(screen.getByRole("button", { name: /^continue$/i }));
 
     // API Key step
-    await waitFor(() => screen.getByPlaceholderText(/sk-ant-/i));
-    await user.type(screen.getByPlaceholderText(/sk-ant-/i), "sk-ant-test");
+    await waitFor(() => screen.getByPlaceholderText(/sk-\.\.\./i));
+    await user.type(screen.getByPlaceholderText(/sk-\.\.\./i), "sk-test");
     await user.click(
       screen.getByRole("button", { name: /validate & continue/i }),
     );
@@ -429,15 +484,17 @@ describe("OnboardingWizard", () => {
       await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
       await user.click(screen.getByRole("button", { name: /^continue$/i }));
 
+      await continueThroughSecurityAndVaultHealth(user);
+
       // API Key step
-      await waitFor(() => screen.getByPlaceholderText(/sk-ant-/i));
-      await user.type(screen.getByPlaceholderText(/sk-ant-/i), "sk-ant-test");
+      await waitFor(() => screen.getByPlaceholderText(/sk-\.\.\./i));
+      await user.type(screen.getByPlaceholderText(/sk-\.\.\./i), "sk-test");
       await user.click(
         screen.getByRole("button", { name: /validate & continue/i }),
       );
+      await continueThroughPostCredentialVaultSteps(user);
 
       await waitFor(() => {
-        // Step 4 is Identity step
         expect(screen.getByText(/your bsv identity/i)).toBeInTheDocument();
       });
     });
@@ -459,12 +516,15 @@ describe("OnboardingWizard", () => {
       await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
       await user.click(screen.getByRole("button", { name: /^continue$/i }));
 
+      await continueThroughSecurityAndVaultHealth(user);
+
       // ApiKey step
-      await waitFor(() => screen.getByPlaceholderText(/sk-ant-/i));
-      await user.type(screen.getByPlaceholderText(/sk-ant-/i), "sk-ant-test");
+      await waitFor(() => screen.getByPlaceholderText(/sk-\.\.\./i));
+      await user.type(screen.getByPlaceholderText(/sk-\.\.\./i), "sk-test");
       await user.click(
         screen.getByRole("button", { name: /validate & continue/i }),
       );
+      await continueThroughPostCredentialVaultSteps(user);
 
       // Identity step
       await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
@@ -529,8 +589,8 @@ describe("OnboardingWizard", () => {
         .find((btn) => btn.textContent?.includes("Get Started"));
       if (getStartedButton) await user.click(getStartedButton);
 
-      await waitFor(() => screen.getByPlaceholderText(/sk-ant-/i));
-      await user.type(screen.getByPlaceholderText(/sk-ant-/i), "sk-ant-test");
+      await waitFor(() => screen.getByPlaceholderText(/sk-\.\.\./i));
+      await user.type(screen.getByPlaceholderText(/sk-\.\.\./i), "sk-test");
       await user.click(
         screen.getByRole("button", { name: /validate & continue/i }),
       );

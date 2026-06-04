@@ -25,7 +25,9 @@ import {
 // Config File Path
 // ============================================================================
 
-const CONFIG_FILE = "desktop-config.json";
+const CONFIG_FILE = import.meta.env.VITE_EDWINPAI_DESKTOP_INSTANCE_ID
+  ? `desktop-config.${import.meta.env.VITE_EDWINPAI_DESKTOP_INSTANCE_ID}.json`
+  : "desktop-config.json";
 
 function hasTauriFs(): boolean {
   if (typeof window === "undefined") return true;

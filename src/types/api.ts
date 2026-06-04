@@ -18,9 +18,17 @@ export interface BsvAuthHeaders {
 
 export type ChatRole = "system" | "user" | "assistant";
 
+export interface ChatAttachment {
+  type?: string;
+  mimeType: string;
+  fileName: string;
+  content: string;
+}
+
 export interface ChatMessage {
   role: ChatRole;
   content: string;
+  attachments?: ChatAttachment[];
   tool_use?: Array<{
     id: string;
     name: string;

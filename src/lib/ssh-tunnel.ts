@@ -5,6 +5,7 @@
  * Uses `ssh -N -L localPort:localhost:remotePort sshHost` via Tauri shell plugin.
  */
 
+import { invoke } from "@tauri-apps/api/core";
 import { Command } from "@tauri-apps/plugin-shell";
 
 export interface SshTunnelConfig {
@@ -24,6 +25,7 @@ export interface SshTunnelState {
   error: string | null;
   pid: number | null;
   localPort: number;
+  killedStalePids?: number[];
 }
 
 type StatusListener = (state: SshTunnelState) => void;
@@ -41,6 +43,7 @@ class SshTunnelManager {
   };
   private listeners: Set<StatusListener> = new Set();
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private intentionalStop = false;
 
   subscribe(listener: StatusListener): () => void {
     this.listeners.add(listener);
@@ -61,6 +64,7 @@ class SshTunnelManager {
 
   async start(config: SshTunnelConfig): Promise<void> {
     await this.stop();
+    this.intentionalStop = false;
     this.config = config;
 
     this.setState({
@@ -70,6 +74,30 @@ class SshTunnelManager {
     });
 
     try {
+      const cleanup = await invoke<{
+        port: number;
+        killed_pids?: number[];
+        skipped_pids?: number[];
+        killedPids?: number[];
+        skippedPids?: number[];
+      }>("cleanup_ssh_tunnel_port", { port: config.localPort }).catch((err) => {
+        console.warn(
+          "[SSH] Port cleanup failed; attempting tunnel anyway:",
+          err,
+        );
+        return null;
+      });
+      const killedStalePids = cleanup?.killed_pids ?? cleanup?.killedPids ?? [];
+      if (killedStalePids.length > 0) {
+        console.log(
+          `[SSH] Killed stale tunnel PID(s) on localhost:${config.localPort}: ${killedStalePids.join(
+            ", ",
+          )}`,
+        );
+        this.setState({ killedStalePids });
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+
       const cmd = Command.create("ssh", [
         "-N", // No remote command
         "-o",
@@ -91,7 +119,7 @@ class SshTunnelManager {
 
       cmd.on("close", (data) => {
         console.log("[SSH] Tunnel closed, code:", data.code);
-        if (this.state.status === "connected") {
+        if (!this.intentionalStop) {
           this.setState({ status: "disconnected", pid: null });
           this.scheduleReconnect();
         }
@@ -103,7 +131,9 @@ class SshTunnelManager {
         // Some SSH errors appear on stderr before the process exits
         if (
           line.includes("Permission denied") ||
-          line.includes("Connection refused")
+          line.includes("Connection refused") ||
+          line.includes("Address already in use") ||
+          line.includes("bind")
         ) {
           this.setState({ status: "error", error: line.trim() });
         }
@@ -132,6 +162,7 @@ class SshTunnelManager {
   }
 
   async stop(): Promise<void> {
+    this.intentionalStop = true;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -144,7 +175,12 @@ class SshTunnelManager {
       }
       this.childProcess = null;
     }
-    this.setState({ status: "disconnected", error: null, pid: null });
+    this.setState({
+      status: "disconnected",
+      error: null,
+      pid: null,
+      killedStalePids: undefined,
+    });
   }
 
   private scheduleReconnect() {

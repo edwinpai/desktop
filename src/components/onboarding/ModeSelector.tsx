@@ -1,10 +1,11 @@
+import { Link, Monitor } from "lucide-react";
+
 import {
   Card,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Monitor, Link } from "lucide-react";
 
 interface ModeSelectorProps {
   onSelect: (mode: "gateway" | "client") => void;
@@ -51,12 +52,12 @@ export function ModeSelector({ onSelect }: ModeSelectorProps) {
               <Link className="h-6 w-6" />
               Connect to an existing EdwinPAI
               <span className="ml-auto text-xs font-normal text-muted-foreground rounded-full bg-muted px-2 py-0.5">
-                Client
+                Connect
               </span>
             </CardTitle>
             <CardDescription>
-              Someone in your household already runs EdwinPAI. Connect to
-              theirs.
+              Connect to an existing Gateway with the permissions granted to
+              your identity.
             </CardDescription>
           </CardHeader>
         </Card>

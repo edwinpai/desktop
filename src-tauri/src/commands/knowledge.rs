@@ -108,6 +108,58 @@ pub struct DisciplineDetails {
     pub artifact_paths: Vec<String>,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DisciplineBuildCommandResult {
+    pub stdout: String,
+    pub stderr: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DisciplineCreateInput {
+    pub id: Option<String>,
+    pub name: String,
+    pub description: Option<String>,
+    #[serde(default)]
+    pub selected_collections: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DisciplineCreateResult {
+    pub id: String,
+    pub directory_path: String,
+    pub discipline_path: String,
+    pub readme_path: String,
+    pub build: DisciplineBuildCommandResult,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DisciplineUpdateInput {
+    pub id: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub selected_collections: Option<Vec<String>>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DisciplineUpdateResult {
+    pub id: String,
+    pub discipline_path: String,
+    pub build: DisciplineBuildCommandResult,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DisciplineDeleteResult {
+    pub id: String,
+    pub trashed_path: String,
+    pub build: DisciplineBuildCommandResult,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct DisciplinesFile {
@@ -205,6 +257,90 @@ fn disciplines_storage_path() -> Result<PathBuf, String> {
     Ok(edwinpai_dir()?.join("knowledge/disciplines.json"))
 }
 
+fn workspace_dir() -> Result<PathBuf, String> {
+    Ok(edwinpai_dir()?.join("workspace"))
+}
+
+fn authored_disciplines_dir() -> Result<PathBuf, String> {
+    Ok(workspace_dir()?.join("knowledge/disciplines"))
+}
+
+fn slugify_discipline_id(value: &str) -> String {
+    let mut out = String::new();
+    let mut previous_dash = false;
+    for ch in value.trim().to_lowercase().chars() {
+        if ch.is_ascii_alphanumeric() {
+            out.push(ch);
+            previous_dash = false;
+        } else if !previous_dash {
+            out.push('-');
+            previous_dash = true;
+        }
+    }
+    out.trim_matches('-').to_string()
+}
+
+fn find_authored_discipline_dir(id: &str) -> Result<PathBuf, String> {
+    let root = authored_disciplines_dir()?;
+    let entries = fs::read_dir(&root).map_err(|err| err.to_string())?;
+    for entry in entries {
+        let entry = entry.map_err(|err| err.to_string())?;
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let discipline_path = path.join("discipline.yaml");
+        if !discipline_path.exists() {
+            continue;
+        }
+        let raw = fs::read_to_string(&discipline_path).map_err(|err| err.to_string())?;
+        let yaml: serde_yaml::Value = serde_yaml::from_str(&raw).map_err(|err| err.to_string())?;
+        let found_id = yaml.get("id").and_then(|value| value.as_str());
+        if found_id == Some(id) {
+            return Ok(path);
+        }
+    }
+    Err(format!(
+        "No authored discipline folder found for id '{}'",
+        id
+    ))
+}
+
+fn normalize_collections(values: Vec<String>) -> Vec<String> {
+    let mut collections = values
+        .into_iter()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .collect::<Vec<_>>();
+    if collections.is_empty() {
+        collections.push("workspace".to_string());
+    }
+    collections
+}
+
+fn discipline_folder_name(id: &str, name: &str) -> String {
+    let base = if !name.trim().is_empty() { name } else { id };
+    let mut out = String::new();
+    let mut capitalize_next = true;
+    for ch in base.chars() {
+        if ch.is_ascii_alphanumeric() {
+            if capitalize_next {
+                out.push(ch.to_ascii_uppercase());
+                capitalize_next = false;
+            } else {
+                out.push(ch);
+            }
+        } else {
+            capitalize_next = true;
+        }
+    }
+    if out.is_empty() {
+        id.replace('-', "")
+    } else {
+        out
+    }
+}
+
 fn qmd_binary_candidates() -> Vec<PathBuf> {
     let mut candidates = Vec::new();
 
@@ -295,10 +431,15 @@ fn load_qmd_collections() -> (Vec<QmdCollectionSummary>, bool, Option<String>) {
         );
     };
 
-    let output = Command::new(&qmd_binary).args(["collection", "list"]).output();
+    let output = Command::new(&qmd_binary)
+        .args(["collection", "list"])
+        .output();
     let output = match output {
         Ok(output) if output.status.success() => output,
-        Ok(_) => match Command::new(&qmd_binary).args(["collections", "list"]).output() {
+        Ok(_) => match Command::new(&qmd_binary)
+            .args(["collections", "list"])
+            .output()
+        {
             Ok(output) if output.status.success() => output,
             Ok(output) => {
                 let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
@@ -382,9 +523,12 @@ fn resolve_run_manifest_path(manifest_path: &str) -> Result<PathBuf, String> {
     Ok(canonical_manifest)
 }
 
-fn load_run_details_from_manifest_path(manifest_path: &Path) -> Result<KnowledgeRunDetails, String> {
+fn load_run_details_from_manifest_path(
+    manifest_path: &Path,
+) -> Result<KnowledgeRunDetails, String> {
     let manifest_raw = fs::read_to_string(manifest_path).map_err(|err| err.to_string())?;
-    let manifest: RunManifest = serde_json::from_str(&manifest_raw).map_err(|err| err.to_string())?;
+    let manifest: RunManifest =
+        serde_json::from_str(&manifest_raw).map_err(|err| err.to_string())?;
 
     let run_dir = manifest_path
         .parent()
@@ -419,7 +563,10 @@ fn load_run_details_from_manifest_path(manifest_path: &Path) -> Result<Knowledge
         summary: KnowledgeRunSummary {
             run_id,
             status: manifest.status.unwrap_or_else(|| "unknown".to_string()),
-            goal: manifest.config.as_ref().and_then(|config| config.goal.clone()),
+            goal: manifest
+                .config
+                .as_ref()
+                .and_then(|config| config.goal.clone()),
             collection_path: manifest
                 .config
                 .as_ref()
@@ -464,9 +611,11 @@ pub async fn knowledge_list_sources() -> Result<KnowledgeSourcesResult, String> 
                         .map(|value| value.to_string())
                 });
 
-                let collection_meta = collection_name
-                    .as_ref()
-                    .and_then(|name| collections.iter().find(|collection| &collection.name == name));
+                let collection_meta = collection_name.as_ref().and_then(|name| {
+                    collections
+                        .iter()
+                        .find(|collection| &collection.name == name)
+                });
 
                 let source_type = entry.source_type.unwrap_or_else(|| "unknown".to_string());
                 let origin = entry
@@ -499,7 +648,8 @@ pub async fn knowledge_list_sources() -> Result<KnowledgeSourcesResult, String> 
                     collection_name,
                     collection_path: entry.collection_path,
                     collection_files: collection_meta.and_then(|collection| collection.files),
-                    collection_updated: collection_meta.and_then(|collection| collection.updated.clone()),
+                    collection_updated: collection_meta
+                        .and_then(|collection| collection.updated.clone()),
                 });
             }
         }
@@ -546,6 +696,200 @@ pub async fn knowledge_get_discipline_details(id: String) -> Result<DisciplineDe
         notes_markdown: record.notes_markdown,
         artifact_paths: record.artifact_paths,
     })
+}
+
+#[tauri::command]
+pub async fn knowledge_create_discipline(
+    input: DisciplineCreateInput,
+) -> Result<DisciplineCreateResult, String> {
+    let name = input.name.trim();
+    if name.is_empty() {
+        return Err("Discipline name is required".to_string());
+    }
+
+    let id_source = input.id.as_deref().unwrap_or(name);
+    let id = slugify_discipline_id(id_source);
+    if id.is_empty() {
+        return Err("Discipline id must contain at least one letter or number".to_string());
+    }
+
+    let root = authored_disciplines_dir()?;
+    fs::create_dir_all(&root).map_err(|err| err.to_string())?;
+
+    let (_, existing) = load_disciplines_file()?;
+    if existing.iter().any(|record| record.id == id) {
+        return Err(format!("A discipline with id '{}' already exists", id));
+    }
+
+    let folder_name = discipline_folder_name(&id, name);
+    let dir = root.join(folder_name);
+    if dir.exists() {
+        return Err(format!(
+            "Discipline folder already exists: {}",
+            dir.display()
+        ));
+    }
+    fs::create_dir_all(&dir).map_err(|err| err.to_string())?;
+
+    let description = input.description.unwrap_or_default();
+    let collections = normalize_collections(input.selected_collections);
+
+    let yaml = serde_yaml::to_string(&serde_json::json!({
+        "id": id,
+        "name": name,
+        "description": if description.trim().is_empty() { serde_json::Value::Null } else { serde_json::Value::String(description.clone()) },
+        "selectedCollections": collections,
+        "runtimeAttachmentPolicy": "attach-on-demand",
+        "status": "draft"
+    })).map_err(|err| err.to_string())?;
+
+    let discipline_path = dir.join("discipline.yaml");
+    fs::write(&discipline_path, yaml).map_err(|err| err.to_string())?;
+
+    let readme = format!(
+        "# {}
+
+{}
+",
+        name,
+        if description.trim().is_empty() {
+            "Draft discipline notes."
+        } else {
+            description.trim()
+        }
+    );
+    let readme_path = dir.join("README.md");
+    fs::write(&readme_path, readme).map_err(|err| err.to_string())?;
+
+    let build = knowledge_build_discipline(Some(id.clone())).await?;
+
+    Ok(DisciplineCreateResult {
+        id,
+        directory_path: dir.to_string_lossy().to_string(),
+        discipline_path: discipline_path.to_string_lossy().to_string(),
+        readme_path: readme_path.to_string_lossy().to_string(),
+        build,
+    })
+}
+
+#[tauri::command]
+pub async fn knowledge_update_discipline(
+    input: DisciplineUpdateInput,
+) -> Result<DisciplineUpdateResult, String> {
+    let id = input.id.trim().to_string();
+    if id.is_empty() {
+        return Err("Discipline id is required".to_string());
+    }
+
+    let dir = find_authored_discipline_dir(&id)?;
+    let discipline_path = dir.join("discipline.yaml");
+    let raw = fs::read_to_string(&discipline_path).map_err(|err| err.to_string())?;
+    let mut yaml: serde_yaml::Value = serde_yaml::from_str(&raw).map_err(|err| err.to_string())?;
+    let Some(mapping) = yaml.as_mapping_mut() else {
+        return Err("discipline.yaml must be a YAML object".to_string());
+    };
+
+    if let Some(name) = input.name.map(|value| value.trim().to_string()) {
+        if name.is_empty() {
+            return Err("Discipline name cannot be empty".to_string());
+        }
+        mapping.insert(
+            serde_yaml::Value::from("name"),
+            serde_yaml::Value::from(name),
+        );
+    }
+
+    if let Some(description) = input.description {
+        let trimmed = description.trim().to_string();
+        if trimmed.is_empty() {
+            mapping.remove(serde_yaml::Value::from("description"));
+        } else {
+            mapping.insert(
+                serde_yaml::Value::from("description"),
+                serde_yaml::Value::from(trimmed),
+            );
+        }
+    }
+
+    if let Some(collections) = input.selected_collections {
+        mapping.insert(
+            serde_yaml::Value::from("selectedCollections"),
+            serde_yaml::to_value(normalize_collections(collections))
+                .map_err(|err| err.to_string())?,
+        );
+    }
+
+    let serialized = serde_yaml::to_string(&yaml).map_err(|err| err.to_string())?;
+    fs::write(&discipline_path, serialized).map_err(|err| err.to_string())?;
+
+    let build = knowledge_build_discipline(Some(id.clone())).await?;
+    Ok(DisciplineUpdateResult {
+        id,
+        discipline_path: discipline_path.to_string_lossy().to_string(),
+        build,
+    })
+}
+
+#[tauri::command]
+pub async fn knowledge_delete_discipline(id: String) -> Result<DisciplineDeleteResult, String> {
+    let id = id.trim().to_string();
+    if id.is_empty() {
+        return Err("Discipline id is required".to_string());
+    }
+
+    let dir = find_authored_discipline_dir(&id)?;
+    let trash_root = workspace_dir()?.join(".trash/disciplines");
+    fs::create_dir_all(&trash_root).map_err(|err| err.to_string())?;
+    let timestamp = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
+    let base_name = dir
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or(id.as_str());
+    let mut trashed = trash_root.join(format!("{}-{}", timestamp, base_name));
+    let mut counter = 1;
+    while trashed.exists() {
+        trashed = trash_root.join(format!("{}-{}-{}", timestamp, base_name, counter));
+        counter += 1;
+    }
+    fs::rename(&dir, &trashed).map_err(|err| err.to_string())?;
+
+    let build = knowledge_build_discipline(None).await?;
+    Ok(DisciplineDeleteResult {
+        id,
+        trashed_path: trashed.to_string_lossy().to_string(),
+        build,
+    })
+}
+
+#[tauri::command]
+pub async fn knowledge_build_discipline(
+    id: Option<String>,
+) -> Result<DisciplineBuildCommandResult, String> {
+    let mut command = Command::new("edwinpai");
+    command.args(["knowledge", "disciplines", "build"]);
+    if let Some(id) = id.as_deref().filter(|value| !value.trim().is_empty()) {
+        command.arg(id);
+    }
+
+    let output = command.output().map_err(|err| {
+        format!(
+            "Failed to run edwinpai knowledge disciplines build: {}",
+            err
+        )
+    })?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+    if !output.status.success() {
+        return Err(format!(
+            "Discipline build failed with status {}
+{}{}",
+            output.status, stdout, stderr
+        ));
+    }
+
+    Ok(DisciplineBuildCommandResult { stdout, stderr })
 }
 
 #[tauri::command]
@@ -599,7 +943,9 @@ pub async fn knowledge_list_runs(limit: Option<usize>) -> Result<KnowledgeRunsRe
 }
 
 #[tauri::command]
-pub async fn knowledge_get_run_details(manifest_path: String) -> Result<KnowledgeRunDetails, String> {
+pub async fn knowledge_get_run_details(
+    manifest_path: String,
+) -> Result<KnowledgeRunDetails, String> {
     let canonical_manifest = resolve_run_manifest_path(&manifest_path)?;
     load_run_details_from_manifest_path(&canonical_manifest)
 }

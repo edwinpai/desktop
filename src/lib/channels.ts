@@ -3,10 +3,12 @@
  *
  * Wrapper around Tauri commands for channel management.
  * In Gateway Mode, reads from the gateway's config file (edwinpai.json).
- * In Client/Local Mode, uses Tauri IPC commands for local channel storage.
+ * In Client Mode, the app is a restricted Gateway connection; channel records
+ * remain communication media and are still stored through local Tauri IPC.
  */
 
 import { invoke } from "@tauri-apps/api/core";
+
 import type {
   ChannelConfig,
   ChannelName,

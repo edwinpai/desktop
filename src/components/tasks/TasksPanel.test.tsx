@@ -13,7 +13,7 @@ type TestTask = {
   id: string;
   goal: string;
   definitionOfDone?: string;
-  status?: "active" | "done" | "blocked" | "needs_user";
+  status?: "active" | "done" | "blocked" | "needs_user" | "review";
   criteria?: string[];
   completedCriteria?: string[];
   autoContinueEnabled?: boolean;
@@ -23,6 +23,16 @@ type TestTask = {
   lastEvaluationReason?: string;
   maxIterations?: number;
   delayMs?: number;
+  title?: string;
+  parentTaskId?: string;
+  childTaskIds?: string[];
+  assignedAgentType?: string;
+  assignedAgentId?: string;
+  assignedProfileId?: string;
+  assignedDisciplineId?: string;
+  assignedSessionKey?: string;
+  boardColumn?: "inbox" | "ready" | "queue" | "waiting" | "review" | "done";
+  taskSource?: { kind?: string; path?: string; fileStatus?: string };
 };
 
 function createTaskRequest(
@@ -31,6 +41,15 @@ function createTaskRequest(
 ) {
   let tasks = initialTasks.map((task) => ({ ...task }));
   let activeTaskId = initialActiveTaskId;
+  const taskEvents = [
+    {
+      id: "event-1",
+      ts: 1_700_000_000_000,
+      taskId: initialActiveTaskId,
+      type: "execute_requested",
+      message: "Task execution requested: Sweep the desktop UI",
+    },
+  ];
 
   const syncActiveFlags = () => {
     tasks = tasks.map((task) => ({
@@ -45,11 +64,15 @@ function createTaskRequest(
       switch (method) {
         case "sessions.tasks.list":
           syncActiveFlags();
-          return { activeTaskId, tasks };
+          return { activeTaskId, tasks, taskEvents };
         case "sessions.tasks.create": {
           const nextTask: TestTask = {
             id: `task-${tasks.length + 1}`,
             goal: String(params?.taskGoal ?? ""),
+            parentTaskId:
+              typeof params?.parentTaskId === "string"
+                ? params.parentTaskId
+                : undefined,
             definitionOfDone: String(params?.taskDefinitionOfDone ?? ""),
             criteria: Array.isArray(params?.taskCriteria)
               ? params?.taskCriteria.map(String)
@@ -101,6 +124,28 @@ function createTaskRequest(
                 }
               : task,
           );
+          return { ok: true, activeTaskId, tasks };
+        case "sessions.tasks.move":
+          tasks = tasks.map((task) =>
+            task.id === params?.taskId
+              ? {
+                  ...task,
+                  boardColumn: params?.boardColumn as TestTask["boardColumn"],
+                  status:
+                    params?.boardColumn === "done"
+                      ? "done"
+                      : params?.boardColumn === "review"
+                        ? "review"
+                        : params?.boardColumn === "waiting"
+                          ? "blocked"
+                          : "active",
+                }
+              : task,
+          );
+          if (params?.boardColumn === "queue") {
+            activeTaskId = String(params?.taskId ?? activeTaskId);
+          }
+          syncActiveFlags();
           return { ok: true, activeTaskId, tasks };
         case "sessions.tasks.reorder": {
           const ids = Array.isArray(params?.taskIds)
@@ -215,11 +260,25 @@ describe("TasksPanel", () => {
       />,
     );
 
-    expect(await screen.findByText("Task Queue")).toBeInTheDocument();
+    expect(await screen.findByText("Task Board")).toBeInTheDocument();
+    expect(screen.getByText("Queue / Executing")).toBeInTheDocument();
     expect(await screen.findByText("Sweep the desktop UI")).toBeInTheDocument();
     expect(screen.getByText("Ship queue UI")).toBeInTheDocument();
     expect(screen.getAllByText("running").length).toBeGreaterThan(0);
     expect(screen.getAllByText("queued").length).toBeGreaterThan(0);
+    await userEvent.click(screen.getByText("Sweep the desktop UI"));
+    await userEvent.click(screen.getByRole("button", { name: "Run detail" }));
+    expect(screen.getByText("Task Run Detail")).toBeInTheDocument();
+    expect(screen.getByText("Currently doing")).toBeInTheDocument();
+    expect(
+      screen.getByText("Working toward: all fixes verified"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Criteria progress")).toBeInTheDocument();
+    expect(screen.getByText("1/2 · 50%")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Task execution requested: Sweep the desktop UI/),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Tasks" }));
 
     await userEvent.click(
       screen.getByRole("button", { name: "Execute Tasks (2)" }),
@@ -231,6 +290,7 @@ describe("TasksPanel", () => {
     });
     expect(onOpenChat).toHaveBeenCalledWith("agent:main:main");
 
+    await userEvent.click(screen.getAllByRole("button", { name: "Add" })[0]!);
     await userEvent.type(
       screen.getByLabelText("Goal"),
       "Build task queue desktop UI",
@@ -246,16 +306,20 @@ describe("TasksPanel", () => {
     await userEvent.click(screen.getByRole("button", { name: "Queue task" }));
 
     await waitFor(() => {
-      expect(request).toHaveBeenCalledWith("sessions.tasks.create", {
-        key: "agent:main:main",
-        taskGoal: "Build task queue desktop UI",
-        taskDefinitionOfDone:
-          "Desktop can create and manage multiple queued tasks.",
-        taskCriteria: ["queue list visible", "create task works"],
-        taskAutoContinueEnabled: true,
-        taskMaxIterations: 25,
-        taskDelayMs: 1500,
-      });
+      expect(request).toHaveBeenCalledWith(
+        "sessions.tasks.create",
+        expect.objectContaining({
+          key: "agent:main:main",
+          taskId: expect.any(String),
+          taskGoal: "Build task queue desktop UI",
+          taskDefinitionOfDone:
+            "Desktop can create and manage multiple queued tasks.",
+          taskCriteria: ["queue list visible", "create task works"],
+          taskAutoContinueEnabled: true,
+          taskMaxIterations: 25,
+          taskDelayMs: 1500,
+        }),
+      );
     });
 
     await userEvent.click(
@@ -266,6 +330,89 @@ describe("TasksPanel", () => {
       expect(request).toHaveBeenCalledWith("sessions.tasks.delete", {
         key: "agent:main:main",
         taskId: "task-b",
+      });
+    });
+  });
+
+  it("renders kanban columns with child rollups and assignees", async () => {
+    const request = createTaskRequest([
+      {
+        id: "parent",
+        goal: "Parent task",
+        status: "active",
+        criteria: ["parent criterion"],
+        completedCriteria: [],
+        autoContinueEnabled: false,
+        assignedAgentType: "edwin",
+      },
+      {
+        id: "child-done",
+        goal: "Child done",
+        parentTaskId: "parent",
+        status: "done",
+        criteria: ["child criterion"],
+        completedCriteria: ["child criterion"],
+      },
+      {
+        id: "child-blocked",
+        goal: "Child blocked",
+        parentTaskId: "parent",
+        status: "blocked",
+        blockedReason: "Waiting on dependency",
+      },
+      {
+        id: "inbox",
+        title: "Inbox task",
+        goal: "Inbox task",
+        status: "needs_user",
+        taskSource: { kind: "memory-file", fileStatus: "inbox" },
+      },
+    ]);
+
+    render(<TasksPanel sessionKey="agent:main:main" request={request} />);
+
+    expect(await screen.findByText("Task Board")).toBeInTheDocument();
+    expect(screen.getAllByText("Inbox").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Ready").length).toBeGreaterThan(0);
+    expect(screen.getByText("Queue / Executing")).toBeInTheDocument();
+    expect(screen.getByText("Waiting / Blocked")).toBeInTheDocument();
+    expect(screen.getByText("Review")).toBeInTheDocument();
+    expect(screen.getAllByText("Done").length).toBeGreaterThan(0);
+    expect(screen.getByText("Parent task")).toBeInTheDocument();
+    expect(screen.getByText(/Children: 1\/2 done/)).toBeInTheDocument();
+    expect(screen.getByText(/blocked\/waiting/)).toBeInTheDocument();
+    expect(screen.getByText(/↳ Child done · done/)).toBeInTheDocument();
+    expect(screen.getByText(/↳ Child blocked · blocked/)).toBeInTheDocument();
+    expect(screen.getByText("Assignee: edwin")).toBeInTheDocument();
+    expect(screen.getByText("Inbox task")).toBeInTheDocument();
+  });
+
+  it("moves a task between kanban columns through the gateway move RPC", async () => {
+    const request = createTaskRequest([
+      {
+        id: "task-a",
+        goal: "Moveable task",
+        status: "active",
+        boardColumn: "ready",
+        criteria: ["criterion"],
+        completedCriteria: [],
+        autoContinueEnabled: false,
+      },
+    ]);
+
+    render(<TasksPanel sessionKey="agent:main:main" request={request} />);
+
+    expect(await screen.findByText("Moveable task")).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("combobox", { name: "Move Moveable task to column" }),
+    );
+    await userEvent.click(screen.getByRole("option", { name: "Review" }));
+
+    await waitFor(() => {
+      expect(request).toHaveBeenCalledWith("sessions.tasks.move", {
+        key: "agent:main:main",
+        taskId: "task-a",
+        boardColumn: "review",
       });
     });
   });
@@ -310,19 +457,74 @@ describe("TasksPanel", () => {
     const editGoalInput = screen.getByDisplayValue("Second task");
     await userEvent.clear(editGoalInput);
     await userEvent.type(editGoalInput, "Second task updated");
+    await userEvent.type(screen.getByLabelText("Assignee ID"), "edwin-main");
+    await userEvent.type(screen.getByLabelText("Executor ID"), "desktop-agent");
+    await userEvent.type(
+      screen.getByPlaceholderText(
+        "Prompt or handoff for the assigned executor.",
+      ),
+      "Handle this task carefully.",
+    );
+    await userEvent.type(
+      screen.getByLabelText("Artifacts (one per line)"),
+      "runs/task-b/result.json",
+    );
+    await userEvent.type(
+      screen.getByLabelText("Task steps"),
+      "Design schema | edwin | active\nImplement slice | codex | active",
+    );
     await userEvent.click(screen.getByRole("button", { name: "Update task" }));
 
     await waitFor(() => {
-      expect(request).toHaveBeenCalledWith("sessions.tasks.update", {
-        key: "agent:main:main",
-        taskId: "task-b",
-        taskGoal: "Second task updated",
-        taskDefinitionOfDone: "Done second",
-        taskCriteria: ["second criterion"],
-        taskAutoContinueEnabled: true,
-        taskMaxIterations: 25,
-        taskDelayMs: 1500,
-      });
+      expect(request).toHaveBeenCalledWith(
+        "sessions.tasks.update",
+        expect.objectContaining({
+          key: "agent:main:main",
+          taskId: "task-b",
+          taskGoal: "Second task updated",
+          taskDefinitionOfDone: "Done second",
+          taskCriteria: ["second criterion"],
+          taskSteps: [
+            {
+              id: "step-1",
+              title: "Design schema",
+              status: "active",
+              assignment: {
+                executorKind: "edwin",
+                approvalState: "pending",
+                runState: "not_started",
+              },
+            },
+            {
+              id: "step-2",
+              title: "Implement slice",
+              status: "active",
+              assignment: {
+                executorKind: "codex",
+                approvalState: "pending",
+                runState: "not_started",
+              },
+            },
+          ],
+          taskAssignment: {
+            assigneeType: "agent",
+            assigneeId: "edwin-main",
+            executorKind: "edwin",
+            executorId: "desktop-agent",
+            approvalState: "not_required",
+            runState: "not_started",
+            runId: undefined,
+            sessionKey: "agent:main:main",
+            prompt: "Handle this task carefully.",
+            artifacts: ["runs/task-b/result.json"],
+            logPath: undefined,
+            resultSummary: undefined,
+          },
+          taskAutoContinueEnabled: true,
+          taskMaxIterations: 25,
+          taskDelayMs: 1500,
+        }),
+      );
     });
 
     await userEvent.click(screen.getByRole("button", { name: "Move up" }));
@@ -389,7 +591,7 @@ describe("TasksPanel", () => {
     });
   });
 
-  it("keeps blocked and needs-user tasks tucked away until expanded", async () => {
+  it("renders blocked and needs-user tasks in the waiting board column", async () => {
     const request = createTaskRequest([
       {
         id: "task-a",
@@ -425,25 +627,18 @@ describe("TasksPanel", () => {
     render(<TasksPanel sessionKey="agent:main:main" request={request} />);
 
     expect(await screen.findByText("Working task")).toBeInTheDocument();
-    expect(screen.queryByText("Blocked task")).not.toBeInTheDocument();
-    expect(screen.queryByText("Needs user task")).not.toBeInTheDocument();
-    expect(screen.getByText("1 waiting on something else")).toBeInTheDocument();
+    expect(screen.getByText("Waiting / Blocked")).toBeInTheDocument();
+    expect(screen.getByText("Blocked task")).toBeInTheDocument();
+    expect(screen.getByText("Needs user task")).toBeInTheDocument();
     expect(
-      screen.getByText("1 waiting on Jake or another user"),
+      screen.getByText("Blocked: Waiting on gateway patch"),
     ).toBeInTheDocument();
-
-    await userEvent.click(
-      screen.getByRole("button", { name: /blocked tasks/i }),
-    );
-    expect(await screen.findByText("Blocked task")).toBeInTheDocument();
-
-    await userEvent.click(
-      screen.getByRole("button", { name: /waiting on Jake or another user/i }),
-    );
-    expect(await screen.findByText("Needs user task")).toBeInTheDocument();
+    expect(
+      screen.getByText("Needs user: Need final copy choice"),
+    ).toBeInTheDocument();
   });
 
-  it("keeps done tasks in a collapsed completed section until expanded", async () => {
+  it("renders done tasks in the Done board column", async () => {
     const request = createTaskRequest([
       {
         id: "task-a",
@@ -468,14 +663,50 @@ describe("TasksPanel", () => {
     render(<TasksPanel sessionKey="agent:main:main" request={request} />);
 
     expect(await screen.findByText("Working task")).toBeInTheDocument();
-    expect(screen.queryByText("Finished task")).not.toBeInTheDocument();
-    expect(screen.getByText("1 finished task")).toBeInTheDocument();
+    expect(screen.getAllByText("Done").length).toBeGreaterThan(0);
+    expect(screen.getByText("Finished task")).toBeInTheDocument();
+  });
 
+  it("creates child tasks under the selected parent", async () => {
+    const request = createTaskRequest([
+      {
+        id: "parent",
+        goal: "Parent task",
+        status: "active",
+        criteria: ["criterion"],
+        completedCriteria: [],
+        autoContinueEnabled: false,
+      },
+    ]);
+
+    render(<TasksPanel sessionKey="agent:main:main" request={request} />);
+
+    expect(await screen.findByText("Parent task")).toBeInTheDocument();
+    await userEvent.click(screen.getByText("Parent task"));
     await userEvent.click(
-      screen.getByRole("button", { name: /completed tasks/i }),
+      screen.getByRole("button", { name: "Add child task" }),
+    );
+    await userEvent.type(screen.getByLabelText("Goal"), "Helper task");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Queue as child" }),
     );
 
-    expect(await screen.findByText("Finished task")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(request).toHaveBeenCalledWith(
+        "sessions.tasks.create",
+        expect.objectContaining({
+          key: "agent:main:main",
+          taskId: expect.any(String),
+          taskGoal: "Helper task",
+          parentTaskId: "parent",
+          taskDefinitionOfDone: "",
+          taskCriteria: [],
+          taskAutoContinueEnabled: true,
+          taskMaxIterations: 25,
+          taskDelayMs: 1500,
+        }),
+      );
+    });
   });
 
   it("recovers from a corrupted saved draft", async () => {

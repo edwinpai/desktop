@@ -386,6 +386,31 @@ describe("InputBar", () => {
     expect(textarea).toHaveValue("");
   });
 
+
+  it("renders pasted screenshots as compact unique thumbnails", async () => {
+    render(<InputBar onSendMessage={mockOnSendMessage} />);
+
+    const textarea = screen.getByRole("textbox");
+    const screenshot = new File(["fake image"], "image.png", {
+      type: "image/png",
+    });
+
+    const item = {
+      kind: "file",
+      getAsFile: () => screenshot,
+    };
+
+    fireEvent.paste(textarea, {
+      clipboardData: { items: [item] },
+    });
+
+    const image = await screen.findByRole("img", {
+      name: /preview pasted-screenshot-.*-1\.png/i,
+    });
+    expect(image).toHaveAttribute("src", expect.stringContaining("data:image/png;base64,"));
+    expect(screen.getByText(/pasted-screenshot-.*-1\.png/)).toBeInTheDocument();
+  });
+
   it("preserves attachments and text across remount when draft state is hoisted", async () => {
     const user = userEvent.setup();
 

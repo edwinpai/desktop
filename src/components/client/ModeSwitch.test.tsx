@@ -22,7 +22,7 @@ describe("ModeSwitch", () => {
     );
 
     expect(screen.getByText("Gateway Mode")).toBeInTheDocument();
-    expect(screen.getByText("Client Mode")).toBeInTheDocument();
+    expect(screen.getByText("Connect Mode")).toBeInTheDocument();
   });
 
   it("highlights current mode (gateway)", () => {
@@ -38,7 +38,7 @@ describe("ModeSwitch", () => {
   it("highlights current mode (client)", () => {
     render(<ModeSwitch currentMode="client" onModeChange={mockOnModeChange} />);
 
-    const clientCard = screen.getByText("Client Mode").closest("button");
+    const clientCard = screen.getByText("Connect Mode").closest("button");
     expect(clientCard).toHaveClass("border-primary");
     expect(screen.getByText("Current Mode")).toBeInTheDocument();
   });
@@ -57,7 +57,7 @@ describe("ModeSwitch", () => {
       <ModeSwitch currentMode="gateway" onModeChange={mockOnModeChange} />,
     );
 
-    const clientCard = screen.getByText("Client Mode").closest("button");
+    const clientCard = screen.getByText("Connect Mode").closest("button");
     expect(clientCard).not.toBeDisabled();
   });
 
@@ -70,13 +70,13 @@ describe("ModeSwitch", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows correct description for client mode", () => {
+  it("shows correct description for connect mode", () => {
     render(
       <ModeSwitch currentMode="gateway" onModeChange={mockOnModeChange} />,
     );
 
     expect(
-      screen.getByText("Connect to a remote gateway shared by someone else"),
+      screen.getByText("Connect to an existing Gateway with permissions granted to your identity"),
     ).toBeInTheDocument();
   });
 
@@ -109,7 +109,7 @@ describe("ModeSwitch", () => {
       />,
     );
 
-    const clientCard = screen.getByText("Client Mode").closest("button")!;
+    const clientCard = screen.getByText("Connect Mode").closest("button")!;
     await user.click(clientCard);
 
     expect(mockOnModeChange).toHaveBeenCalledWith("client");
@@ -144,7 +144,7 @@ describe("ModeSwitch", () => {
       />,
     );
 
-    const clientCard = screen.getByText("Client Mode").closest("button")!;
+    const clientCard = screen.getByText("Connect Mode").closest("button")!;
     await user.click(clientCard);
 
     await waitFor(() => {
@@ -180,13 +180,13 @@ describe("ModeSwitch", () => {
       />,
     );
 
-    const clientCard = screen.getByText("Client Mode").closest("button")!;
+    const clientCard = screen.getByText("Connect Mode").closest("button")!;
     await user.click(clientCard);
 
     await waitFor(() => {
       expect(
         screen.getByText(
-          /Switching to client mode will stop your gateway. Any connected users will be disconnected./,
+          /Switching to connect mode will stop your gateway. Any connected users will be disconnected./,
         ),
       ).toBeInTheDocument();
     });
@@ -224,7 +224,7 @@ describe("ModeSwitch", () => {
       />,
     );
 
-    const clientCard = screen.getByText("Client Mode").closest("button")!;
+    const clientCard = screen.getByText("Connect Mode").closest("button")!;
     await user.click(clientCard);
 
     await waitFor(() => {
@@ -244,11 +244,11 @@ describe("ModeSwitch", () => {
       />,
     );
 
-    const clientCard = screen.getByText("Client Mode").closest("button")!;
+    const clientCard = screen.getByText("Connect Mode").closest("button")!;
     await user.click(clientCard);
 
     await waitFor(() => {
-      expect(screen.getByText("Switch to Client Mode")).toBeInTheDocument();
+      expect(screen.getByText("Switch to Connect Mode")).toBeInTheDocument();
     });
   });
 
@@ -281,10 +281,10 @@ describe("ModeSwitch", () => {
       />,
     );
 
-    const clientCard = screen.getByText("Client Mode").closest("button")!;
+    const clientCard = screen.getByText("Connect Mode").closest("button")!;
     await user.click(clientCard);
 
-    const confirmButton = await screen.findByText("Switch to Client Mode");
+    const confirmButton = await screen.findByText("Switch to Connect Mode");
     await user.click(confirmButton);
 
     expect(mockOnModeChange).toHaveBeenCalledWith("client");
@@ -300,10 +300,10 @@ describe("ModeSwitch", () => {
       />,
     );
 
-    const clientCard = screen.getByText("Client Mode").closest("button")!;
+    const clientCard = screen.getByText("Connect Mode").closest("button")!;
     await user.click(clientCard);
 
-    const confirmButton = await screen.findByText("Switch to Client Mode");
+    const confirmButton = await screen.findByText("Switch to Connect Mode");
     await user.click(confirmButton);
 
     await waitFor(() => {
@@ -321,7 +321,7 @@ describe("ModeSwitch", () => {
       />,
     );
 
-    const clientCard = screen.getByText("Client Mode").closest("button")!;
+    const clientCard = screen.getByText("Connect Mode").closest("button")!;
     await user.click(clientCard);
 
     const cancelButton = await screen.findByRole("button", { name: /cancel/i });
@@ -340,7 +340,7 @@ describe("ModeSwitch", () => {
       />,
     );
 
-    const clientCard = screen.getByText("Client Mode").closest("button")!;
+    const clientCard = screen.getByText("Connect Mode").closest("button")!;
     await user.click(clientCard);
 
     const cancelButton = await screen.findByRole("button", { name: /cancel/i });
@@ -427,7 +427,7 @@ describe("ModeSwitch", () => {
       <ModeSwitch currentMode="gateway" onModeChange={mockOnModeChange} />,
     );
 
-    const clientCard = screen.getByText("Client Mode").closest("button")!;
+    const clientCard = screen.getByText("Connect Mode").closest("button")!;
     await user.click(clientCard);
 
     // Should switch immediately without confirmation

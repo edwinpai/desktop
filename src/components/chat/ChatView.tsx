@@ -10,6 +10,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { useGatewayChat } from "@/hooks/useGatewayChat";
+import { normalizeMessageContent } from "@/lib/messageContent";
 import { ToolUseCard } from "./ToolUseCard";
 
 import type { StreamingChatMessage } from "@/types/streaming";
@@ -178,6 +179,9 @@ interface MessageBubbleProps {
 function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === "user";
 
+  // Gateway may send multimodal content blocks despite the string type; coerce.
+  const textContent = normalizeMessageContent(message.content);
+
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
@@ -194,7 +198,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
           }`}
         >
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {message.content}
+            {textContent}
           </ReactMarkdown>
         </div>
 

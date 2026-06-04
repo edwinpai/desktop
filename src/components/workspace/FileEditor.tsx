@@ -1,6 +1,9 @@
 import { useCallback, useState } from "react";
 import { RefreshCw, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import type { WorkspaceProfile } from "@/types/config";
 import {
   Card,
   CardContent,
@@ -20,7 +23,20 @@ interface FileEditorProps {
   request?: (
     method: string,
     params: Record<string, unknown>,
+    opts?: { reportErrors?: boolean },
   ) => Promise<unknown>;
+  workspaces?: WorkspaceProfile[];
+  activeWorkspaceId?: string;
+  onSelectWorkspace?: (workspaceId: string) => void;
+  onAddWorkspace?: (workspace: WorkspaceProfile) => void;
+}
+
+function slugifyWorkspaceId(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "workspace";
 }
 
 function toUserFacingError(err: unknown): string {
@@ -41,10 +57,18 @@ function toUserFacingError(err: unknown): string {
   return msg;
 }
 
-export function FileEditor({ request }: FileEditorProps) {
+export function FileEditor({
+  request,
+  workspaces = [],
+  activeWorkspaceId = "main",
+  onSelectWorkspace,
+  onAddWorkspace,
+}: FileEditorProps) {
   const [files, setFiles] = useState<FileNode[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [newName, setNewName] = useState("");
+  const [newPath, setNewPath] = useState("");
 
   const handleRefresh = useCallback(async () => {
     setLoading(true);
@@ -54,7 +78,7 @@ export function FileEditor({ request }: FileEditorProps) {
         setFiles([]);
         return;
       }
-      const result = await request("workspace.listFiles", {});
+      const result = await request("workspace.listFiles", {}, { reportErrors: false });
       if (Array.isArray(result)) {
         setFiles(result as FileNode[]);
       } else {
@@ -74,7 +98,7 @@ export function FileEditor({ request }: FileEditorProps) {
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <FolderOpen className="h-6 w-6" />
-            Workspace
+            Workspaces
           </h2>
           <p className="text-sm text-muted-foreground">
             Browse and edit workspace files once the desktop app is connected to
@@ -88,6 +112,88 @@ export function FileEditor({ request }: FileEditorProps) {
           {loading ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
+
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Workspace Contexts</CardTitle>
+          <CardDescription>
+            Choose which workspace is injected into chat and where workspace
+            memory/files are added. Sessions created while a workspace is
+            selected are scoped to that workspace.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            {workspaces.map((workspace) => (
+              <button
+                key={workspace.id}
+                type="button"
+                onClick={() => onSelectWorkspace?.(workspace.id)}
+                className={`w-full text-left rounded-md border p-3 transition-colors ${
+                  workspace.id === activeWorkspaceId
+                    ? "border-primary bg-primary/10"
+                    : "hover:bg-muted/50"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-medium">{workspace.name}</span>
+                  {workspace.id === activeWorkspaceId && (
+                    <span className="text-xs text-primary">Active</span>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground font-mono mt-1">
+                  {workspace.path}
+                </div>
+                {workspace.description && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {workspace.description}
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-[1fr_2fr_auto] items-end border-t pt-4">
+            <div className="space-y-1">
+              <Label htmlFor="workspace-name">Name</Label>
+              <Input
+                id="workspace-name"
+                value={newName}
+                onChange={(event) => setNewName(event.target.value)}
+                placeholder="Division Reports"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="workspace-path">Path</Label>
+              <Input
+                id="workspace-path"
+                value={newPath}
+                onChange={(event) => setNewPath(event.target.value)}
+                placeholder="~/.edwinpai/workspaces/division-reports"
+              />
+            </div>
+            <Button
+              type="button"
+              onClick={() => {
+                const name = newName.trim();
+                const path = newPath.trim();
+                if (!name || !path) return;
+                onAddWorkspace?.({
+                  id: slugifyWorkspaceId(name),
+                  name,
+                  path,
+                });
+                setNewName("");
+                setNewPath("");
+              }}
+              disabled={!newName.trim() || !newPath.trim()}
+            >
+              Add Workspace
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {error && <div className="text-sm text-destructive">{error}</div>}
 

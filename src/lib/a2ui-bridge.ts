@@ -65,12 +65,12 @@ export function buildTauriBridgeScript(): string {
     const { type, jsonl } = ev.data;
     if (type === "a2ui:push" && typeof jsonl === "string") {
       // Push JSONL to the A2UI host element
-      const host = document.querySelector("openclaw-a2ui-host");
+      const host = document.querySelector("edwinpai-a2ui-host");
       if (host && typeof host.pushJsonl === "function") {
         host.pushJsonl(jsonl);
       }
     } else if (type === "a2ui:reset") {
-      const host = document.querySelector("openclaw-a2ui-host");
+      const host = document.querySelector("edwinpai-a2ui-host");
       if (host && typeof host.reset === "function") {
         host.reset();
       }

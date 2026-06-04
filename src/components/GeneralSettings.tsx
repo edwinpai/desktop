@@ -34,13 +34,37 @@ import {
   patchGatewayConfig,
   type GatewayTarget,
 } from "@/lib/gateway-context";
-import { DEFAULT_DESKTOP_CONFIG, type GatewayProfile } from "@/types";
+import {
+  DEFAULT_DESKTOP_CONFIG,
+  getVaultNamespace,
+  type GatewayProfile,
+} from "@/types";
 import { APP_VERSION } from "@/lib/app-version";
 
 interface GeneralSettingsProps {
   onSave?: (settings: unknown) => void;
   onModeChange?: (mode: "gateway" | "client") => void;
   currentMode?: "gateway" | "client";
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function fetchGatewayConfigWithRetry(target: GatewayTarget) {
+  try {
+    return await fetchGatewayConfig(target, 8000);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    // The Settings page may mount while an SSH tunnel has been started but the
+    // local forwarding socket is not accepting WebSocket connections yet. Retry
+    // once to avoid showing a stale error that immediately clears on Refresh.
+    if (
+      /WebSocket connection failed|Connection closed|Timed out/i.test(message)
+    ) {
+      await sleep(750);
+      return await fetchGatewayConfig(target, 8000);
+    }
+    throw err;
+  }
 }
 
 export function GeneralSettings({
@@ -83,6 +107,10 @@ export function GeneralSettings({
   const [notifications, setNotifications] = useState(true);
   const [autoScroll, setAutoScroll] = useState(true);
   const [hasChanges, setHasChanges] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<{
+    status: "idle" | "saving" | "saved" | "error";
+    message?: string;
+  }>({ status: "idle" });
   const [connectionTest, setConnectionTest] = useState<{
     status: "idle" | "testing" | "success" | "error";
     message?: string;
@@ -158,6 +186,10 @@ export function GeneralSettings({
                     status: "success",
                     message: `Connected! Gateway v${version}`,
                   });
+                  setSecurityError(null);
+                  window.setTimeout(() => {
+                    void refreshSecurityConfig();
+                  }, 250);
                 } else {
                   reject(new Error(frame.error?.message ?? "Handshake failed"));
                 }
@@ -225,18 +257,30 @@ export function GeneralSettings({
     }
   };
 
-  const buildActiveProfile = (portOverride?: number): GatewayProfile => ({
-    id: activeProfileId,
-    name: profileName.trim() || "Unnamed Gateway",
-    gatewayUrl,
-    gatewayPort:
-      portOverride ??
-      currentGatewayProfile.gatewayPort ??
-      config.gatewayPort ??
-      18789,
-    gatewayToken,
-    ssh: currentGatewayProfile.ssh,
-  });
+  const buildActiveProfile = (portOverride?: number): GatewayProfile => {
+    const nextName = profileName.trim() || "Unnamed Gateway";
+    const existingNamespace = currentGatewayProfile.vaultNamespace;
+    const vaultNamespace =
+      activeProfileId === "default" &&
+      (!existingNamespace || existingNamespace === "default") &&
+      nextName !== "Default Gateway"
+        ? nextName
+        : getVaultNamespace(currentGatewayProfile);
+
+    return {
+      id: activeProfileId,
+      name: nextName,
+      vaultNamespace,
+      gatewayUrl,
+      gatewayPort:
+        portOverride ??
+        currentGatewayProfile.gatewayPort ??
+        config.gatewayPort ??
+        18789,
+      gatewayToken,
+      ssh: currentGatewayProfile.ssh,
+    };
+  };
 
   const replaceActiveProfile = (
     nextProfiles: GatewayProfile[],
@@ -259,7 +303,7 @@ export function GeneralSettings({
     setSecurityLoading(true);
     try {
       const target = getGatewayTarget();
-      const gwConfig = await fetchGatewayConfig(target, 8000);
+      const gwConfig = await fetchGatewayConfigWithRetry(target);
 
       const security = (gwConfig.security ?? {}) as Record<string, unknown>;
       const raw = security.requireSignedRequests;
@@ -342,6 +386,7 @@ export function GeneralSettings({
         // keep existing port if URL parse fails
       }
 
+      setSaveStatus({ status: "saving" });
       const nextProfiles = replaceActiveProfile(gatewayProfiles, port);
 
       await update({
@@ -355,9 +400,13 @@ export function GeneralSettings({
 
       setGatewayProfiles(nextProfiles);
       setHasChanges(false);
-      onSave?.({ activeGatewayProfileId: activeProfileId, gatewayUrl, theme });
+      setSaveStatus({ status: "saved", message: "Settings saved" });
+      await onSave?.({ activeGatewayProfileId: activeProfileId, gatewayUrl, theme });
+      window.setTimeout(() => setSaveStatus({ status: "idle" }), 2500);
     } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to save settings";
       console.error("Failed to save settings:", err);
+      setSaveStatus({ status: "error", message });
     }
   };
 
@@ -653,9 +702,11 @@ export function GeneralSettings({
             <Button
               variant="outline"
               onClick={() => {
+                const profileId = `profile-${Date.now().toString(36)}`;
                 const draftProfile: GatewayProfile = {
-                  id: `profile-${Date.now().toString(36)}`,
+                  id: profileId,
                   name: "New Gateway",
+                  vaultNamespace: profileId,
                   gatewayUrl,
                   gatewayPort: config.gatewayPort ?? 18789,
                   gatewayToken,
@@ -869,7 +920,7 @@ export function GeneralSettings({
       <AppLockSettings />
 
       {/* Runtime Status */}
-      <RuntimeStatus />
+      <RuntimeStatus gatewayUrl={gatewayUrl} />
 
       {/* Mode Switch */}
       {onModeChange && (
@@ -877,8 +928,8 @@ export function GeneralSettings({
           <CardHeader>
             <CardTitle>Application Mode</CardTitle>
             <CardDescription>
-              Switch between Gateway Mode (run your own) and Client Mode
-              (connect to remote)
+              Switch between Gateway Mode (run your own) and Connect Mode
+              (connect with granted permissions)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -901,7 +952,7 @@ export function GeneralSettings({
                 }}
                 className="flex-1"
               >
-                <Plug className="h-4 w-4 inline mr-1" /> Client Mode
+                <Plug className="h-4 w-4 inline mr-1" /> Connect Mode
               </Button>
             </div>
           </CardContent>
@@ -913,8 +964,30 @@ export function GeneralSettings({
         <Button variant="outline" onClick={handleReset}>
           Reset to Defaults
         </Button>
-        <Button onClick={handleSave} disabled={!hasChanges}>
-          Save Changes
+        {saveStatus.status === "saved" && (
+          <div className="flex items-center gap-1.5 text-sm text-green-500">
+            <CheckCircle2 className="h-4 w-4" />
+            {saveStatus.message}
+          </div>
+        )}
+        {saveStatus.status === "error" && (
+          <div className="flex items-center gap-1.5 text-sm text-destructive">
+            <XCircle className="h-4 w-4" />
+            {saveStatus.message}
+          </div>
+        )}
+        <Button
+          onClick={handleSave}
+          disabled={!hasChanges || saveStatus.status === "saving"}
+        >
+          {saveStatus.status === "saving" ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Saving...
+            </>
+          ) : (
+            "Save Changes"
+          )}
         </Button>
       </div>
     </div>

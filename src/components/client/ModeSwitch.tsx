@@ -1,8 +1,9 @@
 /**
- * Mode Switch - Toggle between Gateway and Client mode with confirmation
+ * Mode Switch - Toggle between Gateway and Connect mode with confirmation
  */
 
 import { useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
@@ -77,7 +78,7 @@ export function ModeSwitch({
               <h3 className="text-lg font-semibold mb-2">Switch Mode?</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 {currentMode === "gateway"
-                  ? "Switching to client mode will stop your gateway. Any connected users will be disconnected."
+                  ? "Switching to connect mode will stop your gateway. Any connected users will be disconnected."
                   : "Switching to gateway mode will disconnect you from the current gateway."}
               </p>
               <div className="flex justify-end gap-2">
@@ -85,7 +86,7 @@ export function ModeSwitch({
                   Cancel
                 </Button>
                 <Button onClick={handleConfirm}>
-                  Switch to {targetMode === "gateway" ? "Gateway" : "Client"}{" "}
+                  Switch to {targetMode === "gateway" ? "Gateway" : "Connect"}{" "}
                   Mode
                 </Button>
               </div>
@@ -128,8 +129,8 @@ function ModeCard({ mode, isActive, isRunning, onClick }: ModeCardProps) {
       features: ["Full control", "Share with others", "Custom channels"],
     },
     client: {
-      title: "Client Mode",
-      description: "Connect to a remote gateway shared by someone else",
+      title: "Connect Mode",
+      description: "Connect to an existing Gateway with permissions granted to your identity",
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"

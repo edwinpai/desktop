@@ -14,7 +14,7 @@ import { useClientConnection } from "@/hooks/useClientConnection";
 
 type WizardStep = "discover" | "select" | "auth" | "connect";
 
-interface ClientModeFlowProps {
+export interface ClientModeFlowProps {
   onComplete?: () => void;
   onCancel?: () => void;
 }
@@ -177,3 +177,13 @@ export function ClientModeFlow({ onComplete, onCancel }: ClientModeFlowProps) {
     </div>
   );
 }
+
+
+/**
+ * Connect Mode alias for new UI/domain code.
+ *
+ * `ClientModeFlow` remains exported for compatibility while historical Client
+ * Mode naming is migrated in small, beta-safe slices.
+ */
+export const ConnectModeFlow = ClientModeFlow;
+export type ConnectModeFlowProps = ClientModeFlowProps;

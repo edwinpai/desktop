@@ -7,7 +7,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { ClientConnectionStatus } from "@/types/api";
 
-interface ConnectParams {
+export interface ConnectParams {
   gatewayAddress: string;
   gatewayPubkey?: string;
 }
@@ -17,7 +17,7 @@ interface ConnectionEvent {
   error?: string;
 }
 
-interface UseClientConnectionReturn {
+export interface UseClientConnectionReturn {
   connectionStatus: ClientConnectionStatus;
   error: string | null;
   connect: (params: ConnectParams) => Promise<boolean>;
@@ -127,3 +127,13 @@ export function useClientConnection(): UseClientConnectionReturn {
     getStatus,
   };
 }
+
+
+/**
+ * Connect Mode alias for new UI/domain code.
+ *
+ * `useClientConnection` remains exported for compatibility with existing call
+ * sites and tests while app-mode naming migrates away from overloaded Client
+ * terminology.
+ */
+export const useConnectModeConnection = useClientConnection;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from "react";
 import {
   AlertCircle,
   Loader2,
@@ -7,13 +7,16 @@ import {
   Settings,
   WifiOff,
   Zap,
+  CircleDot,
 } from "lucide-react";
+
 import { MessageBubble, type GroupPosition } from "@/components/MessageBubble";
 import { SearchDialog } from "@/components/chat/SearchDialog";
 import { KeyboardShortcutsDialog } from "@/components/chat/KeyboardShortcutsDialog";
 import { InputBar, type ChatDraft } from "@/components/InputBar";
 import { ToolUseList } from "@/components/chat/ToolUseCard";
 import { TalkModeButton } from "@/components/chat/TalkModeButton";
+import { RenameSessionDialog } from "@/components/sessions/RenameSessionDialog";
 import { StyledSelect } from "@/components/ui/styled-select";
 import type { ChatMessage } from "@/types/api";
 import type { ToolUseBlock } from "@/types/streaming";
@@ -31,6 +34,7 @@ const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
 interface SessionOption {
   key: string;
   label?: string;
+  userLabel?: string;
   displayName?: string;
   derivedTitle?: string;
   lastMessagePreview?: string;
@@ -39,6 +43,15 @@ interface SessionOption {
   outputTokens?: number | null;
   totalTokens?: number | null;
   responseUsage?: "on" | "off" | "tokens" | "full";
+  activeTask?: {
+    id?: string;
+    goal?: string;
+    status?: string;
+    criteriaTotal?: number;
+    criteriaCompleted?: number;
+    blockedReason?: string;
+    needsUserReason?: string;
+  };
   taskQueue?: {
     total?: number;
     runnable?: number;
@@ -48,6 +61,13 @@ interface SessionOption {
 interface AgentOption {
   id: string;
   name?: string;
+}
+
+interface WorkspaceOption {
+  id: string;
+  name: string;
+  path: string;
+  description?: string;
 }
 
 interface ModelOption {
@@ -94,8 +114,12 @@ interface ChatViewProps {
   onNavigateToSettings?: () => void;
   sessionKey: string;
   sessions?: SessionOption[];
+  workspaces?: WorkspaceOption[];
+  activeWorkspaceId?: string;
+  onSelectWorkspace?: (workspaceId: string) => void;
   onSelectSession?: (key: string) => void;
   onNewSession?: () => void;
+  onRenameSession?: (key: string, userLabel: string | null) => void;
   onResetSession?: () => void;
   onDeleteSession?: () => void;
   agentId: string;
@@ -141,8 +165,12 @@ export function ChatView({
   onNavigateToSettings,
   sessionKey,
   sessions = [],
+  workspaces = [],
+  activeWorkspaceId = "main",
+  onSelectWorkspace,
   onSelectSession,
   onNewSession,
+  onRenameSession,
   onResetSession,
   onDeleteSession,
   agentId,
@@ -175,8 +203,10 @@ export function ChatView({
   onDraftChange,
 }: ChatViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const shouldStickToBottomRef = useRef(true);
   const [searchOpen, setSearchOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [focusMode, setFocusMode] = useState(() => {
     try {
       return localStorage.getItem("edwinpai:focusMode") === "true";
@@ -274,18 +304,25 @@ export function ChatView({
     prevMessageCountRef.current = messages.length;
   }, [messages, talkPhase, onReplyReceived]);
 
-  // Auto-scroll to bottom when new messages arrive.
-  // We intentionally avoid virtualization here because streaming, dynamic-height
-  // markdown/code blocks caused visible flicker during chat updates.
-  useEffect(() => {
-    if (messages.length > 0 && scrollRef.current) {
-      requestAnimationFrame(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-      });
+  const updateStickToBottom = useCallback(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    shouldStickToBottomRef.current = distanceFromBottom < 96;
+  }, []);
+
+  // Keep the viewport pinned to the bottom only while the user is already at
+  // the bottom. Use a layout effect so dynamic streaming/tool-call height
+  // changes are corrected before paint; the old requestAnimationFrame snap could
+  // visibly jump/flash between frames during long responses.
+  useLayoutEffect(() => {
+    const container = scrollRef.current;
+    if (!container || messages.length === 0 || !shouldStickToBottomRef.current) {
+      return;
     }
-  }, [messages.length]);
+    container.scrollTop = container.scrollHeight;
+  }, [messages, isLoading, currentToolUses.length]);
 
   const formatTimestamp = (date: Date) => {
     return new Intl.DateTimeFormat("en-US", {
@@ -302,6 +339,19 @@ export function ChatView({
       error.includes("auth") ||
       error.includes("provider"));
   const [showToolEvents, setShowToolEvents] = useState(false);
+  const [showLiveToolCalls, setShowLiveToolCalls] = useState(false);
+
+  const workspaceOptions: WorkspaceOption[] = (() => {
+    const existing = new Map(workspaces.map((workspace) => [workspace.id, workspace]));
+    if (!existing.has(activeWorkspaceId)) {
+      existing.set(activeWorkspaceId, {
+        id: activeWorkspaceId,
+        name: activeWorkspaceId,
+        path: "",
+      });
+    }
+    return Array.from(existing.values());
+  })();
 
   const sessionOptions: SessionOption[] = (() => {
     const existing = new Map(sessions.map((s) => [s.key, s]));
@@ -315,6 +365,28 @@ export function ChatView({
     (session) => session.key === sessionKey,
   );
   const runnableTaskCount = currentSession?.taskQueue?.runnable ?? 0;
+  const activeTask =
+    currentSession?.activeTask?.status === "done"
+      ? null
+      : currentSession?.activeTask;
+  const activeTaskTotal = activeTask?.criteriaTotal ?? 0;
+  const activeTaskCompleted = activeTask?.criteriaCompleted ?? 0;
+  const activeTaskProgress =
+    activeTaskTotal > 0
+      ? Math.max(
+          0,
+          Math.min(100, (activeTaskCompleted / activeTaskTotal) * 100),
+        )
+      : null;
+  const activeTaskStatus = activeTask?.needsUserReason
+    ? "Needs user"
+    : activeTask?.blockedReason
+      ? "Blocked"
+      : activeTask?.status === "done"
+        ? "Done"
+        : isLoading
+          ? "Working"
+          : "Active";
 
   const agentOptions: AgentOption[] = (() => {
     const existing = new Map(agents.map((agent) => [agent.id, agent]));
@@ -325,10 +397,14 @@ export function ChatView({
   })();
 
   const formatSessionLabel = (session: SessionOption) => {
+    const displayName = session.displayName?.trim();
+    const isGenericDesktopName = displayName === "EdwinPAI Desktop";
+
     return (
-      session.displayName ||
-      session.label ||
+      session.userLabel ||
       session.derivedTitle ||
+      session.label ||
+      (!isGenericDesktopName ? displayName : undefined) ||
       session.key
     );
   };
@@ -438,6 +514,12 @@ export function ChatView({
             </button>
             <button
               className="px-2 py-1 text-xs rounded-md border border-input hover:bg-muted"
+              onClick={() => setRenameDialogOpen(true)}
+            >
+              Rename
+            </button>
+            <button
+              className="px-2 py-1 text-xs rounded-md border border-input hover:bg-muted"
               onClick={() => onResetSession?.()}
             >
               Reset
@@ -456,12 +538,33 @@ export function ChatView({
               <Maximize2 className="h-3.5 w-3.5" />
             </button>
           </div>
+          <RenameSessionDialog
+            open={renameDialogOpen}
+            currentLabel={
+              sessionOptions.find((s) => s.key === sessionKey)?.userLabel ?? ""
+            }
+            onOpenChange={setRenameDialogOpen}
+            onRename={(userLabel) => onRenameSession?.(sessionKey, userLabel)}
+          />
         </div>
       )}
 
       {/* Agent + model header */}
       {!focusMode && (
         <div className="flex flex-wrap items-center gap-4 px-4 py-2 border-b bg-background">
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-muted-foreground">Workspace</label>
+            <StyledSelect
+              value={activeWorkspaceId}
+              onChange={(e) => onSelectWorkspace?.(e.target.value)}
+            >
+              {workspaceOptions.map((workspace) => (
+                <option key={workspace.id} value={workspace.id}>
+                  {workspace.name}
+                </option>
+              ))}
+            </StyledSelect>
+          </div>
           <div className="flex items-center gap-2">
             <label className="text-xs text-muted-foreground">Agent</label>
             <StyledSelect
@@ -602,9 +705,50 @@ export function ChatView({
         </div>
       )}
 
+      {activeTask?.goal && (
+        <div className="mx-4 mt-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-primary">
+                <CircleDot className="h-3.5 w-3.5" />
+                Currently working on
+              </div>
+              <div
+                className="mt-1 truncate font-medium text-foreground"
+                title={activeTask.goal}
+              >
+                {activeTask.goal}
+              </div>
+              {(activeTask.blockedReason || activeTask.needsUserReason) && (
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {activeTask.needsUserReason || activeTask.blockedReason}
+                </div>
+              )}
+            </div>
+            <div className="shrink-0 text-right text-xs text-muted-foreground">
+              <div>{activeTaskStatus}</div>
+              {activeTaskProgress != null && (
+                <div>
+                  {activeTaskCompleted}/{activeTaskTotal} criteria
+                </div>
+              )}
+            </div>
+          </div>
+          {activeTaskProgress != null && (
+            <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${activeTaskProgress}%` }}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Messages area */}
       <div
         ref={scrollRef}
+        onScroll={updateStickToBottom}
         className="flex-1 overflow-auto"
         style={{ contain: "strict" }}
       >
@@ -729,6 +873,16 @@ export function ChatView({
             >
               Deliver: {deliverEnabled ? "On" : "Off"}
             </button>
+            {currentToolUses.length > 0 && (
+              <button
+                className="text-xs underline"
+                onClick={() => setShowLiveToolCalls((prev: boolean) => !prev)}
+              >
+                {showLiveToolCalls
+                  ? "Hide live tools"
+                  : `Show live tools (${currentToolUses.length})`}
+              </button>
+            )}
             <button
               className="text-xs underline"
               onClick={() => setShowToolEvents((prev: boolean) => !prev)}
@@ -747,11 +901,19 @@ export function ChatView({
         <div
           className="border-t transition-all duration-150"
           style={{
-            opacity: isLoading && currentToolUses.length > 0 ? 1 : 0,
+            opacity:
+              isLoading && currentToolUses.length > 0 && showLiveToolCalls
+                ? 1
+                : 0,
             maxHeight:
-              isLoading && currentToolUses.length > 0 ? "500px" : "0px",
+              isLoading && currentToolUses.length > 0 && showLiveToolCalls
+                ? "500px"
+                : "0px",
             overflow: "hidden",
-            padding: isLoading && currentToolUses.length > 0 ? undefined : 0,
+            padding:
+              isLoading && currentToolUses.length > 0 && showLiveToolCalls
+                ? undefined
+                : 0,
           }}
         >
           <div className="px-4 py-3">

@@ -1,18 +1,40 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { invoke } from "@tauri-apps/api/core";
 import App from "./App";
 import { APP_VERSION } from "@/lib/app-version";
 
+const originalPrompt = window.prompt;
+
+// Radix/shadcn components can rely on ResizeObserver in jsdom.
+class MockResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+(globalThis as any).ResizeObserver = MockResizeObserver;
+
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
+}));
+
+vi.mock("@tauri-apps/plugin-notification", () => ({
+  isPermissionGranted: vi.fn().mockResolvedValue(true),
+  requestPermission: vi.fn().mockResolvedValue("granted"),
+  sendNotification: vi.fn(),
+}));
+
+vi.mock("@/components/GeneralSettings", () => ({
+  GeneralSettings: () => <h1>Settings</h1>,
 }));
 
 // Mock useWebSocketChat to avoid real WebSocket connections
 const mockSendMessage = vi.fn();
 const mockReconnect = vi.fn();
 const mockClearMessages = vi.fn();
+const mockListSessions = vi.fn();
+const mockPatchSession = vi.fn();
 vi.mock("@/hooks/useWebSocketChat", () => ({
   useWebSocketChat: () => ({
     messages: [],
@@ -24,7 +46,7 @@ vi.mock("@/hooks/useWebSocketChat", () => ({
     toolEvents: [],
     isConnected: true,
     error: null,
-    listSessions: vi.fn().mockResolvedValue({ sessions: [] }),
+    listSessions: mockListSessions,
     listAgents: vi.fn().mockResolvedValue({
       agents: [],
       defaultId: "main",
@@ -32,11 +54,14 @@ vi.mock("@/hooks/useWebSocketChat", () => ({
       scope: "global",
     }),
     listModels: vi.fn().mockResolvedValue({ models: [] }),
-    patchSession: vi.fn().mockResolvedValue({}),
+    patchSession: mockPatchSession,
     resetSession: vi.fn().mockResolvedValue({}),
     deleteSession: vi.fn().mockResolvedValue({}),
     clearMessages: mockClearMessages,
     reconnect: mockReconnect,
+    request: vi.fn().mockResolvedValue({
+      config: { messages: { channels: {} }, memory: {} },
+    }),
   }),
 }));
 
@@ -160,12 +185,21 @@ vi.stubGlobal(
 );
 
 describe("App", () => {
+  afterEach(() => {
+    window.prompt = originalPrompt;
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockSendMessage.mockClear();
     mockReconnect.mockClear();
     mockClearMessages.mockClear();
+    mockListSessions.mockReset();
+    mockPatchSession.mockReset();
     localStorageMock.clear();
+
+    mockListSessions.mockResolvedValue({ sessions: [] });
+    mockPatchSession.mockResolvedValue({});
 
     // Skip onboarding by default
     localStorageMock.setItem("edwinpai_onboarding_complete", "true");
@@ -193,6 +227,38 @@ describe("App", () => {
     // ChatView should be visible with message input
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/Type a message/)).toBeInTheDocument();
+    });
+  });
+
+  it("renames a session via sessions.patch userLabel", async () => {
+    const user = userEvent.setup();
+    mockListSessions.mockResolvedValue({
+      sessions: [
+        {
+          key: "agent:main:main",
+          userLabel: "Old Name",
+          derivedTitle: "Old Name",
+        },
+      ],
+    });
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("EdwinPAI Desktop")).toBeInTheDocument();
+    });
+
+    const rename = await screen.findByRole("button", { name: "Rename" });
+    await user.click(rename);
+    const nameInput = await screen.findByLabelText("Session name");
+    await user.clear(nameInput);
+    await user.type(nameInput, "New Name");
+    await user.click(screen.getByRole("button", { name: "Rename" }));
+
+    await waitFor(() => {
+      expect(mockPatchSession).toHaveBeenCalledWith({
+        key: expect.stringMatching(/^agent:main:/),
+        userLabel: "New Name",
+      });
     });
   });
 

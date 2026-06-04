@@ -470,14 +470,28 @@ pub async fn scan_gateways() -> Result<Vec<DiscoveredGateway>, String> {
         ports.into_iter().filter(|p| seen.insert(*p)).collect()
     };
 
-    // Probe all ports concurrently (localhost only — fast TCP timeout)
+    // Probe all ports concurrently. On Windows, also try WSL VM IPs so a
+    // Gateway installed inside WSL2 can be discovered by native Desktop even
+    // when localhost forwarding is not enough.
+    let hosts: Vec<String> = {
+        let mut hosts = vec!["127.0.0.1".to_string(), "localhost".to_string()];
+        hosts.extend(discover_wsl_hosts());
+        hosts
+    };
+    let unique_hosts: Vec<String> = {
+        let mut seen = HashSet::new();
+        hosts.into_iter().filter(|h| seen.insert(h.clone())).collect()
+    };
+
     let mut join_set = JoinSet::new();
 
-    for port in unique_ports {
-        let client = client.clone();
-        join_set.spawn(async move {
-            let url = format!("http://127.0.0.1:{}", port);
-            match client.get(&url).send().await {
+    for host in unique_hosts {
+        for port in unique_ports.clone() {
+            let client = client.clone();
+            let host = host.clone();
+            join_set.spawn(async move {
+                let url = format!("http://{}:{}", host, port);
+                match client.get(&url).send().await {
                 Ok(resp) => {
                     let status = resp.status();
                     if status.is_success() || status.as_u16() == 401 || status.as_u16() == 403 {
@@ -498,9 +512,10 @@ pub async fn scan_gateways() -> Result<Vec<DiscoveredGateway>, String> {
                     }
                     None
                 }
-                _ => None,
-            }
-        });
+                    _ => None,
+                }
+            });
+        }
     }
 
     let mut found: Vec<DiscoveredGateway> = Vec::new();
@@ -518,6 +533,36 @@ pub async fn scan_gateways() -> Result<Vec<DiscoveredGateway>, String> {
     });
 
     Ok(found)
+}
+
+
+fn discover_wsl_hosts() -> Vec<String> {
+    #[cfg(not(target_os = "windows"))]
+    {
+        Vec::new()
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+    use std::process::Command;
+
+    let output = Command::new("wsl.exe")
+        .args(["sh", "-lc", "hostname -I 2>/dev/null || hostname -i 2>/dev/null"])
+        .output();
+
+    let Ok(output) = output else {
+        return Vec::new();
+    };
+    if !output.status.success() {
+        return Vec::new();
+    }
+
+        String::from_utf8_lossy(&output.stdout)
+            .split_whitespace()
+            .filter(|candidate| candidate.parse::<std::net::IpAddr>().is_ok())
+            .map(ToString::to_string)
+            .collect()
+    }
 }
 
 /// Probe common URLs for a running EdwinPAI gateway.

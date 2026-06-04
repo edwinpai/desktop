@@ -7,6 +7,7 @@ import { Copy, Check, RotateCcw, Pencil, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { normalizeMessageContent } from "@/lib/messageContent";
 import { ToolUseList } from "@/components/chat/ToolUseCard";
 import { CodeBlock } from "@/components/chat/CodeBlock";
 import type { ChatMessage } from "@/types/api";
@@ -57,6 +58,11 @@ interface MessageBubbleProps {
   groupPosition?: GroupPosition;
 }
 
+function attachmentDataUrl(attachment: { mimeType: string; content: string }) {
+  if (attachment.content.startsWith("data:")) return attachment.content;
+  return `data:${attachment.mimeType};base64,${attachment.content}`;
+}
+
 const allowImageDataUrl: UrlTransform = (url) => {
   if (/^data:image\/[a-zA-Z0-9.+-]+;base64,/i.test(url)) {
     return url;
@@ -83,9 +89,14 @@ export function MessageBubble({
   const showHeader = groupPosition === "solo" || groupPosition === "first";
   const isGrouped = groupPosition === "middle" || groupPosition === "last";
 
+  // Defensive normalization: type says string but the gateway can deliver
+  // multimodal content blocks (array of {type, text} parts). Passing a non-string
+  // to <ReactMarkdown> throws "Unexpected value [object Object] for children".
+  const textContent = normalizeMessageContent(message.content);
+
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(message.content);
+      await navigator.clipboard.writeText(textContent);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -172,9 +183,44 @@ export function MessageBubble({
               ),
             }}
           >
-            {message.content}
+            {textContent}
           </ReactMarkdown>
         </div>
+
+        {message.attachments && message.attachments.length > 0 && (
+          <div className="flex flex-col gap-2">
+            {message.attachments.map((attachment, index) => {
+              const isImage = attachment.mimeType.startsWith("image/");
+              const key = `${attachment.fileName}-${index}`;
+              if (isImage) {
+                const src = attachmentDataUrl(attachment);
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className="block max-w-full overflow-hidden rounded-lg border border-border bg-background/40 p-0 text-left"
+                    onClick={() => setLightboxSrc(src)}
+                    aria-label={`Open ${attachment.fileName}`}
+                  >
+                    <img
+                      src={src}
+                      alt={attachment.fileName}
+                      className="max-h-80 max-w-full object-contain"
+                    />
+                  </button>
+                );
+              }
+              return (
+                <div
+                  key={key}
+                  className="rounded-md border border-border bg-background/40 px-2 py-1 text-xs"
+                >
+                  {attachment.fileName}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {!isUser && message.tool_use && message.tool_use.length > 0 && (
           <div className="pt-1">
@@ -214,7 +260,7 @@ export function MessageBubble({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                onClick={() => onEdit(message.content)}
+                onClick={() => onEdit(textContent)}
                 aria-label="Edit"
                 title="Edit"
                 className="h-6 w-6"

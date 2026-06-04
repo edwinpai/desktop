@@ -35,10 +35,15 @@ interface RuntimeInfo {
   ready: boolean;
 }
 
-export function RuntimeStatus() {
+interface RuntimeStatusProps {
+  gatewayUrl?: string;
+}
+
+export function RuntimeStatus({ gatewayUrl }: RuntimeStatusProps) {
   const [runtime, setRuntime] = useState<RuntimeInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRemoteGateway, setIsRemoteGateway] = useState(false);
+  const [gatewayReachable, setGatewayReachable] = useState(false);
   const [gatewayLabel, setGatewayLabel] = useState<string | null>(null);
 
   useEffect(() => {
@@ -50,16 +55,19 @@ export function RuntimeStatus() {
         ]);
         setRuntime(status);
 
-        // Check if connected to remote gateway
-        if (config?.gatewayUrl) {
+        const configuredGatewayUrl = gatewayUrl || config?.gatewayUrl;
+        if (configuredGatewayUrl) {
           try {
-            const url = new URL(config.gatewayUrl);
+            const url = new URL(configuredGatewayUrl);
             const isLocal =
               url.hostname === "localhost" || url.hostname === "127.0.0.1";
             setIsRemoteGateway(!isLocal);
-            if (!isLocal) {
-              setGatewayLabel(`${url.hostname}:${url.port || "18789"}`);
-            }
+            setGatewayLabel(`${url.hostname}:${url.port || "18789"}`);
+
+            const probe = await invoke<{ found: boolean }>("probe_gateway", {
+              url: configuredGatewayUrl,
+            }).catch(() => ({ found: false }));
+            setGatewayReachable(Boolean(probe.found));
           } catch {
             /* ignore */
           }
@@ -70,7 +78,7 @@ export function RuntimeStatus() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [gatewayUrl]);
 
   if (loading) {
     return (
@@ -97,13 +105,19 @@ export function RuntimeStatus() {
               Local Runtime
             </CardTitle>
             <CardDescription>
-              {isRemoteGateway
-                ? "Local runtime status (connected to remote gateway)"
-                : "Runtime environment for running the EdwinPAI gateway locally"}
+              {gatewayReachable
+                ? "Connected to a reachable EdwinPAI gateway"
+                : isRemoteGateway
+                  ? "Local runtime status (configured for a remote/WSL gateway)"
+                  : "Runtime environment for running the EdwinPAI gateway locally"}
             </CardDescription>
           </div>
-          {isRemoteGateway && gatewayLabel ? (
+          {gatewayReachable && gatewayLabel ? (
             <Badge variant="default" className="bg-green-600 text-white gap-1">
+              <Wifi className="h-3 w-3" /> Connected: {gatewayLabel}
+            </Badge>
+          ) : isRemoteGateway && gatewayLabel ? (
+            <Badge variant="secondary" className="gap-1">
               <Wifi className="h-3 w-3" /> {gatewayLabel}
             </Badge>
           ) : (
@@ -163,8 +177,19 @@ export function RuntimeStatus() {
               </>
             ) : (
               <>
-                <XCircle className="h-4 w-4 text-destructive" />
-                <span className="text-sm text-destructive">Not found</span>
+                {gatewayReachable ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm text-muted-foreground">
+                      Using connected gateway
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4 text-destructive" />
+                    <span className="text-sm text-destructive">Not found</span>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -194,7 +219,7 @@ export function RuntimeStatus() {
         )}
 
         {/* Not ready guidance — only show as error for local gateway */}
-        {!runtime.ready && !isRemoteGateway && (
+        {!runtime.ready && !isRemoteGateway && !gatewayReachable && (
           <div className="mt-4 p-3 rounded-md bg-destructive/10 text-sm">
             <p className="font-medium text-destructive mb-1">
               Gateway cannot start locally
@@ -206,11 +231,11 @@ export function RuntimeStatus() {
             </p>
           </div>
         )}
-        {!runtime.ready && isRemoteGateway && (
+        {!runtime.ready && (isRemoteGateway || gatewayReachable) && (
           <div className="mt-4 p-3 rounded-md bg-muted text-sm">
             <p className="text-muted-foreground">
-              Local runtime not installed — not needed when using a remote
-              gateway.
+              Local Windows runtime not installed — not needed while using the
+              configured WSL/remote gateway.
             </p>
           </div>
         )}

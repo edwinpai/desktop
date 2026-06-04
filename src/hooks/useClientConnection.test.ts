@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useClientConnection } from "./useClientConnection";
+import { useClientConnection, useConnectModeConnection } from "./useClientConnection";
 
 import type { ClientConnectionStatus } from "@/types/api";
 
@@ -67,6 +67,10 @@ describe("useClientConnection", () => {
   };
 
   describe("initialization", () => {
+    it("exposes Connect Mode alias without removing legacy hook export", () => {
+      expect(useConnectModeConnection).toBe(useClientConnection);
+    });
+
     it("initializes with disconnected status", () => {
       const { result } = renderHook(() => useClientConnection());
 

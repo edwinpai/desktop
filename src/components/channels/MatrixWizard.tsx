@@ -351,14 +351,32 @@ export function MatrixWizard({
           credentials.password = password;
         }
 
-        // Build gateway-native config (flat keys, not nested credentials)
+        const { invoke } = await import("@tauri-apps/api/core");
+        const { vaultCredentialForChannelSecret } =
+          await import("@/lib/vault-credentials");
+        if (authMethod === "token") {
+          const vaultCredential = vaultCredentialForChannelSecret(
+            channel,
+            "access-token",
+          );
+          await invoke("vault_store", {
+            profileId: "default",
+            id: vaultCredential.id,
+            name: vaultCredential.name,
+            entryType: vaultCredential.entryType,
+            provider: vaultCredential.provider,
+            credential: accessToken,
+            metadata: { source: "matrix-wizard" },
+          });
+        }
+
+        // Build gateway-native config without raw token secrets.
         const channelConfig: Record<string, unknown> = {
           enabled: true,
           homeserver,
           ...(authMethod === "token"
-            ? { accessToken }
+            ? { userId: username || undefined }
             : { userId: username, password }),
-          ...(authMethod === "token" && { userId: username || undefined }),
         };
 
         const patch = {
@@ -385,7 +403,6 @@ export function MatrixWizard({
           );
         } catch {
           // Fallback: local IPC
-          const { invoke } = await import("@tauri-apps/api/core");
           const configResponse = await invoke<{
             config: Record<string, unknown>;
           }>("get_edwinpai_config");

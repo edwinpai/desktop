@@ -4,6 +4,7 @@ import remarkGfm from "remark-gfm";
 import {
   BookOpen,
   Database,
+  Hammer,
   FileSearch,
   FolderTree,
   History,
@@ -24,13 +25,19 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SkillsPanel } from "@/components/skills/SkillsPanel";
 import {
+  buildGatewayTarget,
+  buildKnowledgeDiscipline,
+  createKnowledgeDiscipline,
+  deleteKnowledgeDiscipline,
   getKnowledgeDisciplineDetails,
   getKnowledgeRunDetails,
   listKnowledgeDisciplines,
   listKnowledgeRuns,
   listKnowledgeSources,
+  updateKnowledgeDiscipline,
   type DisciplineDetails,
   type DisciplineSummary,
+  type DisciplineValidationIssue,
   type DisciplinesListResult,
   type KnowledgeRunDetails,
   type KnowledgeRunSummary,
@@ -38,6 +45,8 @@ import {
   type KnowledgeRunsResult,
   type QmdCollectionSummary,
 } from "@/lib/knowledge";
+import { useConfig } from "@/hooks/useConfig";
+import type { GatewayTarget } from "@/lib/gateway-context";
 
 function formatTimestamp(value?: string | null): string {
   if (!value) return "Unknown";
@@ -93,6 +102,28 @@ function SearchBox({
         placeholder={placeholder}
         className="pl-9"
       />
+    </div>
+  );
+}
+
+function DisciplineIssueList({
+  issues,
+}: {
+  issues?: DisciplineValidationIssue[];
+}) {
+  if (!issues?.length) return null;
+  return (
+    <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-100">
+      <div className="font-medium">Discipline validation issues</div>
+      <div className="mt-2 space-y-1">
+        {issues.map((issue, index) => (
+          <div key={`${issue.disciplineId ?? "global"}-${index}`}>
+            <span className="font-mono uppercase">{issue.level}</span>
+            {issue.disciplineId ? ` · ${issue.disciplineId}` : ""}:{" "}
+            {issue.message}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -356,18 +387,157 @@ function SourceList({ data }: { data: KnowledgeSourcesResult }) {
   );
 }
 
-function DisciplinesList({ data }: { data: DisciplinesListResult }) {
+function DisciplinesList({
+  data,
+  target,
+}: {
+  data: DisciplinesListResult;
+  target: GatewayTarget;
+}) {
+  const [registry, setRegistry] = useState(data);
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(
-    data.disciplines[0]?.id ?? null,
+    registry.disciplines[0]?.id ?? null,
   );
   const [details, setDetails] = useState<DisciplineDetails | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
+  const [buildLoading, setBuildLoading] = useState(false);
+  const [buildMessage, setBuildMessage] = useState<string | null>(null);
+  const [buildError, setBuildError] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editCollections, setEditCollections] = useState("");
+
+  const refreshDisciplines = async () => {
+    const next = await listKnowledgeDisciplines(target);
+    setRegistry(next);
+  };
+
+  useEffect(() => {
+    setRegistry(data);
+  }, [data]);
+
+  const runCreate = async () => {
+    setBuildLoading(true);
+    setBuildMessage(null);
+    setBuildError(null);
+    try {
+      const created = await createKnowledgeDiscipline(
+        {
+          name: newName,
+          description: newDescription,
+          selectedCollections: ["workspace"],
+        },
+        target,
+      );
+      setBuildMessage(`Created ${created.id}.\n${created.build.stdout.trim()}`);
+      setSelectedId(created.id);
+      setCreateOpen(false);
+      setNewName("");
+      setNewDescription("");
+      await refreshDisciplines();
+    } catch (err) {
+      setBuildError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBuildLoading(false);
+    }
+  };
+
+  const openEdit = () => {
+    if (!details) return;
+    setEditName(details.discipline.name);
+    setEditDescription(details.discipline.description ?? "");
+    setEditCollections(details.discipline.selectedCollections.join(", "));
+    setEditOpen(true);
+  };
+
+  const runUpdate = async () => {
+    if (!selectedId) return;
+    setBuildLoading(true);
+    setBuildMessage(null);
+    setBuildError(null);
+    try {
+      const updated = await updateKnowledgeDiscipline(
+        {
+          id: selectedId,
+          name: editName,
+          description: editDescription,
+          selectedCollections: editCollections
+            .split(",")
+            .map((value) => value.trim())
+            .filter(Boolean),
+        },
+        target,
+      );
+      setBuildMessage(`Updated ${updated.id}.\n${updated.build.stdout.trim()}`);
+      setEditOpen(false);
+      await refreshDisciplines();
+      setDetails(await getKnowledgeDisciplineDetails(selectedId, target));
+    } catch (err) {
+      setBuildError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBuildLoading(false);
+    }
+  };
+
+  const runDelete = async () => {
+    if (!selectedId) return;
+    const current = details?.discipline.name ?? selectedId;
+    if (!window.confirm(`Move discipline "${current}" to workspace trash?`)) {
+      return;
+    }
+    setBuildLoading(true);
+    setBuildMessage(null);
+    setBuildError(null);
+    try {
+      const deleted = await deleteKnowledgeDiscipline(selectedId, target);
+      setBuildMessage(
+        `Deleted ${deleted.id}. Moved to ${deleted.trashedPath}.`,
+      );
+      setSelectedId(null);
+      setDetails(null);
+      await refreshDisciplines();
+    } catch (err) {
+      setBuildError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBuildLoading(false);
+    }
+  };
+
+  const runBuild = async (id?: string) => {
+    setBuildLoading(true);
+    setBuildMessage(null);
+    setBuildError(null);
+    try {
+      const result = await buildKnowledgeDiscipline(id, target);
+      setBuildMessage(result.stdout.trim() || "Discipline registry rebuilt.");
+      const nextRegistry = await listKnowledgeDisciplines(target);
+      setRegistry({
+        ...nextRegistry,
+        issues: result.issues?.length ? result.issues : nextRegistry.issues,
+      });
+      if (selectedId) {
+        const nextDetails = await getKnowledgeDisciplineDetails(
+          selectedId,
+          target,
+        );
+        setDetails(nextDetails);
+      }
+    } catch (err) {
+      setBuildError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBuildLoading(false);
+    }
+  };
 
   const filteredDisciplines = useMemo(
     () =>
-      data.disciplines.filter((discipline) =>
+      registry.disciplines.filter((discipline) =>
         matchesQuery(query, [
           discipline.id,
           discipline.name,
@@ -379,7 +549,7 @@ function DisciplinesList({ data }: { data: DisciplinesListResult }) {
           ...discipline.artifactKinds,
         ]),
       ),
-    [data.disciplines, query],
+    [registry.disciplines, query],
   );
 
   useEffect(() => {
@@ -407,7 +577,7 @@ function DisciplinesList({ data }: { data: DisciplinesListResult }) {
       setDetailsLoading(true);
       setDetailsError(null);
       try {
-        const next = await getKnowledgeDisciplineDetails(selectedId);
+        const next = await getKnowledgeDisciplineDetails(selectedId, target);
         if (!cancelled) {
           setDetails(next);
         }
@@ -427,17 +597,17 @@ function DisciplinesList({ data }: { data: DisciplinesListResult }) {
     return () => {
       cancelled = true;
     };
-  }, [selectedId]);
+  }, [selectedId, target]);
 
   const buildableCount = useMemo(
     () =>
-      data.disciplines.filter(
+      registry.disciplines.filter(
         (discipline) => discipline.selectedCollections.length > 0,
       ).length,
-    [data.disciplines],
+    [registry.disciplines],
   );
 
-  if (data.disciplines.length === 0) {
+  if (registry.disciplines.length === 0) {
     return (
       <div className="space-y-4">
         <Card>
@@ -449,12 +619,12 @@ function DisciplinesList({ data }: { data: DisciplinesListResult }) {
             </CardTitle>
             <CardDescription>
               This is now a real backed surface. The desktop is reading
-              discipline objects from local persisted storage instead of faking
-              cards.
+              discipline objects through the gateway-backed Knowledge API
+              instead of faking cards.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <div>Storage path: {trimPath(data.storagePath)}</div>
+            <div>Storage path: {trimPath(registry.storagePath)}</div>
             <div>
               Create a `disciplines.json` file there with discipline definitions
               to make this view populate.
@@ -471,8 +641,8 @@ function DisciplinesList({ data }: { data: DisciplinesListResult }) {
             <div>• Basic list and inspect API surface</div>
             <div>• Truthful desktop view for current discipline state</div>
             <div>
-              • Runtime attachment/build flows still intentionally not
-              implemented here
+              • Runtime registry rebuilds and gateway-backed management actions
+              are available here
             </div>
           </CardContent>
         </Card>
@@ -488,7 +658,7 @@ function DisciplinesList({ data }: { data: DisciplinesListResult }) {
             <CardTitle className="text-base">Disciplines</CardTitle>
           </CardHeader>
           <CardContent className="text-3xl font-semibold">
-            {data.disciplines.length}
+            {registry.disciplines.length}
           </CardContent>
         </Card>
         <Card>
@@ -512,7 +682,7 @@ function DisciplinesList({ data }: { data: DisciplinesListResult }) {
             <CardTitle className="text-base">Storage path</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground break-all">
-            {trimPath(data.storagePath)}
+            {trimPath(registry.storagePath)}
           </CardContent>
         </Card>
       </div>
@@ -521,15 +691,95 @@ function DisciplinesList({ data }: { data: DisciplinesListResult }) {
         <div>
           <h3 className="text-lg font-semibold">Disciplines</h3>
           <p className="text-sm text-muted-foreground">
-            First-class persisted discipline objects. This MVP shows what exists
-            honestly, without pretending runtime composition is finished.
+            First-class persisted discipline objects, managed through gateway
+            RPC with validation feedback from the registry builder.
           </p>
         </div>
-        <SearchBox
-          value={query}
-          onChange={setQuery}
-          placeholder="Filter disciplines by name, status, collection, artifact kind, or evidence policy..."
-        />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <SearchBox
+            value={query}
+            onChange={setQuery}
+            placeholder="Filter disciplines by name, status, collection, artifact kind, or evidence policy..."
+          />
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={buildLoading}
+              onClick={() => setCreateOpen((value) => !value)}
+            >
+              New discipline
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={buildLoading}
+              onClick={() => void refreshDisciplines()}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
+            <Button
+              type="button"
+              disabled={buildLoading}
+              onClick={() => void runBuild(selectedId ?? undefined)}
+            >
+              <Hammer className="mr-2 h-4 w-4" />
+              {buildLoading ? "Building..." : "Build selected"}
+            </Button>
+          </div>
+        </div>
+        {createOpen && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Create discipline</CardTitle>
+              <CardDescription>
+                Creates authored files under workspace knowledge/disciplines and
+                rebuilds the runtime registry.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Input
+                value={newName}
+                onChange={(event) => setNewName(event.target.value)}
+                placeholder="Discipline name"
+              />
+              <Input
+                value={newDescription}
+                onChange={(event) => setNewDescription(event.target.value)}
+                placeholder="Short description"
+              />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  disabled={buildLoading || !newName.trim()}
+                  onClick={() => void runCreate()}
+                >
+                  Create and build
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={buildLoading}
+                  onClick={() => setCreateOpen(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        <DisciplineIssueList issues={registry.issues} />
+        {buildError && (
+          <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            {buildError}
+          </div>
+        )}
+        {buildMessage && (
+          <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground whitespace-pre-wrap">
+            {buildMessage}
+          </div>
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
@@ -620,8 +870,30 @@ function DisciplinesList({ data }: { data: DisciplinesListResult }) {
             ) : details ? (
               <>
                 <div className="space-y-2">
-                  <div className="text-base font-semibold">
-                    {details.discipline.name}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="text-base font-semibold">
+                      {details.discipline.name}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={buildLoading}
+                        onClick={openEdit}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        disabled={buildLoading}
+                        onClick={() => void runDelete()}
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Badge variant={statusVariant(details.discipline.status)}>
@@ -672,6 +944,56 @@ function DisciplinesList({ data }: { data: DisciplinesListResult }) {
                     </div>
                   )}
                 </div>
+
+                {editOpen && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">Edit metadata</CardTitle>
+                      <CardDescription>
+                        Updates discipline.yaml and rebuilds the runtime
+                        registry.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <Input
+                        value={editName}
+                        onChange={(event) => setEditName(event.target.value)}
+                        placeholder="Name"
+                      />
+                      <Input
+                        value={editDescription}
+                        onChange={(event) =>
+                          setEditDescription(event.target.value)
+                        }
+                        placeholder="Description"
+                      />
+                      <Input
+                        value={editCollections}
+                        onChange={(event) =>
+                          setEditCollections(event.target.value)
+                        }
+                        placeholder="Collections, comma-separated"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          disabled={buildLoading || !editName.trim()}
+                          onClick={() => void runUpdate()}
+                        >
+                          Save and build
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={buildLoading}
+                          onClick={() => setEditOpen(false)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {details.artifactPaths.length > 0 && (
                   <div className="space-y-2">
@@ -1022,6 +1344,8 @@ function RunsList({ data }: { data: KnowledgeRunsResult }) {
 }
 
 export function KnowledgePanel() {
+  const { config, loading: configLoading } = useConfig();
+  const target = useMemo(() => buildGatewayTarget(config), [config]);
   const [sources, setSources] = useState<KnowledgeSourcesResult | null>(null);
   const [disciplines, setDisciplines] = useState<DisciplinesListResult | null>(
     null,
@@ -1039,14 +1363,38 @@ export function KnowledgePanel() {
     }
     setError(null);
     try {
-      const [sourcesResult, disciplinesResult, runsResult] = await Promise.all([
-        listKnowledgeSources(),
-        listKnowledgeDisciplines(),
-        listKnowledgeRuns(20),
-      ]);
-      setSources(sourcesResult);
-      setDisciplines(disciplinesResult);
-      setRuns(runsResult);
+      const [sourcesResult, disciplinesResult, runsResult] =
+        await Promise.allSettled([
+          listKnowledgeSources(),
+          listKnowledgeDisciplines(target),
+          listKnowledgeRuns(20),
+        ]);
+      const errors: string[] = [];
+      if (sourcesResult.status === "fulfilled") {
+        setSources(sourcesResult.value);
+      } else {
+        setSources(null);
+        errors.push(
+          `Sources: ${sourcesResult.reason instanceof Error ? sourcesResult.reason.message : String(sourcesResult.reason)}`,
+        );
+      }
+      if (disciplinesResult.status === "fulfilled") {
+        setDisciplines(disciplinesResult.value);
+      } else {
+        setDisciplines(null);
+        errors.push(
+          `Disciplines: ${disciplinesResult.reason instanceof Error ? disciplinesResult.reason.message : String(disciplinesResult.reason)}`,
+        );
+      }
+      if (runsResult.status === "fulfilled") {
+        setRuns(runsResult.value);
+      } else {
+        setRuns(null);
+        errors.push(
+          `Runs: ${runsResult.reason instanceof Error ? runsResult.reason.message : String(runsResult.reason)}`,
+        );
+      }
+      if (errors.length) setError(errors.join("\n"));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
@@ -1057,8 +1405,10 @@ export function KnowledgePanel() {
   };
 
   useEffect(() => {
+    if (configLoading) return;
     void load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configLoading, target.url, target.token]);
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -1117,7 +1467,7 @@ export function KnowledgePanel() {
 
           <TabsContent value="disciplines">
             {disciplines ? (
-              <DisciplinesList data={disciplines} />
+              <DisciplinesList data={disciplines} target={target} />
             ) : (
               <Card>
                 <CardContent className="pt-6 text-sm text-muted-foreground">

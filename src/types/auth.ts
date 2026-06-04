@@ -15,7 +15,11 @@
 // ============================================================================
 
 /**
- * Access level for multi-user authorization (SPEC §12.2)
+ * Desktop user-facing authorization level.
+ *
+ * This is an actor access level, not an interface/app mode and not a chat channel.
+ * Rough mapping: owner = owner/admin, member = read/write restricted Client,
+ * guest = read-only restricted Client.
  */
 export type AccessLevel = "owner" | "member" | "guest";
 

@@ -377,11 +377,24 @@ export function SlackWizard({
       setError(undefined);
 
       try {
-        // Save channel config via gateway config.patch
+        const { invoke } = await import("@tauri-apps/api/core");
+        const { vaultCredentialForChannelSecret } =
+          await import("@/lib/vault-credentials");
+        const vaultCredential = vaultCredentialForChannelSecret(channel);
+        await invoke("vault_store", {
+          profileId: "default",
+          id: vaultCredential.id,
+          name: vaultCredential.name,
+          entryType: vaultCredential.entryType,
+          provider: vaultCredential.provider,
+          credential: accessToken,
+          metadata: { source: "slack-wizard" },
+        });
+
+        // Save non-secret channel config via gateway config.patch.
         const patch = {
           channels: {
             [channel]: {
-              botToken: accessToken,
               enabled,
               dmPolicy,
               groupPolicy,
@@ -408,7 +421,6 @@ export function SlackWizard({
           );
         } catch {
           // Fallback: try local IPC
-          const { invoke } = await import("@tauri-apps/api/core");
           const configResponse = await invoke<{
             config: Record<string, unknown>;
           }>("get_edwinpai_config");
@@ -421,7 +433,6 @@ export function SlackWizard({
             channels: {
               ...((currentConfig.channels ?? {}) as Record<string, unknown>),
               [channel]: {
-                botToken: accessToken,
                 enabled,
                 dmPolicy,
                 groupPolicy,
@@ -434,7 +445,9 @@ export function SlackWizard({
 
         onComplete?.({
           enabled,
-          botToken: accessToken,
+          dmPolicy,
+          groupPolicy,
+          historyLimit,
         } as unknown as import("@/types/channels").ChannelConfig);
         return true;
       } catch (err) {

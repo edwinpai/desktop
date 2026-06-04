@@ -137,10 +137,16 @@ export function AgentConfigCard({
       ? modelOptions
       : DEFAULT_MODELS.map((m) => ({ id: m, name: m, provider: "" }));
     const hasCurrent = config.model && list.some((m) => m.id === config.model);
-    if (!hasCurrent && config.model) {
-      return [{ id: config.model, name: config.model, provider: "" }, ...list];
-    }
-    return list;
+    const withCurrent = !hasCurrent && config.model
+      ? [{ id: config.model, name: config.model, provider: "" }, ...list]
+      : list;
+
+    // Gateways can report the same provider/model from multiple sources. Dedupe
+    // by rendered value so React/Radix Select keys stay stable and the console
+    // remains useful for real errors.
+    return Array.from(
+      new Map(withCurrent.map((model) => [model.id, model])).values(),
+    );
   }, [modelOptions, config.model]);
 
   const handleSave = async () => {

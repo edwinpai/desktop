@@ -11,6 +11,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { Check, Loader2, Wifi, WifiOff } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { readConfig } from "@/lib/config";
+import type { GatewayProfile } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -43,9 +45,17 @@ export function GatewayDetection({
 }: GatewayDetectionProps) {
   const [checking, setChecking] = useState(true);
   const [found, setFound] = useState<GatewayInfo | null>(null);
+  const [savedProfiles, setSavedProfiles] = useState<GatewayProfile[]>([]);
 
   const detectGateway = useCallback(async () => {
     setChecking(true);
+
+    try {
+      const config = await readConfig().catch(() => null);
+      setSavedProfiles(config?.gatewayProfiles ?? []);
+    } catch {
+      setSavedProfiles([]);
+    }
 
     try {
       // Use Tauri command to probe — bypasses CSP/CORS
@@ -94,6 +104,52 @@ export function GatewayDetection({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
+          {savedProfiles.length > 1 && (
+            <div className="rounded-lg border border-border p-3 text-left space-y-2">
+              <div className="text-sm font-medium">Saved gateway profiles</div>
+              <div className="text-xs text-muted-foreground">
+                Choose a saved profile for this Desktop window. This does not
+                change the global default used by other windows.
+              </div>
+              <div className="grid gap-2 pt-1">
+                {savedProfiles.map((profile) => (
+                  <button
+                    key={profile.id}
+                    type="button"
+                    onClick={() => {
+                      sessionStorage.setItem(
+                        "edwinpai_active_gateway_profile_id",
+                        profile.id,
+                      );
+                      window.dispatchEvent(
+                        new CustomEvent("edwinpai:gateway-profile-selected", {
+                          detail: { profileId: profile.id },
+                        }),
+                      );
+                      onGatewayFound({
+                        url: profile.gatewayUrl,
+                        status: "running",
+                      });
+                    }}
+                    className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-left hover:border-primary/60 hover:bg-primary/5"
+                  >
+                    <span>
+                      <span className="block text-sm font-medium">
+                        {profile.name || profile.id}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {profile.gatewayUrl}
+                      </span>
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {profile.ssh?.enabled ? "ssh" : "direct"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-2">
             <Check className="size-4 text-green-600" />
             <span className="text-sm">
@@ -125,7 +181,7 @@ export function GatewayDetection({
             Connect to Gateway
           </Button>
           <Button variant="outline" onClick={onSkip}>
-            Manual Setup
+            Choose Another / Manual Setup
           </Button>
         </CardFooter>
       </Card>

@@ -1,5 +1,5 @@
 /**
- * AccessControl - Multi-user authorization management (owner only)
+ * AccessControl - Actor access-level management (owner/admin only)
  *
  * Features:
  * - Create invitations with QR codes and deep links
@@ -65,9 +65,9 @@ function formatPublicKey(
 }
 
 interface AccessControlProps {
-  /** Current user's access level */
+  /** Current actor authorization level in Desktop's owner/member/guest model. */
   currentUserLevel: AccessLevel;
-  /** Current app mode — gateway or client */
+  /** Current app mode — gateway or historical client/connect mode. */
   currentMode?: "gateway" | "client";
 }
 

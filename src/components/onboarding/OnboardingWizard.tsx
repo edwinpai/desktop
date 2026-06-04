@@ -16,7 +16,7 @@
  * - Step-by-step progress tracking
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   Check,
@@ -28,6 +28,8 @@ import {
   Key,
   Radio,
   Wifi,
+  LockKeyhole,
+  FileSearch,
   Package,
   RefreshCw,
   Shield,
@@ -38,6 +40,19 @@ import {
 
 import { GatewayDetection } from "./GatewayDetection";
 
+import { vaultCredentialForProvider } from "@/lib/vault-credentials";
+import { fetchPendingActionApprovals } from "@/lib/action-approvals";
+import {
+  callGatewayMethod,
+  patchGatewayConfig,
+  type GatewayTarget,
+} from "@/lib/gateway-context";
+import {
+  loadPolicy,
+  savePolicy,
+  setRuleForCredential,
+  type AskMode,
+} from "@/lib/vault-policy";
 import { updateConfig } from "@/lib/config";
 import { getIdentity as getCryptoIdentity } from "@/lib/crypto-domain";
 import { useOnboarding } from "@/hooks/useOnboarding";
@@ -148,7 +163,9 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
           <div className="space-y-2">
             <Progress value={completionPercentage} className="h-2" />
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Step {currentStep + 1} of 7</span>
+              <span>
+                Step {currentStep + 1} of {Object.values(OnboardingStep).length}
+              </span>
               <span>{completionPercentage}% complete</span>
             </div>
           </div>
@@ -227,6 +244,12 @@ function renderStep(
     case OnboardingStep.Welcome:
       return <WelcomeStep onNext={onComplete} onSkipToEnd={onSkipToEnd} />;
 
+    case OnboardingStep.Security:
+      return <SecurityModelStep onComplete={onComplete} />;
+
+    case OnboardingStep.VaultHealth:
+      return <VaultHealthStep onComplete={onComplete} />;
+
     case OnboardingStep.ApiKey:
       return (
         <ApiKeyStep
@@ -234,6 +257,12 @@ function renderStep(
           initialKey={data.apiKey as string | undefined}
         />
       );
+
+    case OnboardingStep.SecretMigration:
+      return <SecretMigrationStep onComplete={onComplete} />;
+
+    case OnboardingStep.CredentialProbe:
+      return <CredentialProbeStep onComplete={onComplete} />;
 
     case OnboardingStep.Identity:
       return <IdentityStep onComplete={onComplete} />;
@@ -324,15 +353,231 @@ function WelcomeStep({
         />
       </div>
 
-      <Button size="lg" onClick={onNext}>
-        Get Started <ChevronRight className="ml-2 size-5" />
-      </Button>
+      <div className="flex flex-col items-center gap-3">
+        <Button size="lg" onClick={onNext}>
+          Get Started <ChevronRight className="ml-2 size-5" />
+        </Button>
+        <Button variant="ghost" onClick={onSkipToEnd}>
+          Skip setup wizard
+        </Button>
+        <p className="max-w-md text-xs text-muted-foreground">
+          Use this if EdwinPAI is already configured. You can finish setup later
+          from Settings.
+        </p>
+      </div>
     </div>
   );
 }
 
 /**
- * Step 2: API Key Validation
+ * Step 2: Vault + Actions Approval security model
+ */
+function SecurityModelStep({
+  onComplete,
+}: {
+  onComplete: (data?: unknown) => void;
+}) {
+  return (
+    <Card className="w-full max-w-3xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Shield className="size-5" />
+          Vault-backed security model
+        </CardTitle>
+        <CardDescription>
+          EdwinPAI keeps sensitive credentials behind Desktop Vault and Actions
+          Approvals.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
+        <div className="grid gap-4 md:grid-cols-2">
+          <FeatureCard
+            icon={<LockKeyhole className="h-8 w-8 text-primary" />}
+            title="Secrets stay in Vault"
+            description="API keys and OAuth tokens are stored in Desktop Vault backed by the OS keychain, not loose config files."
+          />
+          <FeatureCard
+            icon={<Shield className="h-8 w-8 text-primary" />}
+            title="Approvals gate access"
+            description="Gateway tools request credential use through Actions Approvals and receive only short-lived leases."
+          />
+        </div>
+        <Alert>
+          <AlertCircle className="size-4" />
+          <AlertDescription>
+            Recommended setup uses OpenAI for model access. API-backed model and
+            embedding features require an OpenAI API key; a ChatGPT subscription
+            alone does not provide API access.
+          </AlertDescription>
+        </Alert>
+      </CardContent>
+      <CardFooter>
+        <Button
+          onClick={() => onComplete({ securityModelAcknowledged: true })}
+          className="w-full"
+        >
+          I understand — continue
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+function buildGatewayTargetFromConfig(config: {
+  gatewayUrl?: string;
+  gatewayPort?: number;
+  gatewayToken?: string;
+}): GatewayTarget {
+  return {
+    url: config.gatewayUrl || `http://localhost:${config.gatewayPort || 18789}`,
+    token: config.gatewayToken,
+    kind: "local",
+  };
+}
+
+/**
+ * Step 3: Vault / Actions Approval health check
+ */
+function VaultHealthStep({
+  onComplete,
+}: {
+  onComplete: (data?: unknown) => void;
+}) {
+  const [checks, setChecks] = useState<
+    Array<{
+      label: string;
+      status: "pass" | "fail" | "checking";
+      detail?: string;
+    }>
+  >([]);
+  const [running, setRunning] = useState(false);
+
+  const runChecks = useCallback(async () => {
+    setRunning(true);
+    const next: Array<{
+      label: string;
+      status: "pass" | "fail" | "checking";
+      detail?: string;
+    }> = [];
+    const push = (
+      label: string,
+      status: "pass" | "fail" | "checking",
+      detail?: string,
+    ) => {
+      next.push({ label, status, detail });
+      setChecks([...next]);
+    };
+
+    try {
+      const testId = `onboarding-health-${Date.now()}`;
+      push("Vault store/list/delete", "checking");
+      await invoke("vault_store", {
+        profileId: "default",
+        id: testId,
+        name: "Onboarding health check",
+        entryType: "secret",
+        provider: "edwinpai",
+        credential: `health-${Date.now()}`,
+        metadata: { source: "onboarding-health-check" },
+      });
+      await invoke("vault_list", { profileId: "default" });
+      await invoke("vault_delete", { profileId: "default", id: testId });
+      next[next.length - 1] = {
+        label: "Vault store/list/delete",
+        status: "pass",
+        detail: "Desktop Vault is writable",
+      };
+      setChecks([...next]);
+    } catch (err) {
+      next[next.length - 1] = {
+        label: "Vault store/list/delete",
+        status: "fail",
+        detail: err instanceof Error ? err.message : String(err),
+      };
+      setChecks([...next]);
+    }
+
+    try {
+      push("Gateway approvals stream", "checking");
+      const { readConfig } = await import("@/lib/config");
+      const target = buildGatewayTargetFromConfig(await readConfig());
+      await fetchPendingActionApprovals(target, {}, 5000);
+      next[next.length - 1] = {
+        label: "Gateway approvals stream",
+        status: "pass",
+        detail: "action.approvals.pending reachable",
+      };
+      setChecks([...next]);
+    } catch (err) {
+      next[next.length - 1] = {
+        label: "Gateway approvals stream",
+        status: "fail",
+        detail: err instanceof Error ? err.message : String(err),
+      };
+      setChecks([...next]);
+    }
+
+    setRunning(false);
+  }, []);
+
+  useEffect(() => {
+    void runChecks();
+  }, [runChecks]);
+  const passed = checks.length >= 2 && checks.every((c) => c.status === "pass");
+
+  return (
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Shield className="size-5" />
+          Vault & approval health
+        </CardTitle>
+        <CardDescription>
+          Verifies local Vault access and the Gateway approval surface without
+          using real secrets.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {checks.map((check) => (
+          <div
+            key={check.label}
+            className="flex items-center gap-3 rounded-lg border p-3 text-sm"
+          >
+            {check.status === "checking" ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : check.status === "pass" ? (
+              <Check className="size-4 text-green-500" />
+            ) : (
+              <AlertCircle className="size-4 text-red-500" />
+            )}
+            <div>
+              <div className="font-medium">{check.label}</div>
+              {check.detail && (
+                <div className="text-xs text-muted-foreground">
+                  {check.detail}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </CardContent>
+      <CardFooter className="flex gap-2">
+        <Button variant="outline" onClick={runChecks} disabled={running}>
+          Retry
+        </Button>
+        <Button
+          onClick={() => onComplete({ vaultHealthPassed: passed })}
+          disabled={!passed}
+        >
+          Continue
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+/**
+ * Step 4: API Key Validation
  */
 function ApiKeyStep({
   onComplete,
@@ -356,22 +601,48 @@ function ApiKeyStep({
     setError(null);
 
     try {
-      // Detect provider from key prefix
-      let provider = "anthropic";
+      // OpenAI is the default recommended provider for new users.
+      let provider = "openai";
       if (apiKey.startsWith("sk-ant-")) {
         provider = "anthropic";
       } else if (apiKey.startsWith("sk-") && !apiKey.startsWith("sk-ant-")) {
         provider = "openai";
       }
 
-      // Save API key to auth-profiles via backend
-      await invoke("add_provider", {
-        request: {
-          provider,
-          apiKey: apiKey.trim(),
-          label: null,
+      // Store API keys in Desktop Vault / OS keychain by default.
+      const vaultCredential = vaultCredentialForProvider(provider);
+      await invoke("vault_store", {
+        profileId: "default",
+        id: vaultCredential.id,
+        name: vaultCredential.name,
+        entryType: vaultCredential.entryType,
+        provider: vaultCredential.provider,
+        credential: apiKey.trim(),
+        metadata: {
+          source: "onboarding",
         },
       });
+
+      // Patch gateway config with metadata-only provider config (no raw secrets).
+      try {
+        const { readConfig } = await import("@/lib/config");
+        const target = buildGatewayTargetFromConfig(await readConfig());
+        await patchGatewayConfig(target, {
+          ...(vaultCredential.defaultModel
+            ? { agents: { defaults: { model: vaultCredential.defaultModel } } }
+            : {}),
+          models: {
+            providers: {
+              [vaultCredential.provider]: {
+                apiKey: vaultCredential.id,
+                auth: vaultCredential.authMode ?? "api-key",
+              },
+            },
+          },
+        });
+      } catch {
+        // Best-effort: vault write succeeded; gateway patch can be applied later.
+      }
 
       setIsValid(true);
       setIsValidating(false);
@@ -395,8 +666,8 @@ function ApiKeyStep({
           AI Provider API Key
         </CardTitle>
         <CardDescription>
-          EdwinPAI needs an API key from an AI provider to work. We recommend
-          Anthropic (Claude).
+          EdwinPAI needs an API key for API-backed model access. We recommend
+          OpenAI for first-time setup.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -406,12 +677,12 @@ function ApiKeyStep({
             <li>
               Go to{" "}
               <a
-                href="https://console.anthropic.com/settings/keys"
+                href="https://platform.openai.com/api-keys"
                 target="_blank"
                 rel="noopener"
                 className="text-primary underline underline-offset-2"
               >
-                console.anthropic.com
+                platform.openai.com
               </a>
             </li>
             <li>Sign in or create an account</li>
@@ -428,16 +699,17 @@ function ApiKeyStep({
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder="sk-ant-api03-..."
+            placeholder="sk-..."
             disabled={isValidating || isValid}
           />
           <p className="text-xs text-muted-foreground">
             Starts with{" "}
-            <code className="px-1 py-0.5 bg-muted rounded">sk-ant-</code> for
-            Anthropic or{" "}
-            <code className="px-1 py-0.5 bg-muted rounded">sk-</code> for OpenAI
+            <code className="px-1 py-0.5 bg-muted rounded">sk-</code> for
+            OpenAI. Anthropic keys are still accepted for advanced users.
           </p>
         </div>
+
+        <ApprovalPolicyChooser credentialId="openai-api-key" />
 
         {error && (
           <Alert variant="destructive">
@@ -449,7 +721,10 @@ function ApiKeyStep({
         {isValid && (
           <Alert>
             <Check className="size-4" />
-            <AlertDescription>API key validated successfully!</AlertDescription>
+            <AlertDescription>
+              API key saved to Desktop Vault. Only non-secret provider metadata
+              is kept outside Vault.
+            </AlertDescription>
           </Alert>
         )}
       </CardContent>
@@ -472,6 +747,208 @@ function ApiKeyStep({
           ) : (
             "Validate & Continue"
           )}
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+function ApprovalPolicyChooser({ credentialId }: { credentialId: string }) {
+  const [ask, setAsk] = useState<AskMode>("first-time");
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const save = async (nextAsk: AskMode) => {
+    setAsk(nextAsk);
+    const policy = await loadPolicy("default");
+    const updated = setRuleForCredential(
+      policy,
+      credentialId,
+      nextAsk,
+      5 * 60 * 1000,
+      "Configured during onboarding",
+    );
+    await savePolicy("default", updated);
+    setNotice(`Approval policy saved: ${nextAsk}`);
+  };
+
+  return (
+    <div className="space-y-2 rounded-lg border p-3">
+      <div className="text-sm font-medium">
+        OpenAI credential approval policy
+      </div>
+      <div className="grid gap-2 md:grid-cols-2">
+        {[
+          ["ask", "Ask every time"],
+          ["first-time", "Ask first time, then short leases"],
+          ["auto-grant", "Auto-grant short local leases"],
+          ["deny", "Never grant automatically"],
+        ].map(([value, label]) => (
+          <Button
+            key={value}
+            type="button"
+            variant={ask === value ? "default" : "outline"}
+            onClick={() => void save(value as AskMode)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+      {notice && <p className="text-xs text-muted-foreground">{notice}</p>}
+    </div>
+  );
+}
+
+function SecretMigrationStep({
+  onComplete,
+}: {
+  onComplete: (data?: unknown) => void;
+}) {
+  const [status, setStatus] = useState<string>("Not checked yet");
+  const [isChecking, setIsChecking] = useState(false);
+
+  const checkPendingImports = async () => {
+    setIsChecking(true);
+    try {
+      const { readConfig } = await import("@/lib/config");
+      const target = buildGatewayTargetFromConfig(await readConfig());
+      const result = (await callGatewayMethod(
+        target,
+        "vault.import.pending",
+        {},
+        5000,
+        "Timed out fetching pending Vault imports",
+      )) as { imports?: unknown[] };
+      const count = Array.isArray(result?.imports) ? result.imports.length : 0;
+      setStatus(
+        count > 0
+          ? `${count} pending redacted Vault import request(s). Open Action Approvals to review and import.`
+          : "No pending Vault imports found. Existing raw-secret scans are non-destructive and imports require approval.",
+      );
+    } catch (err) {
+      setStatus(
+        `Could not query Vault imports yet: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  useEffect(() => {
+    void checkPendingImports();
+  }, []);
+
+  return (
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileSearch className="size-5" />
+          Import existing secrets
+        </CardTitle>
+        <CardDescription>
+          Move existing config/env/auth-profile secrets into Desktop Vault
+          through approval-backed imports.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
+        <Alert>
+          <AlertCircle className="size-4" />
+          <AlertDescription>
+            Only redacted previews should be shown in onboarding. Raw values are
+            claimed privately by Desktop and stored with{" "}
+            <code>vault_store</code> after user approval.
+          </AlertDescription>
+        </Alert>
+        <div className="rounded-lg border p-3">{status}</div>
+      </CardContent>
+      <CardFooter className="flex gap-2">
+        <Button
+          variant="outline"
+          onClick={checkPendingImports}
+          disabled={isChecking}
+        >
+          {isChecking ? "Checking..." : "Refresh"}
+        </Button>
+        <Button onClick={() => onComplete({ vaultImportsReviewed: true })}>
+          Continue
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+function CredentialProbeStep({
+  onComplete,
+}: {
+  onComplete: (data?: unknown) => void;
+}) {
+  const [status, setStatus] = useState<string>(
+    "Ready to verify OpenAI credential access through Gateway + Actions Approvals.",
+  );
+  const [probing, setProbing] = useState(false);
+  const [passed, setPassed] = useState(false);
+
+  const runProbe = async () => {
+    setProbing(true);
+    setPassed(false);
+    try {
+      const { readConfig } = await import("@/lib/config");
+      const target = buildGatewayTargetFromConfig(await readConfig());
+      await callGatewayMethod(
+        target,
+        "credential.request",
+        {
+          credentialId: "openai-api-key",
+          name: "OpenAI API key",
+          purpose: "onboarding OpenAI credential probe",
+          requester: "desktop:onboarding",
+          leaseDurationMs: 60_000,
+        },
+        120000,
+        "Timed out waiting for approved OpenAI credential probe",
+      );
+      setStatus(
+        "Gateway credential request completed through the approval-backed path.",
+      );
+      setPassed(true);
+    } catch (err) {
+      setStatus(
+        `Probe could not complete automatically: ${err instanceof Error ? err.message : String(err)}. Open Action Approvals and ensure the openai-api-key Vault entry exists.`,
+      );
+    } finally {
+      setProbing(false);
+    }
+  };
+
+  return (
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CheckCircle2 className="size-5" />
+          Approved OpenAI credential probe
+        </CardTitle>
+        <CardDescription>
+          Verifies Gateway can request <code>openai-api-key</code> and Desktop
+          can grant it through signed Vault use.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Alert>
+          <AlertCircle className="size-4" />
+          <AlertDescription>{status}</AlertDescription>
+        </Alert>
+      </CardContent>
+      <CardFooter className="flex gap-2">
+        <Button variant="outline" onClick={runProbe} disabled={probing}>
+          {probing ? "Waiting for approval..." : "Run probe"}
+        </Button>
+        <Button
+          onClick={() =>
+            onComplete({
+              openAiCredentialProbe: passed ? "passed" : "deferred",
+            })
+          }
+        >
+          Continue
         </Button>
       </CardFooter>
     </Card>
@@ -1655,7 +2132,11 @@ function FeatureCard({
 function getStepTitle(step: OnboardingStep): string {
   const titles: Record<OnboardingStep, string> = {
     [OnboardingStep.Welcome]: "Welcome to EdwinPAI",
-    [OnboardingStep.ApiKey]: "Configure AI Provider",
+    [OnboardingStep.Security]: "Understand Vault Security",
+    [OnboardingStep.VaultHealth]: "Check Vault & Approvals",
+    [OnboardingStep.ApiKey]: "Configure OpenAI Provider",
+    [OnboardingStep.SecretMigration]: "Import Existing Secrets",
+    [OnboardingStep.CredentialProbe]: "Verify Approved Credential Use",
     [OnboardingStep.Identity]: "Set Up Your Identity",
     [OnboardingStep.Gateway]: "Connect to Gateway",
     [OnboardingStep.TestChat]: "Test Your Setup",
@@ -1671,7 +2152,14 @@ function getStepTitle(step: OnboardingStep): string {
 function getStepDescription(step: OnboardingStep): string {
   const descriptions: Record<OnboardingStep, string> = {
     [OnboardingStep.Welcome]: "Let's get you started with your AI assistant",
-    [OnboardingStep.ApiKey]: "Enter your AI provider API key",
+    [OnboardingStep.Security]:
+      "How Vault and Actions Approvals protect secrets",
+    [OnboardingStep.VaultHealth]:
+      "Verify local Vault and approval connectivity",
+    [OnboardingStep.ApiKey]: "Store your OpenAI API key in Desktop Vault",
+    [OnboardingStep.SecretMigration]: "Move existing raw secrets into Vault",
+    [OnboardingStep.CredentialProbe]:
+      "Confirm Gateway uses the approved Vault path",
     [OnboardingStep.Identity]: "Create your secure BSV identity",
     [OnboardingStep.Gateway]: "Find and connect to an EdwinPAI gateway",
     [OnboardingStep.TestChat]: "Send a test message to verify your setup",

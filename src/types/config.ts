@@ -44,6 +44,9 @@ export interface GatewayProfile {
   /** User-visible profile name */
   name: string;
 
+  /** Stable vault namespace. Display names may change; this should not. */
+  vaultNamespace?: string;
+
   /** Full gateway URL (e.g., "http://localhost:18789") */
   gatewayUrl: string;
 
@@ -86,6 +89,17 @@ export interface GatewayConfigSubset {
 /**
  * Complete desktop application configuration
  */
+export interface WorkspaceProfile {
+  /** Stable workspace id/slug used for UI/session grouping */
+  id: string;
+  /** Human-readable workspace name */
+  name: string;
+  /** Workspace directory path used by the gateway/runtime */
+  path: string;
+  /** Optional focus/description for the workspace */
+  description?: string;
+}
+
 export interface DesktopConfig {
   /** Full gateway URL (e.g., "http://localhost:18789") */
   gatewayUrl: string;
@@ -116,6 +130,12 @@ export interface DesktopConfig {
 
   /** Gateway configuration */
   gateway: GatewayConfigSubset;
+
+  /** Focused workspaces available in Desktop */
+  workspaces?: WorkspaceProfile[];
+
+  /** Currently selected workspace id */
+  activeWorkspaceId?: string;
 }
 
 /**
@@ -132,11 +152,25 @@ export type PartialDesktopConfig = Partial<
 // Default Values
 // ============================================================================
 
+const DEFAULT_GATEWAY_PORT = Number.parseInt(
+  import.meta.env.VITE_EDWINPAI_GATEWAY_PORT ?? "18789",
+  10,
+);
+const DEFAULT_GATEWAY_URL = `http://localhost:${DEFAULT_GATEWAY_PORT}`;
+
+export const DEFAULT_WORKSPACE_PROFILE: WorkspaceProfile = {
+  id: "main",
+  name: "Main",
+  path: "~/.edwinpai/workspace",
+  description: "Default EdwinPAI workspace",
+};
+
 export const DEFAULT_GATEWAY_PROFILE: GatewayProfile = {
   id: "default",
   name: "Default Gateway",
-  gatewayUrl: "http://localhost:18789",
-  gatewayPort: 18789,
+  vaultNamespace: "default",
+  gatewayUrl: DEFAULT_GATEWAY_URL,
+  gatewayPort: DEFAULT_GATEWAY_PORT,
   gatewayToken: "",
 };
 
@@ -172,6 +206,8 @@ export const DEFAULT_DESKTOP_CONFIG: DesktopConfig = {
   defaultModel: "claude-sonnet-4-5",
   chat: DEFAULT_CHAT_CONFIG,
   gateway: DEFAULT_GATEWAY_CONFIG_SUBSET,
+  workspaces: [DEFAULT_WORKSPACE_PROFILE],
+  activeWorkspaceId: DEFAULT_WORKSPACE_PROFILE.id,
 };
 
 // ============================================================================
@@ -223,6 +259,20 @@ export function isValidGatewayConfigSubset(
 /**
  * Validate gateway profile
  */
+export function isValidWorkspaceProfile(value: unknown): value is WorkspaceProfile {
+  if (!value || typeof value !== "object") return false;
+  const c = value as Record<string, unknown>;
+  return (
+    typeof c.id === "string" &&
+    c.id.length > 0 &&
+    typeof c.name === "string" &&
+    c.name.length > 0 &&
+    typeof c.path === "string" &&
+    c.path.length > 0 &&
+    (c.description === undefined || typeof c.description === "string")
+  );
+}
+
 export function isValidGatewayProfile(value: unknown): value is GatewayProfile {
   if (!value || typeof value !== "object") return false;
 
@@ -232,6 +282,7 @@ export function isValidGatewayProfile(value: unknown): value is GatewayProfile {
     c.id.length > 0 &&
     typeof c.name === "string" &&
     c.name.length > 0 &&
+    (c.vaultNamespace === undefined || typeof c.vaultNamespace === "string") &&
     typeof c.gatewayUrl === "string" &&
     c.gatewayUrl.length > 0 &&
     typeof c.gatewayPort === "number" &&
@@ -263,14 +314,48 @@ export function isValidDesktopConfig(value: unknown): value is DesktopConfig {
       (Array.isArray(c.gatewayProfiles) &&
         c.gatewayProfiles.every(isValidGatewayProfile))) &&
     (c.activeGatewayProfileId === undefined ||
-      typeof c.activeGatewayProfileId === "string")
+      typeof c.activeGatewayProfileId === "string") &&
+    (c.workspaces === undefined ||
+      (Array.isArray(c.workspaces) && c.workspaces.every(isValidWorkspaceProfile))) &&
+    (c.activeWorkspaceId === undefined || typeof c.activeWorkspaceId === "string")
   );
+}
+
+function sanitizeWorkspaceId(value: string | undefined, fallback: string): string {
+  const raw = (value || fallback || "workspace").trim().toLowerCase();
+  const safe = raw.replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
+  return safe || "workspace";
+}
+
+function sanitizeWorkspaceProfile(profile: WorkspaceProfile): WorkspaceProfile {
+  const id = sanitizeWorkspaceId(profile.id, profile.name);
+  return {
+    ...profile,
+    id,
+    name: profile.name.trim() || id,
+    path: profile.path.trim() || DEFAULT_WORKSPACE_PROFILE.path,
+    description: profile.description?.trim() || undefined,
+  };
+}
+
+function sanitizeVaultNamespace(
+  value: string | undefined,
+  fallback: string,
+): string {
+  const raw = (value || fallback || "default").trim().toLowerCase();
+  const safe = raw.replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
+  return safe || "default";
+}
+
+export function getVaultNamespace(profile: GatewayProfile): string {
+  return sanitizeVaultNamespace(profile.vaultNamespace, profile.id);
 }
 
 function sanitizeGatewayProfile(profile: GatewayProfile): GatewayProfile {
   return {
     ...profile,
     name: profile.name.trim() || "Unnamed Gateway",
+    vaultNamespace: sanitizeVaultNamespace(profile.vaultNamespace, profile.id),
     gatewayPort: Math.max(1, Math.min(65535, profile.gatewayPort)),
     gatewayToken: profile.gatewayToken ?? "",
   };
@@ -318,6 +403,16 @@ export function mergeWithDefaults(
     },
   };
 
+  const rawWorkspaces =
+    partial.workspaces
+      ?.filter(isValidWorkspaceProfile)
+      .map(sanitizeWorkspaceProfile) ?? [];
+  const workspaces = rawWorkspaces.length > 0 ? rawWorkspaces : [DEFAULT_WORKSPACE_PROFILE];
+  const activeWorkspace =
+    workspaces.find((workspace) => workspace.id === partial.activeWorkspaceId) ??
+    workspaces[0] ??
+    DEFAULT_WORKSPACE_PROFILE;
+
   const rawProfiles =
     partial.gatewayProfiles
       ?.filter(isValidGatewayProfile)
@@ -337,6 +432,8 @@ export function mergeWithDefaults(
     ...merged,
     gatewayProfiles,
     activeGatewayProfileId: activeGatewayProfile.id,
+    workspaces,
+    activeWorkspaceId: activeWorkspace.id,
     gatewayUrl: activeGatewayProfile.gatewayUrl,
     gatewayPort: activeGatewayProfile.gatewayPort,
     gatewayToken: activeGatewayProfile.gatewayToken,
@@ -347,6 +444,15 @@ export function mergeWithDefaults(
  * Sanitize config (ensure all values are within valid ranges)
  */
 export function sanitizeConfig(config: DesktopConfig): DesktopConfig {
+  const configuredWorkspaces = config.workspaces ?? [];
+  const sanitizedWorkspaces = (
+    configuredWorkspaces.length > 0 ? configuredWorkspaces : [DEFAULT_WORKSPACE_PROFILE]
+  ).filter(isValidWorkspaceProfile).map(sanitizeWorkspaceProfile);
+  const activeWorkspace =
+    sanitizedWorkspaces.find((workspace) => workspace.id === config.activeWorkspaceId) ??
+    sanitizedWorkspaces[0] ??
+    DEFAULT_WORKSPACE_PROFILE;
+
   const sanitizedProfiles = (
     config.gatewayProfiles.length > 0
       ? config.gatewayProfiles
@@ -366,6 +472,8 @@ export function sanitizeConfig(config: DesktopConfig): DesktopConfig {
     gatewayToken: activeGatewayProfile.gatewayToken,
     gatewayProfiles: sanitizedProfiles,
     activeGatewayProfileId: activeGatewayProfile.id,
+    workspaces: sanitizedWorkspaces.length > 0 ? sanitizedWorkspaces : [DEFAULT_WORKSPACE_PROFILE],
+    activeWorkspaceId: activeWorkspace.id,
     chat: {
       ...config.chat,
       temperature: Math.max(0, Math.min(1, config.chat.temperature)),

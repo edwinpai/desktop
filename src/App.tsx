@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ChatView } from "@/components/ChatView";
 import { StyledSelect } from "@/components/ui/styled-select";
 import { GeneralSettings } from "@/components/GeneralSettings";
-import { ClientModeFlow } from "@/components/client/ClientModeFlow";
+import { ConnectModeFlow } from "@/components/client/ClientModeFlow";
 import { ModeSwitch } from "@/components/client/ModeSwitch";
 // AccessControlPanel removed — Access Control page handles user management
 import { GatewayConnect } from "@/components/onboarding/GatewayConnect";
@@ -23,7 +23,6 @@ import { TasksPanel } from "@/components/tasks/TasksPanel";
 import { DebugPanel } from "@/components/debug/DebugPanel";
 import { FileEditor } from "@/components/workspace/FileEditor";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
-import { RuntimeInstallerGate } from "@/components/runtime/RuntimeInstallerGate";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LockScreen } from "@/components/LockScreen";
 // PinSetup available for onboarding integration
@@ -34,13 +33,46 @@ import { useDesktopNotifications } from "@/hooks/useDesktopNotifications";
 import { useSshTunnel } from "@/hooks/useSshTunnel";
 import { useTraySync } from "@/hooks/useTraySync";
 import type { AccessLevel, ClientConnectionStatus } from "@/types/api";
-import type { GatewayProfile } from "@/types/config";
-import { DEFAULT_GATEWAY_PROFILE } from "@/types";
+import type { GatewayProfile, WorkspaceProfile } from "@/types/config";
+import { DEFAULT_GATEWAY_PROFILE, DEFAULT_WORKSPACE_PROFILE, getVaultNamespace } from "@/types";
 import { readConfig } from "@/lib/config";
+import { loadSessionHydrationMessageLimit } from "@/lib/ui-settings";
 import { VaultPanel } from "@/components/vault/VaultPanel";
 import type { ChatDraft } from "@/components/InputBar";
 
 const DEFAULT_GATEWAY_PORT = 18789;
+
+function sanitizeSessionPart(value: string, fallback: string): string {
+  return value.replace(/[^a-zA-Z0-9_-]/g, "-") || fallback;
+}
+
+function desktopMainSessionForProfile(profileId: string, workspaceId = "main"): string {
+  const safeProfileId = sanitizeSessionPart(profileId, "default");
+  const safeWorkspaceId = sanitizeSessionPart(workspaceId, "main");
+  return safeWorkspaceId === "main"
+    ? `desktop-${safeProfileId}`
+    : `desktop-${safeProfileId}-${safeWorkspaceId}`;
+}
+
+function desktopSessionKey(agentId: string, profileId: string, workspaceId = "main"): string {
+  return `agent:${agentId}:${desktopMainSessionForProfile(profileId, workspaceId)}`;
+}
+
+function newDesktopSessionId(profileId: string, workspaceId = "main"): string {
+  const safeProfileId = sanitizeSessionPart(profileId, "default");
+  const safeWorkspaceId = sanitizeSessionPart(workspaceId, "main");
+  const base = safeWorkspaceId === "main"
+    ? `desktop-${safeProfileId}`
+    : `desktop-${safeProfileId}-${safeWorkspaceId}`;
+  return `${base}-${Date.now().toString(36)}`;
+}
+
+function desktopSessionKeyForSessionId(
+  agentId: string,
+  sessionId: string,
+): string {
+  return `agent:${agentId}:${sessionId}`;
+}
 
 type View =
   | "chat"
@@ -85,11 +117,24 @@ function App() {
   const [currentUserLevel] = useState<AccessLevel>("owner");
   const [isInitializing, setIsInitializing] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
-  const [needsRuntimeSetup, setNeedsRuntimeSetup] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [agentId, setAgentId] = useState("main");
-  const [mainSessionKey, setMainSessionKey] = useState("main");
-  const [sessionKey, setSessionKey] = useState("agent:main:main");
+  const [workspaces, setWorkspaces] = useState<WorkspaceProfile[]>([
+    DEFAULT_WORKSPACE_PROFILE,
+  ]);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState(
+    DEFAULT_WORKSPACE_PROFILE.id,
+  );
+  const activeWorkspace =
+    workspaces.find((workspace) => workspace.id === activeWorkspaceId) ??
+    workspaces[0] ??
+    DEFAULT_WORKSPACE_PROFILE;
+  const [mainSessionKey, setMainSessionKey] = useState(
+    desktopMainSessionForProfile("default", DEFAULT_WORKSPACE_PROFILE.id),
+  );
+  const [sessionKey, setSessionKey] = useState(
+    desktopSessionKey("main", "default", DEFAULT_WORKSPACE_PROFILE.id),
+  );
   const [chatDrafts, setChatDrafts] = useState<Record<string, ChatDraft>>({});
   const [agentsList, setAgentsList] = useState<
     Array<{ id: string; name?: string }>
@@ -111,6 +156,7 @@ function App() {
     Array<{
       key: string;
       label?: string;
+      userLabel?: string;
       displayName?: string;
       derivedTitle?: string;
       lastMessagePreview?: string;
@@ -123,6 +169,7 @@ function App() {
       outputTokens?: number | null;
       totalTokens?: number | null;
       responseUsage?: "on" | "off" | "tokens" | "full";
+      workspaceDir?: string;
       activeTask?: {
         goal?: string;
         status?: string;
@@ -153,8 +200,34 @@ function App() {
 
   // SSH tunnel for remote gateway profiles
   const { tunnelState, effectiveUrl } = useSshTunnel(activeProfile);
+  const isSshProfile = activeProfile.ssh?.enabled === true;
+  const isTunnelReady = !isSshProfile || tunnelState?.status === "connected";
+  const activeGatewayUrl = isSshProfile
+    ? effectiveUrl
+    : activeProfile.gatewayUrl;
+  const activeGatewayWsUrl = activeGatewayUrl.replace(/^http/, "ws");
+  const gatewayHistoryScopeKey = `${activeProfile.id}:${activeGatewayUrl}`;
 
   // WebSocket chat hook
+  const [sessionHydrationMessageLimit, setSessionHydrationMessageLimit] =
+    useState(() => loadSessionHydrationMessageLimit());
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<number>).detail;
+      if (typeof detail === "number") setSessionHydrationMessageLimit(detail);
+    };
+    window.addEventListener(
+      "edwinpai:settings:sessionHydrationMessageLimit",
+      handler,
+    );
+    return () =>
+      window.removeEventListener(
+        "edwinpai:settings:sessionHydrationMessageLimit",
+        handler,
+      );
+  }, []);
+
   const {
     messages,
     sendMessage: handleSendMessage,
@@ -178,9 +251,13 @@ function App() {
     request,
   } = useWebSocketChat({
     sessionKey,
-    wsUrl: activeProfile.ssh?.enabled
-      ? effectiveUrl.replace(/^http/, "ws")
-      : undefined,
+    wsUrl: activeGatewayWsUrl,
+    authToken: activeProfile.gatewayToken,
+    enabled: isTunnelReady,
+    historyScopeKey: gatewayHistoryScopeKey,
+    profileId: activeProfile.id,
+    sessionHydrationMessageLimit,
+    workspaceDir: activeWorkspace.path,
   });
 
   const handleChatDraftChange = useCallback((key: string, draft: ChatDraft) => {
@@ -257,8 +334,18 @@ function App() {
     runStatus,
   });
 
-  const handleSaveSettings = (settings: unknown) => {
+  const handleSaveSettings = async (settings: unknown) => {
     console.log("Settings saved:", settings);
+
+    const config = await readConfig().catch(() => null);
+    if (config?.gatewayProfiles?.length) {
+      setGatewayProfiles(config.gatewayProfiles);
+      const active =
+        config.gatewayProfiles.find(
+          (profile) => profile.id === config.activeGatewayProfileId,
+        ) ?? config.gatewayProfiles[0];
+      if (active) setActiveProfile(active);
+    }
 
     if (!settings || typeof settings !== "object") {
       return;
@@ -278,8 +365,9 @@ function App() {
 
     setGatewayTargetKey(nextTargetKey);
     setAgentId("main");
-    setMainSessionKey("main");
-    setSessionKey("agent:main:main");
+    const nextMainSessionKey = desktopMainSessionForProfile(nextProfileId, activeWorkspace.id);
+    setMainSessionKey(nextMainSessionKey);
+    setSessionKey(desktopSessionKey("main", nextProfileId, activeWorkspace.id));
     setAgentsList([]);
     setModelsList([]);
     setSessionsList([]);
@@ -295,15 +383,32 @@ function App() {
   useEffect(() => {
     readConfig()
       .then((config) => {
-        setGatewayTargetKey(
-          `${config.activeGatewayProfileId}:${config.gatewayUrl}`,
-        );
+        const instanceProfileId =
+          sessionStorage.getItem("edwinpai_active_gateway_profile_id") ??
+          config.activeGatewayProfileId;
+        setGatewayTargetKey(`${instanceProfileId}:${config.gatewayUrl}`);
+        const configWorkspaces = config.workspaces ?? [DEFAULT_WORKSPACE_PROFILE];
+        const configActiveWorkspaceId = config.activeWorkspaceId ?? DEFAULT_WORKSPACE_PROFILE.id;
+        const configActiveWorkspace =
+          configWorkspaces.find((workspace) => workspace.id === configActiveWorkspaceId) ??
+          configWorkspaces[0] ??
+          DEFAULT_WORKSPACE_PROFILE;
+        setWorkspaces(configWorkspaces);
+        setActiveWorkspaceId(configActiveWorkspace.id);
+        const nextMainSessionKey =
+          desktopMainSessionForProfile(instanceProfileId, configActiveWorkspace.id);
+        setMainSessionKey(nextMainSessionKey);
+        setSessionKey(desktopSessionKey("main", instanceProfileId, configActiveWorkspace.id));
         if (config.gatewayProfiles?.length) {
           setGatewayProfiles(config.gatewayProfiles);
           const active =
             config.gatewayProfiles.find(
+              (p: GatewayProfile) => p.id === instanceProfileId,
+            ) ??
+            config.gatewayProfiles.find(
               (p: GatewayProfile) => p.id === config.activeGatewayProfileId,
-            ) ?? config.gatewayProfiles[0];
+            ) ??
+            config.gatewayProfiles[0];
           if (active) setActiveProfile(active);
         }
       })
@@ -325,6 +430,7 @@ function App() {
       const next = result.sessions.map((session) => ({
         key: session.key,
         label: session.label,
+        userLabel: session.userLabel,
         displayName: session.displayName,
         derivedTitle: session.derivedTitle,
         lastMessagePreview: session.lastMessagePreview,
@@ -337,6 +443,7 @@ function App() {
         outputTokens: session.outputTokens,
         totalTokens: session.totalTokens,
         responseUsage: session.responseUsage,
+        workspaceDir: session.workspaceDir,
         activeTask: session.activeTask,
         taskQueue: session.taskQueue,
       }));
@@ -347,6 +454,14 @@ function App() {
         setVerboseLevel(current.verboseLevel ?? "off");
         setReasoningLevel(current.reasoningLevel ?? "off");
         setModelId(current.model ?? null);
+        if (current.workspaceDir) {
+          const matchedWorkspace = workspaces.find(
+            (workspace) => workspace.path === current.workspaceDir,
+          );
+          if (matchedWorkspace && matchedWorkspace.id !== activeWorkspaceId) {
+            setActiveWorkspaceId(matchedWorkspace.id);
+          }
+        }
       }
     } catch (err) {
       console.error("Failed to list sessions:", err);
@@ -358,16 +473,12 @@ function App() {
     try {
       const result = await listAgents();
       setAgentsList(result.agents);
-      const resolvedMainKey = result.mainKey || mainSessionKey;
       const resolvedAgentId = agentId || result.defaultId || "main";
-      if (result.mainKey) {
-        setMainSessionKey(result.mainKey);
-      }
       if (!agentId && result.defaultId) {
         setAgentId(result.defaultId);
       }
-      const expectedKey = `agent:${resolvedAgentId}:${resolvedMainKey}`;
-      if (sessionKey !== expectedKey) {
+      const expectedKey = `agent:${resolvedAgentId}:${mainSessionKey}`;
+      if (sessionKey !== expectedKey && sessionKey === "agent:main:main") {
         setSessionKey(expectedKey);
       }
     } catch (err) {
@@ -400,15 +511,88 @@ function App() {
     }
   };
 
+  const handleSelectWorkspace = async (workspaceId: string, workspaceList = workspaces) => {
+    const nextWorkspace =
+      workspaceList.find((workspace) => workspace.id === workspaceId) ??
+      DEFAULT_WORKSPACE_PROFILE;
+    setActiveWorkspaceId(nextWorkspace.id);
+    try {
+      const { updateConfig } = await import("@/lib/config");
+      await updateConfig({
+        workspaces: workspaceList,
+        activeWorkspaceId: nextWorkspace.id,
+      });
+    } catch {
+      // Best-effort persistence; selector still changes immediately.
+    }
+    const nextMainSessionKey = desktopMainSessionForProfile(
+      activeProfile.id,
+      nextWorkspace.id,
+    );
+    setMainSessionKey(nextMainSessionKey);
+    const nextSessionKey = desktopSessionKey(agentId, activeProfile.id, nextWorkspace.id);
+    setSessionKey(nextSessionKey);
+    try {
+      await patchSession({ key: nextSessionKey, workspaceDir: nextWorkspace.path });
+    } catch (err) {
+      console.error("Failed to update session workspace:", err);
+    }
+    setSessionsList([]);
+    clearMessages();
+  };
+
+  const handleAddWorkspace = async (workspace: WorkspaceProfile) => {
+    const deduped = [
+      ...workspaces.filter((item) => item.id !== workspace.id),
+      workspace,
+    ];
+    setWorkspaces(deduped);
+    try {
+      const { updateConfig } = await import("@/lib/config");
+      await updateConfig({
+        workspaces: deduped,
+        activeWorkspaceId: workspace.id,
+      });
+    } catch {
+      // Best-effort persistence; local state still updates.
+    }
+    await handleSelectWorkspace(workspace.id, deduped);
+  };
+
   const handleSelectSession = (key: string) => {
+    const selected = sessionsList.find((session) => session.key === key);
+    if (selected?.workspaceDir) {
+      const matchedWorkspace = workspaces.find(
+        (workspace) => workspace.path === selected.workspaceDir,
+      );
+      if (matchedWorkspace) {
+        setActiveWorkspaceId(matchedWorkspace.id);
+      }
+    }
     setSessionKey(key);
     clearMessages();
   };
 
-  const handleNewSession = () => {
-    const newKey = `agent:${agentId}:desktop-${Date.now().toString(36)}`;
-    setSessionKey(newKey);
+  const handleNewSession = async () => {
+    const newSessionId = newDesktopSessionId(activeProfile.id, activeWorkspace.id);
+    const nextSessionKey = desktopSessionKeyForSessionId(agentId, newSessionId);
+    setSessionKey(nextSessionKey);
+    try {
+      await patchSession({ key: nextSessionKey, workspaceDir: activeWorkspace.path });
+    } catch (err) {
+      console.error("Failed to initialize session workspace:", err);
+    }
     clearMessages();
+    refreshSessions();
+  };
+
+  const handleRenameSession = async (key: string, userLabel: string | null) => {
+    try {
+      await patchSession({ key, userLabel });
+      refreshSessions();
+    } catch (err) {
+      console.error("Failed to rename session:", err);
+    }
   };
 
   const handleResetSession = async () => {
@@ -450,27 +634,57 @@ function App() {
     refreshSessions(nextAgentId);
   };
 
+  useEffect(() => {
+    const onGatewayProfileSelected = (event: Event) => {
+      const profileId = (event as CustomEvent<{ profileId?: string }>).detail
+        ?.profileId;
+      if (!profileId) return;
+      const profile = gatewayProfiles.find((p) => p.id === profileId);
+      if (!profile) return;
+      setActiveProfile(profile);
+      setGatewayTargetKey(`${profileId}:${profile.gatewayUrl}`);
+      setAgentId("main");
+      const nextMainSessionKey = desktopMainSessionForProfile(profileId, activeWorkspace.id);
+      setMainSessionKey(nextMainSessionKey);
+      setSessionKey(desktopSessionKey("main", profileId));
+      setAgentsList([]);
+      setModelsList([]);
+      setSessionsList([]);
+      setModelId(null);
+      setThinkingLevel("off");
+      setVerboseLevel("off");
+      setReasoningLevel("off");
+      setDeliverEnabled(false);
+      clearMessages();
+      reconnect();
+    };
+
+    window.addEventListener(
+      "edwinpai:gateway-profile-selected",
+      onGatewayProfileSelected,
+    );
+    return () => {
+      window.removeEventListener(
+        "edwinpai:gateway-profile-selected",
+        onGatewayProfileSelected,
+      );
+    };
+  }, [gatewayProfiles, clearMessages, reconnect]);
+
   const handleSelectProfile = useCallback(
     async (profileId: string) => {
       const profile = gatewayProfiles.find((p) => p.id === profileId);
       if (!profile) return;
       setActiveProfile(profile);
-      // Persist active profile + sync top-level fields so loadAuthAndUrl picks them up
-      const { updateConfig } = await import("@/lib/config");
-      await updateConfig({
-        activeGatewayProfileId: profileId,
-        gatewayUrl: profile.ssh?.enabled
-          ? `http://localhost:${profile.ssh.localPort}`
-          : profile.gatewayUrl,
-        gatewayPort: profile.ssh?.enabled
-          ? profile.ssh.localPort
-          : profile.gatewayPort,
-        gatewayToken: profile.gatewayToken,
-      });
+      // Profile selection is per window/instance. Do not rewrite the global
+      // default profile here, or two Desktop windows will fight over one
+      // desktop-config.json activeGatewayProfileId/top-level gateway fields.
+      sessionStorage.setItem("edwinpai_active_gateway_profile_id", profileId);
       // Reset session state for clean switch
       setAgentId("main");
-      setMainSessionKey("main");
-      setSessionKey("agent:main:main");
+      const nextMainSessionKey = desktopMainSessionForProfile(profileId, activeWorkspace.id);
+      setMainSessionKey(nextMainSessionKey);
+      setSessionKey(desktopSessionKey("main", profileId));
       setAgentsList([]);
       setModelsList([]);
       setSessionsList([]);
@@ -628,25 +842,6 @@ function App() {
           } catch {
             // Lock check failed — proceed without lock
           }
-        }
-
-        // The desktop app is the primary front door. Before onboarding or
-        // gateway mode selection, make sure the local EdwinPAI runtime exists.
-        try {
-          const runtime = await invoke<{
-            installed: boolean;
-            compatible: boolean;
-          }>("check_edwinpai_runtime");
-          if (!runtime.installed || !runtime.compatible) {
-            setNeedsRuntimeSetup(true);
-            setIsInitializing(false);
-            return;
-          }
-        } catch (error) {
-          console.error("Failed to check EdwinPAI runtime:", error);
-          setNeedsRuntimeSetup(true);
-          setIsInitializing(false);
-          return;
         }
 
         // Check onboarding status from localStorage (desktop-only state)
@@ -862,28 +1057,6 @@ function App() {
     );
   }
 
-  // First-run runtime setup comes before onboarding: the desktop app owns
-  // bootstrapping the local EdwinPAI runtime if it is missing/incompatible.
-  if (needsRuntimeSetup) {
-    return (
-      <ErrorBoundary>
-        <RuntimeInstallerGate
-          onReady={() => {
-            setNeedsRuntimeSetup(false);
-            const onboardingDone =
-              localStorage.getItem("edwinpai_onboarding_complete") === "true";
-            if (!onboardingDone) {
-              setNeedsOnboarding(true);
-            } else {
-              setCurrentView("mode-select");
-            }
-          }}
-          onCancel={() => setNeedsRuntimeSetup(false)}
-        />
-      </ErrorBoundary>
-    );
-  }
-
   // Show onboarding wizard if needed
   if (needsOnboarding) {
     return (
@@ -919,7 +1092,7 @@ function App() {
         )}
 
         {currentView === "client-connect" && (
-          <ClientModeFlow
+          <ConnectModeFlow
             onComplete={handleClientConnected}
             onCancel={() => setCurrentView("mode-select")}
           />
@@ -972,8 +1145,12 @@ function App() {
               onNavigateToSettings={() => setCurrentView("settings")}
               sessionKey={sessionKey}
               sessions={sessionsList}
+              workspaces={workspaces}
+              activeWorkspaceId={activeWorkspace.id}
+              onSelectWorkspace={handleSelectWorkspace}
               onSelectSession={handleSelectSession}
               onNewSession={handleNewSession}
+              onRenameSession={handleRenameSession}
               onResetSession={handleResetSession}
               onDeleteSession={handleDeleteSession}
               agentId={agentId}
@@ -1167,7 +1344,9 @@ function App() {
               tunnelStatus={tunnelState?.status ?? null}
             />
             <div className="flex-1 overflow-y-auto">
-              <ExecApprovalsPanel profileId={activeProfile.id} />
+              <ExecApprovalsPanel
+                profileId={getVaultNamespace(activeProfile)}
+              />
             </div>
           </div>
         )}
@@ -1184,7 +1363,12 @@ function App() {
               tunnelStatus={tunnelState?.status ?? null}
             />
             <div className="flex-1 overflow-y-auto">
-              <VaultPanel profileId={activeProfile.id} />
+              <ErrorBoundary name="VaultPanel" autoRetry={false}>
+                <VaultPanel
+                  profileId={getVaultNamespace(activeProfile)}
+                  profileName={activeProfile.name}
+                />
+              </ErrorBoundary>
             </div>
           </div>
         )}
@@ -1253,11 +1437,13 @@ function App() {
                 setCurrentView("chat");
               }}
               onNewSession={() => {
-                const newKey = `session-${Date.now()}`;
-                setSessionKey(`agent:${agentId}:${newKey}`);
-                setMainSessionKey(newKey);
+                const newSessionId = newDesktopSessionId(activeProfile.id, activeWorkspace.id);
+                setSessionKey(
+                  desktopSessionKeyForSessionId(agentId, newSessionId),
+                );
                 setCurrentView("chat");
               }}
+              onRenameSession={handleRenameSession}
               onDeleteSession={(key) => {
                 deleteSession?.(key);
                 refreshSessions();
@@ -1338,7 +1524,13 @@ function App() {
               onSelectProfile={handleSelectProfile}
               tunnelStatus={tunnelState?.status ?? null}
             />
-            <FileEditor request={request} />
+            <FileEditor
+              request={request}
+              workspaces={workspaces}
+              activeWorkspaceId={activeWorkspace.id}
+              onSelectWorkspace={handleSelectWorkspace}
+              onAddWorkspace={handleAddWorkspace}
+            />
           </div>
         )}
       </div>
@@ -1376,7 +1568,7 @@ function SidebarNav({
       <div className="p-4 border-b">
         <h1 className="text-lg font-semibold">EdwinPAI Desktop</h1>
         <p className="text-xs text-muted-foreground mt-1">
-          {currentMode === "gateway" ? "Gateway Mode" : "Client Mode"}
+          {currentMode === "gateway" ? "Gateway Mode" : "Connect Mode"}
         </p>
         {profiles && profiles.length > 1 && onSelectProfile && (
           <StyledSelect
@@ -1501,7 +1693,7 @@ function SidebarNav({
                 <path d="M12 2l7 4v6c0 5-3.5 9.5-7 10-3.5-.5-7-5-7-10V6l7-4z" />
                 <path d="M9 12l2 2 4-4" />
               </svg>
-              Exec Approvals
+              Action Approvals
             </button>
 
             <button
@@ -1765,7 +1957,7 @@ function SidebarNav({
                 <path d="M10 13l-2 2 2 2" />
                 <path d="M14 17l2-2-2-2" />
               </svg>
-              Workspace
+              Workspaces
             </button>
 
             <button

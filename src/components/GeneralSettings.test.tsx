@@ -465,7 +465,7 @@ describe("GeneralSettings", () => {
       screen.getByRole("button", { name: /Gateway Mode/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /Client Mode/i }),
+      screen.getByRole("button", { name: /Connect Mode/i }),
     ).toBeInTheDocument();
   });
 
@@ -475,7 +475,7 @@ describe("GeneralSettings", () => {
     expect(screen.queryByText("Application Mode")).not.toBeInTheDocument();
   });
 
-  it("calls onModeChange when switching to client mode", async () => {
+  it("calls onModeChange when switching to connect mode", async () => {
     const onModeChange = vi.fn();
     const user = userEvent.setup();
     render(
@@ -483,7 +483,7 @@ describe("GeneralSettings", () => {
     );
 
     const clientModeButton = screen.getByRole("button", {
-      name: /Client Mode/i,
+      name: /Connect Mode/i,
     });
     await user.click(clientModeButton);
 

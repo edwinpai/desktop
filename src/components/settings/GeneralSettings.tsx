@@ -11,6 +11,7 @@
 
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  loadSessionHydrationMessageLimit,
+  saveSessionHydrationMessageLimit,
+} from "@/lib/ui-settings";
 
 // Backend config structure from Phase 4
 interface BackendDesktopConfig {
@@ -69,6 +74,8 @@ export function GeneralSettings() {
   const [error, setError] = useState<string | null>(null);
   const [isSwitchingMode, setIsSwitchingMode] = useState(false);
   const [modeChangeError, setModeChangeError] = useState<string | null>(null);
+  const [sessionHydrationMessageLimit, setSessionHydrationMessageLimit] =
+    useState(() => loadSessionHydrationMessageLimit());
 
   // Load config from backend on mount
   useEffect(() => {
@@ -96,7 +103,7 @@ export function GeneralSettings() {
 
     try {
       if (config.mode === "gateway") {
-        // Stop gateway before switching to client mode
+        // Stop gateway before switching to connect mode
         await invoke("stop_gateway_real");
       }
 
@@ -164,6 +171,10 @@ export function GeneralSettings() {
   const handleAutoReconnectChange = async (enabled: boolean) => {
     // Client config - placeholder for future implementation
     console.log("Auto-reconnect:", enabled);
+  };
+
+  const handleSessionHydrationLimitChange = (value: number) => {
+    setSessionHydrationMessageLimit(saveSessionHydrationMessageLimit(value));
   };
 
   if (loading || !config) {
@@ -258,7 +269,7 @@ export function GeneralSettings() {
             </div>
           </button>
 
-          {/* Client Mode Card */}
+          {/* Connect Mode Card (stored internally as mode="client" for compatibility) */}
           <button
             onClick={() => handleModeChange("client")}
             disabled={isSwitchingMode}
@@ -294,9 +305,9 @@ export function GeneralSettings() {
                 </svg>
               </div>
               <div className="flex-1">
-                <div className="font-semibold mb-1">Client Mode</div>
+                <div className="font-semibold mb-1">Connect Mode</div>
                 <p className="text-xs text-muted-foreground">
-                  Connect to someone else's gateway on your network
+                  Connect to an existing Gateway with granted permissions
                 </p>
               </div>
               {config.mode === "client" && (
@@ -352,6 +363,30 @@ export function GeneralSettings() {
               Choose your preferred color theme
             </p>
           </div>
+        </div>
+      </Card>
+
+      {/* Chat */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">Chat</h3>
+        <div>
+          <Label htmlFor="session-hydration-limit">Session load messages</Label>
+          <Input
+            id="session-hydration-limit"
+            type="number"
+            min={0}
+            max={100}
+            value={sessionHydrationMessageLimit}
+            onChange={(e) =>
+              handleSessionHydrationLimitChange(parseInt(e.target.value, 10))
+            }
+            className="mt-1.5"
+          />
+          <p className="text-xs text-muted-foreground mt-1.5">
+            Number of recent transcript messages to show when switching
+            sessions. Default is 4 messages, roughly 2 turns. Set to 0 to
+            disable session hydration.
+          </p>
         </div>
       </Card>
 

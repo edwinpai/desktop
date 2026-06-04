@@ -547,6 +547,8 @@ export type ExecApprovalsSnapshot = {
 export type ExecApprovalRequest = {
   id: string;
   request: {
+    category?: string | null;
+    title?: string | null;
     command: string;
     cwd?: string | null;
     host?: string | null;
@@ -557,7 +559,7 @@ export type ExecApprovalRequest = {
     sessionKey?: string | null;
   };
   createdAtMs: number;
-  expiresAtMs: number;
+  expiresAtMs: number | null;
 };
 
 /** Tool invocation approval request from `edwinpai tool invoke` CLI */
@@ -568,9 +570,10 @@ export type ToolInvokeApprovalRequest = {
   args: Record<string, unknown>;
   sessionKey?: string | null;
   agentId?: string | null;
+  /** Gateway connection/app display name; not the Client user role. */
   requestingClient?: string | null;
   createdAtMs: number;
-  expiresAtMs: number;
+  expiresAtMs: number | null;
 };
 
 /** Credential request from gateway credential vault */
@@ -582,7 +585,7 @@ export type CredentialRequest = {
   requester: string;
   leaseDurationMs: number;
   createdAtMs: number;
-  expiresAtMs: number;
+  expiresAtMs: number | null;
 };
 
 export async function resolveCredential(
@@ -619,6 +622,32 @@ export async function resolveToolInvokeApproval(
   )) as { ok: boolean };
 }
 
+export async function requestVaultSecretApproval(
+  target: GatewayTarget,
+  params: {
+    actionType: string;
+    vaultEntryId: string;
+    label?: string;
+    kind?: string;
+    provider?: string;
+    keychainRef?: string;
+    fingerprint?: string;
+    purpose?: string;
+    requestedBy?: string;
+    scope?: Record<string, unknown>;
+    timeoutMs?: number;
+  },
+  timeoutMs = 130000,
+): Promise<{ ok: boolean; approvalId: string; decision: string }> {
+  return (await callGatewayMethod(
+    target,
+    "vault.secret.approval.request",
+    params as Record<string, unknown>,
+    timeoutMs,
+    "Timed out waiting for vault secret approval",
+  )) as { ok: boolean; approvalId: string; decision: string };
+}
+
 export async function fetchExecApprovals(
   target: GatewayTarget,
   timeoutMs = 10000,
@@ -628,7 +657,7 @@ export async function fetchExecApprovals(
     "exec.approvals.get",
     {},
     timeoutMs,
-    "Timed out fetching exec approvals",
+    "Timed out fetching action approvals",
   )) as ExecApprovalsSnapshot;
 }
 
@@ -643,7 +672,7 @@ export async function setExecApprovals(
     "exec.approvals.set",
     { file, baseHash },
     timeoutMs,
-    "Timed out saving exec approvals",
+    "Timed out saving action approvals",
   )) as ExecApprovalsSnapshot;
 }
 
@@ -657,7 +686,7 @@ export async function fetchNodeExecApprovals(
     "exec.approvals.node.get",
     { nodeId },
     timeoutMs,
-    "Timed out fetching node exec approvals",
+    "Timed out fetching node action approvals",
   )) as ExecApprovalsSnapshot;
 }
 
@@ -673,7 +702,7 @@ export async function setNodeExecApprovals(
     "exec.approvals.node.set",
     { nodeId, file, baseHash },
     timeoutMs,
-    "Timed out saving node exec approvals",
+    "Timed out saving node action approvals",
   )) as ExecApprovalsSnapshot;
 }
 

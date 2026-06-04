@@ -1,6 +1,6 @@
 [package]
 name = "edwinpai-desktop"
-version = "1.0.0-beta.7"
+version = "1.0.0-beta.8"
 description = "EdwinPAI Desktop — AI assistant for everyone"
 authors = ["EdwinPAI"]
 edition = "2021"
@@ -30,7 +30,7 @@ secp256k1 = { version = "0.29", features = ["rand", "rand-std", "recovery", "glo
 sha2 = "0.10"
 hmac = "0.12"
 # Keychain integration
-keyring = "3.5"
+keyring = { version = "3.5", features = ["apple-native", "windows-native", "linux-native-sync-persistent", "crypto-rust"] }
 # Identicon generation (SVG)
 hex = "0.4"
 # Audit logging
@@ -41,6 +41,8 @@ tokio = { version = "1", features = ["full"] }
 lazy_static = "1.4"
 # HTTP client for overlay services integration
 reqwest = { version = "0.11", features = ["json", "rustls-tls"], default-features = false }
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
+futures-util = "0.3"
 # Process management (Phase 2/3)
 nix = { version = "0.29", features = ["signal", "process"] }
 # mDNS service discovery

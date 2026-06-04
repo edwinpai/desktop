@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+
 import { ChatView } from "./ChatView";
+
 import type { ChatMessage } from "@/types/api";
 
 vi.mock("@tanstack/react-virtual", () => ({
@@ -128,6 +130,55 @@ describe("ChatView", () => {
     expect(
       screen.queryByRole("button", { name: /Execute Tasks/ }),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows the active task currently being worked on", () => {
+    render(
+      <ChatView
+        {...defaultProps}
+        isLoading={true}
+        sessions={[
+          {
+            key: "agent:main:main",
+            label: "Main",
+            activeTask: {
+              goal: "Fix chat tool visibility",
+              status: "active",
+              criteriaTotal: 4,
+              criteriaCompleted: 1,
+            },
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Currently working on")).toBeInTheDocument();
+    expect(screen.getByText("Fix chat tool visibility")).toBeInTheDocument();
+    expect(screen.getByText("1/4 criteria")).toBeInTheDocument();
+  });
+
+  it("hides the active task banner once the task is done", () => {
+    render(
+      <ChatView
+        {...defaultProps}
+        sessions={[
+          {
+            key: "agent:main:main",
+            label: "Main",
+            activeTask: {
+              goal: "Ship onboarding flow",
+              status: "done",
+              criteriaTotal: 7,
+              criteriaCompleted: 6,
+            },
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.queryByText("Currently working on")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ship onboarding flow")).not.toBeInTheDocument();
+    expect(screen.queryByText("6/7 criteria")).not.toBeInTheDocument();
   });
 
   it("handles long message arrays", () => {

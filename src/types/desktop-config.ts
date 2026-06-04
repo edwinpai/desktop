@@ -16,12 +16,26 @@ import { APP_VERSION } from "@/lib/app-version";
 // ============================================================================
 
 /**
- * Operating mode (gateway or client)
+ * Persisted operating mode.
+ *
+ * Runtime ontology note: the stored value `"client"` is historical Desktop
+ * app-mode compatibility. Product/UI copy should call this Connect Mode. Do
+ * not change the persisted value without a config migration.
  */
 export type OperatingMode = "gateway" | "client";
 
 /**
- * Client session configuration for reconnection
+ * UI/product vocabulary for Desktop app mode.
+ *
+ * `"connect"` maps to the persisted compatibility value `"client"`.
+ */
+export type AppConnectionMode = "gateway" | "connect";
+
+/**
+ * Historical Client Mode session configuration for reconnection.
+ *
+ * Prefer the `ConnectSessionConfig` alias in new UI/domain code. The shape and
+ * persisted `lastClientSession` field remain unchanged for beta compatibility.
  */
 export interface ClientSessionConfig {
   /** Gateway's compressed secp256k1 public key (hex, 66 chars) */
@@ -39,6 +53,14 @@ export interface ClientSessionConfig {
   /** Permission level for this session */
   permission: "owner" | "member" | "guest";
 }
+
+/**
+ * Connect Mode session configuration for reconnection.
+ *
+ * Alias only: persisted config still uses `lastClientSession` and the same JSON
+ * shape as `ClientSessionConfig`.
+ */
+export type ConnectSessionConfig = ClientSessionConfig;
 
 /**
  * Gateway process configuration
@@ -152,12 +174,18 @@ export interface DesktopConfig {
 // Default Values
 // ============================================================================
 
+const DEFAULT_GATEWAY_PORT = Number.parseInt(
+  import.meta.env.VITE_EDWINPAI_GATEWAY_PORT ?? "18789",
+  10,
+);
+const DEFAULT_GATEWAY_URL = `http://localhost:${DEFAULT_GATEWAY_PORT}`;
+
 /**
  * Default gateway configuration
  */
 export const DEFAULT_GATEWAY_CONFIG: GatewayConfig = {
-  url: "http://localhost:18789",
-  port: 18789,
+  url: DEFAULT_GATEWAY_URL,
+  port: DEFAULT_GATEWAY_PORT,
   autoStart: true,
   autoRestart: true,
   maxRestarts: 5,
@@ -214,10 +242,33 @@ export const DEFAULT_DESKTOP_CONFIG: DesktopConfig = {
 // ============================================================================
 
 /**
- * Check if operating mode is valid
+ * Check if persisted operating mode is valid.
  */
 export function isValidOperatingMode(value: unknown): value is OperatingMode {
   return value === "gateway" || value === "client";
+}
+
+/**
+ * Check if UI/product app connection mode is valid.
+ */
+export function isValidAppConnectionMode(
+  value: unknown,
+): value is AppConnectionMode {
+  return value === "gateway" || value === "connect";
+}
+
+/**
+ * Convert persisted config mode into product/UI app-mode vocabulary.
+ */
+export function toAppConnectionMode(mode: OperatingMode): AppConnectionMode {
+  return mode === "client" ? "connect" : "gateway";
+}
+
+/**
+ * Convert product/UI app-mode vocabulary into persisted config mode.
+ */
+export function toPersistedOperatingMode(mode: AppConnectionMode): OperatingMode {
+  return mode === "connect" ? "client" : "gateway";
 }
 
 /**
@@ -228,9 +279,20 @@ export function isGatewayMode(config: DesktopConfig): boolean {
 }
 
 /**
- * Check if config is in client mode
+ * Check if config is in historical Client Mode.
+ *
+ * Prefer `isConnectMode` in new UI/domain code.
  */
 export function isClientMode(config: DesktopConfig): boolean {
+  return config.mode === "client";
+}
+
+/**
+ * Check if config is in Connect Mode.
+ *
+ * This intentionally checks the persisted compatibility value `"client"`.
+ */
+export function isConnectMode(config: DesktopConfig): boolean {
   return config.mode === "client";
 }
 

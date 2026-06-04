@@ -19,7 +19,16 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { APP_VERSION } from "@/lib/app-version";
 import { readConfig } from "@/lib/config";
+import {
+  clearChatHistory,
+  loadChatHistory,
+  saveChatHistory,
+} from "@/lib/chat-history";
 import { signChallenge } from "@/lib/crypto-domain";
+import {
+  getRuleForCredential,
+  loadPolicy as loadVaultPolicy,
+} from "@/lib/vault-policy";
 import type { ChatMessage as BaseChatMessage } from "@/types/api";
 import type { ToolUseBlock } from "@/types/streaming";
 
@@ -110,9 +119,18 @@ type GatewayFrame = RequestFrame | ResponseFrame | EventFrame;
 
 interface UseWebSocketChatOptions {
   wsUrl?: string;
+  authToken?: string | null;
+  historyScopeKey?: string;
+  profileId?: string;
   sessionKey?: string;
   autoReconnect?: boolean;
   reconnectDelayMs?: number;
+  /** When false, do not open/reopen the websocket yet. Useful while an SSH tunnel is starting. */
+  enabled?: boolean;
+  /** Number of recent transcript messages to hydrate when switching sessions. 0 disables hydration. */
+  sessionHydrationMessageLimit?: number;
+  /** Workspace directory to use for this chat session's context injection/writes. */
+  workspaceDir?: string;
 }
 
 export type GatewaySessionList = {
@@ -139,7 +157,9 @@ export type GatewaySessionList = {
     totalTokens?: number | null;
     responseUsage?: "on" | "off" | "tokens" | "full";
     modelProvider?: string;
+    workspaceDir?: string;
     label?: string;
+    userLabel?: string;
     displayName?: string;
     provider?: string;
     groupChannel?: string;
@@ -223,12 +243,15 @@ interface UseWebSocketChatReturn {
   }) => Promise<GatewaySessionList>;
   listAgents: () => Promise<GatewayAgentsList>;
   listModels: () => Promise<{ models?: GatewayModelChoice[] }>;
+  loadChatHistoryFromGateway: (limit?: number) => Promise<ChatMessage[]>;
   patchSession: (opts: {
     key: string;
+    userLabel?: string | null;
     model?: string | null;
     thinkingLevel?: string | null;
     verboseLevel?: string | null;
     reasoningLevel?: string | null;
+    workspaceDir?: string | null;
   }) => Promise<unknown>;
   getTask: (key: string) => Promise<Record<string, unknown>>;
   updateTask: (
@@ -245,7 +268,7 @@ interface UseWebSocketChatReturn {
   request: <T = Record<string, unknown>>(
     method: string,
     params?: Record<string, unknown>,
-    opts?: { timeoutMs?: number },
+    opts?: { timeoutMs?: number; reportErrors?: boolean },
   ) => Promise<T>;
 }
 
@@ -258,12 +281,21 @@ export function useWebSocketChat(
 ): UseWebSocketChatReturn {
   const {
     wsUrl,
+    authToken,
+    historyScopeKey = "default",
+    profileId = "default",
     sessionKey = "agent:main:desktop",
     autoReconnect = true,
     reconnectDelayMs = 3000,
+    enabled = true,
+    sessionHydrationMessageLimit = 4,
+    workspaceDir,
   } = options;
+  const scopedSessionKey = `${historyScopeKey}:${sessionKey}`;
 
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    loadChatHistory(scopedSessionKey),
+  );
   const [isConnected, setIsConnected] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -296,6 +328,7 @@ export function useWebSocketChat(
         resolve: (payload: Record<string, unknown>) => void;
         reject: (err: Error) => void;
         timeoutId?: ReturnType<typeof setTimeout>;
+        reportErrors?: boolean;
       }
     >(),
   );
@@ -303,10 +336,102 @@ export function useWebSocketChat(
   const toolSourcesRef = useRef<Map<string, ToolSource[]>>(new Map());
   const toolUsesByRunRef = useRef<Map<string, ToolUseBlock[]>>(new Map());
   const mountedRef = useRef(true);
+  const closeActiveSocket = useCallback(() => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    const active = wsRef.current;
+    if (active) {
+      // Clear the ref before closing so the socket's close handler knows this
+      // was an intentional target change/cleanup and must not auto-reconnect
+      // using the stale URL captured by that older connection.
+      wsRef.current = null;
+      try {
+        active.close();
+      } catch {
+        /* ignore */
+      }
+    }
+  }, []);
   // Track which runId is currently streaming so we know when to append vs update
   const activeRunIdRef = useRef<string | null>(null);
+  const autoGrantedCredentialsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    setMessages(loadChatHistory(scopedSessionKey));
+    activeRunIdRef.current = null;
+  }, [scopedSessionKey]);
+
+  useEffect(() => {
+    saveChatHistory(scopedSessionKey, messages);
+  }, [scopedSessionKey, messages]);
 
   const nextId = useCallback(() => String(messageIdRef.current++), []);
+
+  const autoGrantCredentialRequest = useCallback(
+    async (payload: Record<string, unknown>) => {
+      const requestId = typeof payload.id === "string" ? payload.id : "";
+      const credentialId =
+        typeof payload.credentialId === "string" ? payload.credentialId : "";
+      if (!requestId || !credentialId) return;
+      if (autoGrantedCredentialsRef.current.has(requestId)) return;
+
+      const policy = await loadVaultPolicy(profileId);
+      const { ask, maxLeaseMs } = getRuleForCredential(policy, credentialId);
+      if (ask !== "auto-grant" && ask !== "first-time") return;
+
+      autoGrantedCredentialsRef.current.add(requestId);
+      try {
+        const requestedLeaseMs =
+          typeof payload.leaseDurationMs === "number"
+            ? payload.leaseDurationMs
+            : 300_000;
+        const leaseMs = maxLeaseMs
+          ? Math.min(requestedLeaseMs, maxLeaseMs)
+          : requestedLeaseMs;
+        const purpose =
+          typeof payload.purpose === "string" ? payload.purpose : undefined;
+        const requester =
+          typeof payload.requester === "string" ? payload.requester : undefined;
+        const name =
+          typeof payload.name === "string" ? payload.name : credentialId;
+        const signedPayload = JSON.stringify({
+          actionType: "vault.secret.use",
+          vaultEntryId: credentialId,
+          label: name,
+          provider: requester,
+          purpose,
+          requestedBy: requester,
+          scope: { operation: "credential.resolve", requestId },
+          requestedAtMs: Date.now(),
+        });
+        const signed = await invoke<{ envelope: Record<string, unknown> }>(
+          "sign_request",
+          { payload: signedPayload },
+        );
+        await invoke("vault_use_for_credential_request", {
+          profileId,
+          id: credentialId,
+          payload: signedPayload,
+          envelope: signed.envelope,
+          gatewayUrl: resolvedWsUrlRef.current,
+          gatewayToken: authTokenRef.current,
+          requestId,
+          leaseMs,
+        });
+        console.log(`[Vault] Auto-granted ${credentialId} from chat listener`);
+      } catch (err) {
+        autoGrantedCredentialsRef.current.delete(requestId);
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn(
+          `[Vault] Auto-grant failed for ${credentialId}: ${message}`,
+        );
+        setError(`Vault auto-grant failed for ${name}: ${message}`);
+      }
+    },
+    [profileId],
+  );
 
   /**
    * Load auth token and gateway URL from config
@@ -322,24 +447,26 @@ export function useWebSocketChat(
   }> => {
     const defaultUrl = "ws://localhost:18789";
     try {
-      // 1. Check desktop config first (Settings UI writes here)
-      let desktopUrl: string | null = null;
-      let desktopToken: string | null = null;
+      // 1. Check explicit per-window overrides first, then desktop config.
+      let desktopUrl: string | null = wsUrl ?? null;
+      let desktopToken: string | null = authToken ?? null;
       try {
         const desktopConfig = await readConfig();
-        if (
-          desktopConfig.gatewayUrl &&
-          desktopConfig.gatewayUrl !== `http://localhost:18789`
-        ) {
-          desktopUrl = desktopConfig.gatewayUrl.replace(/^http/, "ws");
-        } else if (
-          desktopConfig.gatewayPort &&
-          desktopConfig.gatewayPort !== 18789
-        ) {
-          desktopUrl = `ws://localhost:${desktopConfig.gatewayPort}`;
+        if (!desktopUrl) {
+          if (
+            desktopConfig.gatewayUrl &&
+            desktopConfig.gatewayUrl !== `http://localhost:18789`
+          ) {
+            desktopUrl = desktopConfig.gatewayUrl.replace(/^http/, "ws");
+          } else if (
+            desktopConfig.gatewayPort &&
+            desktopConfig.gatewayPort !== 18789
+          ) {
+            desktopUrl = `ws://localhost:${desktopConfig.gatewayPort}`;
+          }
         }
-        // Token from Settings takes priority
-        if (desktopConfig.gatewayToken) {
+        // Explicit authToken takes priority, then token from Settings.
+        if (!desktopToken && desktopConfig.gatewayToken) {
           desktopToken = desktopConfig.gatewayToken;
         }
       } catch {
@@ -381,7 +508,7 @@ export function useWebSocketChat(
       console.error("[WS] Failed to load config:", err);
       return { token: null, wsUrl: defaultUrl };
     }
-  }, []);
+  }, [authToken, wsUrl]);
 
   /**
    * Handle incoming gateway frames
@@ -400,7 +527,9 @@ export function useWebSocketChat(
           } else {
             const errMsg = res.error?.message ?? "Request failed";
             pending.reject(new Error(errMsg));
-            setError(errMsg);
+            if (pending.reportErrors !== false) {
+              setError(errMsg);
+            }
           }
           return;
         }
@@ -431,6 +560,10 @@ export function useWebSocketChat(
 
       if (frame.type === "event") {
         const evt = frame as EventFrame;
+
+        if (evt.event === "credential.requested" && evt.payload) {
+          void autoGrantCredentialRequest(evt.payload);
+        }
 
         if (evt.event === "chat" && evt.payload) {
           const chat = evt.payload as unknown as ChatPayload;
@@ -661,14 +794,14 @@ export function useWebSocketChat(
         return;
       }
     },
-    [sessionKey],
+    [sessionKey, autoGrantCredentialRequest],
   );
 
   /**
    * Connect to WebSocket
    */
   const connect = useCallback(async () => {
-    if (!mountedRef.current) return;
+    if (!mountedRef.current || !enabled) return;
 
     // Always re-read config on connect (token/URL may have changed in Settings)
     const { token, wsUrl: configUrl } = await loadAuthAndUrl();
@@ -685,23 +818,20 @@ export function useWebSocketChat(
     try {
       setError(null);
       // Close any existing connection before opening a new one
-      if (wsRef.current) {
+      if (wsRef.current || reconnectTimeoutRef.current) {
         console.log("[WS] Closing existing connection before reconnect");
-        try {
-          wsRef.current.close();
-        } catch {
-          /* ignore */
-        }
-        wsRef.current = null;
+        closeActiveSocket();
       }
 
       console.log("[WS] Connecting to", targetUrl);
       const ws = new WebSocket(targetUrl);
       wsRef.current = ws;
 
-      // Build and send the connect handshake frame
+      // Build and send the connect handshake frame. Capture this socket so
+      // delayed fallback timers from an older connection cannot send another
+      // connect frame on a newer already-handshaken socket.
       const sendHandshake = async () => {
-        if (!mountedRef.current || !wsRef.current) return;
+        if (!mountedRef.current || wsRef.current !== ws) return;
         console.log("[WS] Sending handshake...");
 
         // Build auth — token only (nonce is for ordering, not sent back in auth)
@@ -743,7 +873,9 @@ export function useWebSocketChat(
           } satisfies ConnectParams,
         };
 
-        wsRef.current.send(JSON.stringify(frame));
+        if (wsRef.current === ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(frame));
+        }
       };
 
       let handshakeSent = false;
@@ -754,7 +886,7 @@ export function useWebSocketChat(
         // Start a timeout — if no challenge arrives in 2s, send handshake directly
         // (backwards compat with gateways that don't send connect.challenge)
         setTimeout(() => {
-          if (!handshakeSent && mountedRef.current) {
+          if (!handshakeSent && mountedRef.current && wsRef.current === ws) {
             console.log(
               "[WS] No challenge received, sending handshake directly",
             );
@@ -821,7 +953,16 @@ export function useWebSocketChat(
       console.error("[WS] Failed to connect:", err);
       setError(err instanceof Error ? err.message : "Failed to connect");
     }
-  }, [autoReconnect, reconnectDelayMs, loadAuthAndUrl, handleFrame, nextId]);
+  }, [
+    autoReconnect,
+    reconnectDelayMs,
+    loadAuthAndUrl,
+    handleFrame,
+    nextId,
+    wsUrl,
+    enabled,
+    closeActiveSocket,
+  ]);
 
   const signParams = useCallback(async (params?: Record<string, unknown>) => {
     if (!params) return undefined;
@@ -857,7 +998,7 @@ export function useWebSocketChat(
     async <T = Record<string, unknown>>(
       method: string,
       params?: Record<string, unknown>,
-      opts?: { timeoutMs?: number },
+      opts?: { timeoutMs?: number; reportErrors?: boolean },
     ): Promise<T> => {
       const ws = wsRef.current;
       if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -877,6 +1018,7 @@ export function useWebSocketChat(
           resolve: (payload) => resolve(payload as T),
           reject,
           timeoutId,
+          reportErrors: opts?.reportErrors,
         });
 
         const sendFrame = async () => {
@@ -927,20 +1069,24 @@ export function useWebSocketChat(
         return;
       }
 
-      // Add user message to UI immediately
-      // Show images inline, show non-images as text placeholders
-      const attachmentNote =
-        attachments.length > 0
-          ? `\n\n${attachments
-              .map((a) =>
-                a.mimeType?.startsWith("image/")
-                  ? `![${a.fileName}](data:${a.mimeType};base64,${a.content})`
-                  : `[Attached: ${a.fileName}]`,
-              )
-              .join("\n")}`
-          : "";
-      const localContent = `${trimmed}${attachmentNote}`.trim();
-      setMessages((prev) => [...prev, { role: "user", content: localContent }]);
+      // Add user message to UI immediately. Keep the attachment payload on the
+      // local message so pasted screenshots render as images instead of losing
+      // fidelity behind a text-only placeholder.
+      const nonImageAttachmentNote = attachments
+        .filter((a) => !a.mimeType?.startsWith("image/"))
+        .map((a) => `[Attached: ${a.fileName}]`)
+        .join("\n");
+      const localContent = [trimmed, nonImageAttachmentNote]
+        .filter(Boolean)
+        .join("\n\n");
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "user",
+          content: localContent,
+          attachments: attachments.length > 0 ? attachments : undefined,
+        },
+      ]);
       setCurrentToolUses([]);
       setIsStreaming(true);
       setRunStatus("streaming");
@@ -956,6 +1102,7 @@ export function useWebSocketChat(
             message: trimmed,
             deliver: opts?.deliver,
             attachments: attachments.length > 0 ? attachments : undefined,
+            workspaceDir,
             idempotencyKey: crypto.randomUUID(),
           },
         };
@@ -966,7 +1113,7 @@ export function useWebSocketChat(
         setError(err instanceof Error ? err.message : "Failed to send message");
       }
     },
-    [sessionKey, nextId],
+    [sessionKey, nextId, workspaceDir],
   );
 
   const abortRun = useCallback(async () => {
@@ -1000,16 +1147,55 @@ export function useWebSocketChat(
   }, [sessionKey, nextId]);
 
   const clearMessages = useCallback(() => {
+    clearChatHistory(scopedSessionKey);
     setMessages([]);
     activeRunIdRef.current = null;
     setIsStreaming(false);
     setRunStatus("idle");
     setCurrentToolUses([]);
-  }, []);
+  }, [scopedSessionKey]);
 
   const deleteMessage = useCallback((index: number) => {
     setMessages((prev) => prev.filter((_, i) => i !== index));
   }, []);
+
+  const loadChatHistoryFromGateway = useCallback(
+    async (limit = sessionHydrationMessageLimit) => {
+      const normalizedLimit = Math.max(0, Math.min(100, Math.floor(limit)));
+      if (normalizedLimit <= 0) return [];
+      const result = await request<{ messages?: ChatMessage[] }>(
+        "chat.history",
+        { sessionKey, limit: normalizedLimit },
+        { timeoutMs: 15_000, reportErrors: false },
+      );
+      const hydrated = Array.isArray(result.messages) ? result.messages : [];
+      setMessages(hydrated);
+      return hydrated;
+    },
+    [request, sessionHydrationMessageLimit, sessionKey],
+  );
+
+  useEffect(() => {
+    if (!enabled || !isConnected || sessionHydrationMessageLimit <= 0) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const result = await request<{ messages?: ChatMessage[] }>(
+          "chat.history",
+          { sessionKey, limit: sessionHydrationMessageLimit },
+          { timeoutMs: 15_000, reportErrors: false },
+        );
+        if (cancelled) return;
+        const hydrated = Array.isArray(result.messages) ? result.messages : [];
+        setMessages(hydrated);
+      } catch {
+        // Fall back to locally cached chat history when gateway hydration is unavailable.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, isConnected, request, sessionHydrationMessageLimit, sessionKey]);
 
   const listSessions = useCallback(
     async (opts?: {
@@ -1045,10 +1231,12 @@ export function useWebSocketChat(
   const patchSession = useCallback(
     async (opts: {
       key: string;
+      userLabel?: string | null;
       model?: string | null;
       thinkingLevel?: string | null;
       verboseLevel?: string | null;
       reasoningLevel?: string | null;
+      workspaceDir?: string | null;
     }) => {
       return await request("sessions.patch", opts as Record<string, unknown>);
     },
@@ -1102,16 +1290,9 @@ export function useWebSocketChat(
   );
 
   const reconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-    connect();
-  }, [connect]);
+    closeActiveSocket();
+    if (enabled) connect();
+  }, [closeActiveSocket, connect, enabled]);
 
   // Connect on mount, cleanup on unmount
   // Use ref to avoid reconnecting when connect's deps change
@@ -1120,16 +1301,28 @@ export function useWebSocketChat(
 
   useEffect(() => {
     mountedRef.current = true;
+
+    if (!enabled) {
+      closeActiveSocket();
+      setIsConnected(false);
+      setIsStreaming(false);
+      setRunStatus("idle");
+      return undefined;
+    }
+
     connectRef.current();
 
     return () => {
-      mountedRef.current = false;
-      if (reconnectTimeoutRef.current)
-        clearTimeout(reconnectTimeoutRef.current);
-      if (wsRef.current) wsRef.current.close();
+      closeActiveSocket();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [enabled, wsUrl, authToken, sessionKey, closeActiveSocket]);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      closeActiveSocket();
+    };
+  }, [closeActiveSocket]);
 
   return {
     messages,
@@ -1148,6 +1341,7 @@ export function useWebSocketChat(
     listSessions,
     listAgents,
     listModels,
+    loadChatHistoryFromGateway,
     patchSession,
     getTask,
     updateTask,
