@@ -14,6 +14,7 @@ import {
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -233,24 +234,25 @@ export function AgentConfigCard({
 
         <div className="space-y-2">
           <Label htmlFor="primary-model">Primary Model</Label>
-          <Select
-            value={config.model || undefined}
-            onValueChange={(value) =>
-              setConfig((prev) => ({ ...prev, model: value }))
+          <Input
+            id="primary-model"
+            list="primary-model-options"
+            value={config.model}
+            onChange={(e) =>
+              setConfig((prev) => ({ ...prev, model: e.target.value }))
             }
-          >
-            <SelectTrigger id="primary-model">
-              <SelectValue placeholder="Select a model..." />
-            </SelectTrigger>
-            <SelectContent>
-              {availableModels.map((m) => (
-                <SelectItem key={m.id} value={m.id}>
-                  {m.name}
-                  {m.provider ? ` (${m.provider})` : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder="anthropic/claude-sonnet-4-5"
+            autoComplete="off"
+          />
+          <datalist id="primary-model-options">
+            {availableModels.map((m) => (
+              <option
+                key={m.id}
+                value={m.id}
+                label={`${m.name}${m.provider ? ` (${m.provider})` : ""}`}
+              />
+            ))}
+          </datalist>
           <p className="text-xs text-muted-foreground">
             Default model for new sessions. Per-session overrides are available
             in Chat.

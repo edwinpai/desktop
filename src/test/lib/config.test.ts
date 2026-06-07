@@ -2,7 +2,12 @@
  * Config Module Tests
  */
 
-import { readTextFile, writeTextFile, exists } from "@tauri-apps/plugin-fs";
+import {
+  readTextFile,
+  writeTextFile,
+  exists,
+  mkdir,
+} from "@tauri-apps/plugin-fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { readConfig, updateConfig } from "@/lib/config";
@@ -139,6 +144,7 @@ describe("Config Module", () => {
         {
           id: "default",
           name: "Default Gateway",
+          vaultNamespace: "default",
           gatewayUrl: "http://localhost:3000/",
           gatewayPort: 3000,
           gatewayToken: "legacy-token",
@@ -147,6 +153,20 @@ describe("Config Module", () => {
       expect(config.activeGatewayProfileId).toBe("default");
       expect(config.gatewayUrl).toBe("http://localhost:3000/");
       expect(config.gatewayToken).toBe("legacy-token");
+    });
+
+    it("creates the AppData directory before writing config", async () => {
+      vi.mocked(readTextFile).mockResolvedValue(
+        JSON.stringify(DEFAULT_DESKTOP_CONFIG),
+      );
+
+      await updateConfig({ gatewayToken: "token-after-fresh-install" });
+
+      expect(vi.mocked(mkdir)).toHaveBeenCalledWith(".", {
+        baseDir: "AppData",
+        recursive: true,
+      });
+      expect(vi.mocked(writeTextFile)).toHaveBeenCalled();
     });
 
     it("mirrors updates to gatewayUrl and gatewayToken into the active gateway profile", async () => {

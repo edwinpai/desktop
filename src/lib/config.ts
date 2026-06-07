@@ -10,6 +10,7 @@ import {
   readTextFile,
   writeTextFile,
   exists,
+  mkdir,
 } from "@tauri-apps/plugin-fs";
 
 import type { DesktopConfig, PartialDesktopConfig } from "@/types";
@@ -42,13 +43,29 @@ function hasTauriFs(): boolean {
 // ============================================================================
 
 /**
- * Ensure config file's parent directory exists (AppData directory)
- * Note: BaseDirectory.AppData is automatically created by Tauri
+ * Ensure the Tauri AppData directory exists before touching desktop-config.json.
+ *
+ * On a fresh Windows profile, `%APPDATA%\com.edwinpai.desktop` may not
+ * exist yet. Tauri's fs plugin permits writes inside AppData, but the app must
+ * create the app-specific directory first. The matching `fs:allow-mkdir`
+ * capability is declared in `src-tauri/capabilities/default.json`.
+ */
+async function ensureConfigDirectory(): Promise<void> {
+  await mkdir(".", {
+    baseDir: BaseDirectory.AppData,
+    recursive: true,
+  });
+}
+
+/**
+ * Ensure config file's parent directory exists and create defaults on first run.
  */
 async function ensureConfigExists(): Promise<void> {
   if (!hasTauriFs()) return;
 
   try {
+    await ensureConfigDirectory();
+
     const fileExists = await exists(CONFIG_FILE, {
       baseDir: BaseDirectory.AppData,
     });
@@ -147,6 +164,8 @@ function migrateLoopbackGatewayUrl(url?: string): string | undefined {
  */
 export async function writeConfig(config: DesktopConfig): Promise<void> {
   try {
+    await ensureConfigDirectory();
+
     // Sanitize before writing
     const sanitized = sanitizeConfig(config);
     const contents = JSON.stringify(sanitized, null, 2);
@@ -156,7 +175,8 @@ export async function writeConfig(config: DesktopConfig): Promise<void> {
     });
   } catch (err) {
     console.error("Failed to write config:", err);
-    throw new Error("Failed to save configuration");
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to save configuration: ${detail}`);
   }
 }
 
