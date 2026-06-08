@@ -1128,9 +1128,12 @@ function GatewayStep({ onComplete }: { onComplete: (data?: unknown) => void }) {
   const [startPort, setStartPort] = useState(18789);
   const [startToken, setStartToken] = useState("");
   const [runtimeReady, setRuntimeReady] = useState(false);
+  const [isInstallingGateway, setIsInstallingGateway] = useState(false);
+  const [installOutput, setInstallOutput] = useState<string | null>(null);
   const [runtimeChecked, setRuntimeChecked] = useState(false);
   const [runtimeInfo, setRuntimeInfo] = useState<{
     nodeAvailable: boolean;
+    npmAvailable?: boolean;
     edwinpaiAvailable: boolean;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1142,6 +1145,7 @@ function GatewayStep({ onComplete }: { onComplete: (data?: unknown) => void }) {
       // Check runtime availability in parallel with gateway scan
       invoke<{
         nodeAvailable: boolean;
+        npmAvailable?: boolean;
         edwinpaiAvailable: boolean;
         ready: boolean;
       }>("check_runtime")
@@ -1149,6 +1153,7 @@ function GatewayStep({ onComplete }: { onComplete: (data?: unknown) => void }) {
           setRuntimeReady(status.ready);
           setRuntimeInfo({
             nodeAvailable: status.nodeAvailable,
+            npmAvailable: status.npmAvailable,
             edwinpaiAvailable: status.edwinpaiAvailable,
           });
           setRuntimeChecked(true);
@@ -1188,6 +1193,40 @@ function GatewayStep({ onComplete }: { onComplete: (data?: unknown) => void }) {
       // Scan failed
     } finally {
       setIsScanning(false);
+    }
+  };
+
+  const handleInstallGatewayRuntime = async () => {
+    setIsInstallingGateway(true);
+    setError(null);
+    setInstallOutput(null);
+    try {
+      const result = await invoke<{
+        success: boolean;
+        command: string;
+        stdout: string;
+        stderr: string;
+        runtime: {
+          nodeAvailable: boolean;
+          npmAvailable?: boolean;
+          edwinpaiAvailable: boolean;
+          ready: boolean;
+        };
+      }>("install_gateway_runtime");
+      setRuntimeReady(result.runtime.ready);
+      setRuntimeInfo({
+        nodeAvailable: result.runtime.nodeAvailable,
+        npmAvailable: result.runtime.npmAvailable,
+        edwinpaiAvailable: result.runtime.edwinpaiAvailable,
+      });
+      setInstallOutput(
+        `Installed with ${result.command}${result.stdout ? `\n${result.stdout}` : ""}`,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsInstallingGateway(false);
+      setRuntimeChecked(true);
     }
   };
 
@@ -1378,7 +1417,7 @@ function GatewayStep({ onComplete }: { onComplete: (data?: unknown) => void }) {
                               Open a terminal and run:
                             </p>
                             <code className="block text-xs bg-muted px-3 py-2 rounded font-mono select-all">
-                              npm install -g edwinpai
+                              npm install -g @edwinpai/edwinpai@beta
                             </code>
                           </div>
                         </div>
@@ -1407,11 +1446,38 @@ function GatewayStep({ onComplete }: { onComplete: (data?: unknown) => void }) {
                             Open a terminal and run:
                           </p>
                           <code className="block text-xs bg-muted px-3 py-2 rounded font-mono select-all">
-                            npm install -g edwinpai
+                            npm install -g @edwinpai/edwinpai@beta
                           </code>
                         </div>
                       </div>
                     </div>
+                  )}
+
+                  {runtimeInfo?.nodeAvailable &&
+                    runtimeInfo?.npmAvailable !== false &&
+                    !runtimeInfo?.edwinpaiAvailable && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={handleInstallGatewayRuntime}
+                        disabled={isInstallingGateway}
+                        className="w-full"
+                      >
+                        {isInstallingGateway ? (
+                          <Loader2 className="size-4 mr-2 animate-spin" />
+                        ) : (
+                          <Package className="size-4 mr-2" />
+                        )}
+                        {isInstallingGateway
+                          ? "Installing Gateway..."
+                          : "Install Gateway via npm"}
+                      </Button>
+                    )}
+
+                  {installOutput && (
+                    <pre className="max-h-32 overflow-auto whitespace-pre-wrap rounded bg-muted px-3 py-2 text-xs text-muted-foreground">
+                      {installOutput}
+                    </pre>
                   )}
 
                   <Button
@@ -1422,12 +1488,14 @@ function GatewayStep({ onComplete }: { onComplete: (data?: unknown) => void }) {
                       try {
                         const status = await invoke<{
                           nodeAvailable: boolean;
+                          npmAvailable?: boolean;
                           edwinpaiAvailable: boolean;
                           ready: boolean;
                         }>("check_runtime");
                         setRuntimeReady(status.ready);
                         setRuntimeInfo({
                           nodeAvailable: status.nodeAvailable,
+                          npmAvailable: status.npmAvailable,
                           edwinpaiAvailable: status.edwinpaiAvailable,
                         });
                       } catch {

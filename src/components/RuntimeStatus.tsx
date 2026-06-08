@@ -5,7 +5,7 @@
  * status and readiness for gateway startup.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   Card,
@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   CheckCircle,
@@ -28,6 +29,8 @@ import { readConfig } from "@/lib/config";
 interface RuntimeInfo {
   nodeAvailable: boolean;
   nodeVersion: string | null;
+  npmAvailable: boolean;
+  npmVersion: string | null;
   edwinpaiAvailable: boolean;
   edwinpaiVersion: string | null;
   edwinpaiPath: string | null;
@@ -45,40 +48,71 @@ export function RuntimeStatus({ gatewayUrl }: RuntimeStatusProps) {
   const [isRemoteGateway, setIsRemoteGateway] = useState(false);
   const [gatewayReachable, setGatewayReachable] = useState(false);
   const [gatewayLabel, setGatewayLabel] = useState<string | null>(null);
+  const [installing, setInstalling] = useState(false);
+  const [installError, setInstallError] = useState<string | null>(null);
+  const [installOutput, setInstallOutput] = useState<string | null>(null);
+
+  const refreshRuntime = useCallback(async () => {
+    const [status, config] = await Promise.all([
+      invoke<RuntimeInfo>("check_runtime"),
+      readConfig().catch(() => null),
+    ]);
+    setRuntime(status);
+
+    const configuredGatewayUrl = gatewayUrl || config?.gatewayUrl;
+    if (configuredGatewayUrl) {
+      try {
+        const url = new URL(configuredGatewayUrl);
+        const isLocal =
+          url.hostname === "localhost" || url.hostname === "127.0.0.1";
+        setIsRemoteGateway(!isLocal);
+        setGatewayLabel(`${url.hostname}:${url.port || "18789"}`);
+
+        const probe = await invoke<{ found: boolean }>("probe_gateway", {
+          url: configuredGatewayUrl,
+        }).catch(() => ({ found: false }));
+        setGatewayReachable(Boolean(probe.found));
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [gatewayUrl]);
 
   useEffect(() => {
     (async () => {
       try {
-        const [status, config] = await Promise.all([
-          invoke<RuntimeInfo>("check_runtime"),
-          readConfig().catch(() => null),
-        ]);
-        setRuntime(status);
-
-        const configuredGatewayUrl = gatewayUrl || config?.gatewayUrl;
-        if (configuredGatewayUrl) {
-          try {
-            const url = new URL(configuredGatewayUrl);
-            const isLocal =
-              url.hostname === "localhost" || url.hostname === "127.0.0.1";
-            setIsRemoteGateway(!isLocal);
-            setGatewayLabel(`${url.hostname}:${url.port || "18789"}`);
-
-            const probe = await invoke<{ found: boolean }>("probe_gateway", {
-              url: configuredGatewayUrl,
-            }).catch(() => ({ found: false }));
-            setGatewayReachable(Boolean(probe.found));
-          } catch {
-            /* ignore */
-          }
-        }
+        await refreshRuntime();
       } catch (err) {
         console.error("Failed to check runtime:", err);
       } finally {
         setLoading(false);
       }
     })();
-  }, [gatewayUrl]);
+  }, [refreshRuntime]);
+
+  const handleInstallGateway = async () => {
+    setInstalling(true);
+    setInstallError(null);
+    setInstallOutput(null);
+    try {
+      const result = await invoke<{
+        success: boolean;
+        command: string;
+        stdout: string;
+        stderr: string;
+        runtime: RuntimeInfo;
+      }>("install_gateway_runtime");
+      setRuntime(result.runtime);
+      setInstallOutput(
+        `Installed with ${result.command}${result.stdout ? `\n${result.stdout}` : ""}`,
+      );
+      await refreshRuntime();
+    } catch (err) {
+      setInstallError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setInstalling(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -161,6 +195,29 @@ export function RuntimeStatus({ gatewayUrl }: RuntimeStatusProps) {
           </div>
         </div>
 
+        {/* npm */}
+        <div className="flex items-center justify-between py-2 border-b border-border/50">
+          <div className="flex items-center gap-2">
+            <Terminal className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">npm</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {runtime.npmAvailable ? (
+              <>
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <span className="text-sm text-muted-foreground">
+                  {runtime.npmVersion}
+                </span>
+              </>
+            ) : (
+              <>
+                <XCircle className="h-4 w-4 text-destructive" />
+                <span className="text-sm text-destructive">Not installed</span>
+              </>
+            )}
+          </div>
+        </div>
+
         {/* EdwinPAI */}
         <div className="flex items-center justify-between py-2 border-b border-border/50">
           <div className="flex items-center gap-2">
@@ -227,8 +284,40 @@ export function RuntimeStatus({ gatewayUrl }: RuntimeStatusProps) {
             <p className="text-muted-foreground">
               {!runtime.nodeAvailable
                 ? "Node.js is required. Install from nodejs.org (v22+ recommended)."
-                : "EdwinPAI gateway binary not found. Install with: npm install -g edwinpai"}
+                : !runtime.npmAvailable
+                  ? "npm is required. Install Node.js 22+ with npm enabled, then try again."
+                  : "EdwinPAI gateway binary not found. Install with Desktop or run: npm install -g @edwinpai/edwinpai@beta"}
             </p>
+            {runtime.nodeAvailable &&
+              runtime.npmAvailable &&
+              !runtime.edwinpaiAvailable && (
+                <Button
+                  type="button"
+                  size="sm"
+                  className="mt-3"
+                  onClick={handleInstallGateway}
+                  disabled={installing}
+                >
+                  {installing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Package className="h-4 w-4 mr-2" />
+                  )}
+                  {installing
+                    ? "Installing Gateway..."
+                    : "Install Gateway via npm"}
+                </Button>
+              )}
+            {installError && (
+              <pre className="mt-3 whitespace-pre-wrap rounded bg-background p-2 text-xs text-destructive">
+                {installError}
+              </pre>
+            )}
+            {installOutput && !installError && (
+              <pre className="mt-3 max-h-32 overflow-auto whitespace-pre-wrap rounded bg-background p-2 text-xs text-muted-foreground">
+                {installOutput}
+              </pre>
+            )}
           </div>
         )}
         {!runtime.ready && (isRemoteGateway || gatewayReachable) && (

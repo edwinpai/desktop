@@ -133,6 +133,7 @@ pub fn run() {
             commands::providers::add_provider,
             commands::providers::remove_provider,
             commands::runtime::check_runtime,
+            commands::runtime::install_gateway_runtime,
             commands::ssh_tunnel::cleanup_ssh_tunnel_port,
             commands::knowledge::knowledge_list_sources,
             commands::knowledge::knowledge_list_disciplines,
